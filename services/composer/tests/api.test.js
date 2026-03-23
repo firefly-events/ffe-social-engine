@@ -7,7 +7,15 @@ describe('Composer Endpoints', () => {
     expect(res.status).toBe(400);
   });
 
-  it('POST /compose accepts valid payload', async () => {
+  it('POST /compose invalidates bad URLs', async () => {
+    const res = await request(app).post('/compose').send({
+      audio_url: 'not-a-valid-url'
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Invalid audio_url');
+  });
+
+  it('POST /compose accepts valid payload and GET /compose/:id returns status', async () => {
     const res = await request(app).post('/compose').send({
       audio_url: 'http://example.com/audio.wav',
       video_url: 'http://example.com/video.mp4',
@@ -17,5 +25,19 @@ describe('Composer Endpoints', () => {
     expect(res.status).toBe(202);
     expect(res.body.status).toBe('processing');
     expect(res.body.id).toBeDefined();
+
+    const id = res.body.id;
+
+    // Test the status endpoint
+    const statusRes = await request(app).get(`/compose/${id}`);
+    expect(statusRes.status).toBe(200);
+    // Because it's a test environment, it gets marked completed immediately
+    expect(statusRes.body.status).toBe('completed');
+    expect(statusRes.body.result_url).toBe(`/output/${id}.mp4`);
+  });
+
+  it('GET /compose/:id returns 404 for unknown job', async () => {
+    const res = await request(app).get('/compose/unknown-id');
+    expect(res.status).toBe(404);
   });
 });
