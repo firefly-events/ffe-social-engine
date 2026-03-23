@@ -1,6 +1,13 @@
 fastapi>=0.100.0
 uvicorn>=0.23.0
 pydantic>=2.0.0
+python-multipart>=0.0.6
 pytest
 httpx
 ruff
+
+# TTS and PyTorch are required for actual inference.
+# Ensure you install PyTorch with MPS support natively on Mac.
+TTS>=0.22.0
+torch>=2.0.0
+torchaudio>=2.0.0
