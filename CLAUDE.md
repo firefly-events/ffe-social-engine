@@ -4,7 +4,7 @@ AI-powered social content creation platform for Firefly Events.
 
 ## Architecture
 - **Monorepo**: pnpm workspaces + Turborepo
-- **Apps**: Next.js dashboard, Express API gateway
+- **Apps**: Next.js 16 dashboard, Express API gateway
 - **Services**: Python FastAPI (voice-gen, visual-gen), Node.js (composer, text-gen)
 - **Packages**: Shared types (core), Prisma DB layer (db)
 
