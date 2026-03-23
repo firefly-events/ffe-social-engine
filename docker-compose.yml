@@ -3,6 +3,7 @@ version: '3.8'
 services:
   postgres:
     image: postgres:15
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -13,11 +14,12 @@ services:
       timeout: 5s
       retries: 5
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
 
   api-gateway:
     build:
       context: ./apps/api-gateway
+    restart: unless-stopped
     ports:
       - "3001:3000"
     healthcheck:
@@ -32,6 +34,7 @@ services:
   dashboard:
     build:
       context: ./apps/dashboard
+    restart: unless-stopped
     ports:
       - "3002:3000"
     healthcheck:
@@ -43,6 +46,7 @@ services:
   composer:
     build:
       context: ./services/composer
+    restart: unless-stopped
     ports:
       - "3003:3000"
     healthcheck:
@@ -54,6 +58,7 @@ services:
   text-gen:
     build:
       context: ./services/text-gen
+    restart: unless-stopped
     ports:
       - "3004:3000"
     healthcheck:
@@ -65,6 +70,7 @@ services:
   visual-gen:
     build:
       context: ./services/visual-gen
+    restart: unless-stopped
     ports:
       - "8001:8000"
     healthcheck:
@@ -76,6 +82,7 @@ services:
   voice-gen:
     build:
       context: ./services/voice-gen
+    restart: unless-stopped
     ports:
       - "8002:8000"
     healthcheck:

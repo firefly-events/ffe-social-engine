@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+          
+      - name: Install Node dependencies
+        run: pnpm install
+        
+      - name: Lint Node
+        run: pnpm run --recursive --if-present lint
+        
+      - name: Test Node
+        run: pnpm run --recursive --if-present test
+        
+      - name: Install Python dependencies
+        run: |
+          pip install -r services/visual-gen/requirements.txt
+          pip install -r services/voice-gen/requirements.txt
+          
+      - name: Lint Python
+        run: |
+          cd services/visual-gen && ruff check .
+          cd ../voice-gen && ruff check .
+          
+      - name: Test Python
+        run: |
+          cd services/visual-gen && pytest
+          cd ../voice-gen && pytest

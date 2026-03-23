@@ -1,1 +1,18 @@
-{"name": "@ffe/api-gateway", "version": "0.1.0", "private": true, "scripts": {"start": "node index.js", "build": "echo build", "test": "echo test", "lint": "echo lint"}}
+{
+  "name": "@ffe/api-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node index.js",
+    "build": "echo build",
+    "test": "jest",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "supertest": "^6.3.3"
+  }
+}
