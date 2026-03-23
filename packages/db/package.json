@@ -1,10 +1,25 @@
 {
   "name": "@ffe/db",
   "version": "0.1.0",
+  "main": "index.js",
   "private": true,
   "scripts": {
-    "build": "echo build",
-    "test": "echo \"No tests\"",
-    "lint": "eslint ."
+    "build": "prisma generate",
+    "test": "jest",
+    "lint": "eslint .",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "jest": "^29.5.0",
+    "jest-mock-extended": "^4.0.0",
+    "prisma": "^5.0.0"
+  },
+  "prisma": {
+    "seed": "node seed.js"
   }
 }
