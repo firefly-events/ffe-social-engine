@@ -3,16 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "node index.js",
-    "build": "echo build",
-    "test": "jest",
-    "lint": "eslint ."
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "echo \"No tests for Next.js app yet\""
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "next": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "jest": "^29.5.0",
-    "supertest": "^6.3.3"
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^14.0.0"
   }
 }
