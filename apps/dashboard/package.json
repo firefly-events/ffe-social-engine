@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "echo \"No tests for Next.js app yet\""
+    "test": "jest"
   },
   "dependencies": {
     "next": "^14.0.0",
@@ -15,7 +15,11 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "eslint": "^8.0.0",
-    "eslint-config-next": "^14.0.0"
+    "eslint-config-next": "^14.0.0",
+    "jest": "^29.5.0",
+    "jest-environment-jsdom": "^30.3.0"
   }
 }
