@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Content {
+  id          String    @id @default(uuid())
+  type        String
+  status      String
+  text        String?
+  audioUrl    String?
+  videoUrl    String?
+  platforms   String[]
+  scheduledAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  posts       Post[]
+}
+
+model Voice {
+  id        String   @id @default(uuid())
+  name      String
+  sampleUrl String?
+  modelPath String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Template {
+  id        String   @id @default(uuid())
+  name      String
+  type      String
+  config    Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Post {
+  id         String    @id @default(uuid())
+  contentId  String
+  content    Content   @relation(fields: [contentId], references: [id])
+  platform   String
+  status     String
+  postedAt   DateTime?
+  externalId String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
