@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "build": "prisma generate",
-    "test": "echo \"No tests\"",
+    "test": "jest",
     "lint": "eslint .",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed"
@@ -14,8 +14,10 @@
     "@prisma/client": "^5.0.0"
   },
   "devDependencies": {
-    "prisma": "^5.0.0",
-    "eslint": "^8.0.0"
+    "eslint": "^8.0.0",
+    "jest": "^29.5.0",
+    "jest-mock-extended": "^4.0.0",
+    "prisma": "^5.0.0"
   },
   "prisma": {
     "seed": "node seed.js"
