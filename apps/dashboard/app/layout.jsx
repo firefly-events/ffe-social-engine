@@ -19,6 +19,7 @@ export default function RootLayout({ children }) {
             <a href="/create" style={{ color: 'white', textDecoration: 'none' }}>Create</a>
             <a href="/voices" style={{ color: 'white', textDecoration: 'none' }}>Voices</a>
             <a href="/templates" style={{ color: 'white', textDecoration: 'none' }}>Templates</a>
+            <a href="/pricing" style={{ color: 'white', textDecoration: 'none' }}>Pricing</a>
             <div style={{ marginLeft: 'auto' }}>
               <SignedOut>
                 <SignInButton mode="modal">
