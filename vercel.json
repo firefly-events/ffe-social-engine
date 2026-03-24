@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd ../.. && pnpm turbo run build --filter=@ffe/dashboard",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "outputDirectory": "apps/dashboard/.next",
+  "framework": "nextjs",
+  "rootDirectory": "apps/dashboard",
+  "ignoreCommand": "npx turbo-ignore @ffe/dashboard"
+}
