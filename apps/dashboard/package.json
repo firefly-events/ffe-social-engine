@@ -11,10 +11,11 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.6",
+    "@ffe/db": "workspace:*",
+    "@google/generative-ai": "^0.24.1",
     "next": "^16.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@ffe/db": "workspace:*",
     "stripe": "^20.4.1"
   },
   "devDependencies": {
