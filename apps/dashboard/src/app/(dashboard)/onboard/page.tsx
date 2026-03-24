@@ -300,7 +300,7 @@ const GENERATED_POSTS = [
     id: 'c',
     platform: 'Twitter/X',
     platformColor: 'bg-black',
-    text: 'Spoiler: the lineup we're dropping this Friday is going to break the internet. Set your alarm. 🔥',
+    text: "Spoiler: the lineup we're dropping this Friday is going to break the internet. Set your alarm. 🔥",
     hashtags: '#FireflyEvents #SummerFest',
     type: 'Tweet',
   },
