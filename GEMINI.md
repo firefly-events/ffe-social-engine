@@ -16,7 +16,11 @@ You have access to these MCP servers — USE THEM:
 7. Run lint: `pnpm lint` (Node) and `ruff check .` (Python)
 8. Fix any failures
 9. Commit, push, create PR to main
-10. Move ticket to "QA Testing" on Linear
+10. **AFTER creating a PR**:
+    - Move ticket to "In Review" (or "QA Testing" if appropriate) immediately
+    - If PR has CI checks, wait for them or note "CI pending" in ticket comment
+    - NEVER leave a ticket in Agent Queue after PR exists
+11. Move ticket to "QA Testing" on Linear
 11. **Comment on ticket** with: PR link, what changed, test results, any screenshots/wireframes
 12. Pick the next ticket and repeat
 
