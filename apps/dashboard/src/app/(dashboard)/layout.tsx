@@ -26,6 +26,16 @@ const navItems: Array<{ label: string; href: string; icon: React.ReactNode; badg
     badge: 'New',
   },
   {
+    label: 'Voice',
+    href: '/voice',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+      </svg>
+    ),
+    badge: 'AI',
+  },
+  {
     label: 'Schedule',
     href: '/schedule',
     icon: (
@@ -99,7 +109,7 @@ function SidebarContent({
           <p className="px-3 text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
             Main
           </p>
-          {allNavItems.slice(0, 4).map((item) => {
+          {allNavItems.slice(0, 5).map((item) => {
             const isActive =
               item.href === '/dashboard'
                 ? pathname === '/dashboard' || pathname === '/'
@@ -131,7 +141,7 @@ function SidebarContent({
           <p className="px-3 text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 mt-4">
             Account
           </p>
-          {allNavItems.slice(4).map((item) => {
+          {allNavItems.slice(5).map((item) => {
             const isActive = pathname.startsWith(item.href)
             const isAdminItem = item.href === '/admin'
             return (
@@ -207,6 +217,7 @@ export default function DashboardLayout({
   const pageTitles: Record<string, string> = {
     '/dashboard': 'Dashboard',
     '/create': 'Create Content',
+    '/voice': 'Voice Cloning',
     '/schedule': 'Schedule',
     '/analytics': 'Analytics',
     '/settings': 'Settings',
