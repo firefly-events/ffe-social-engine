@@ -1,26 +1,36 @@
 {
   "name": "@ffe/db",
   "version": "0.1.0",
-  "main": "index.js",
   "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "prisma generate",
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "tsc --noEmit",
     "test": "jest",
-    "lint": "eslint .",
-    "db:migrate": "prisma migrate dev",
-    "db:seed": "prisma db seed"
+    "db:seed": "node seed.js"
   },
   "dependencies": {
-    "@prisma/client": "^5.0.0",
-    "mongodb": "^7.1.1"
+    "@ffe/core": "workspace:*",
+    "mongoose": "^8.0.0"
   },
   "devDependencies": {
+    "@types/node": "^20.0.0",
     "eslint": "^8.0.0",
     "jest": "^29.5.0",
     "jest-mock-extended": "^4.0.0",
-    "prisma": "^5.0.0"
-  },
-  "prisma": {
-    "seed": "node seed.js"
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.0"
   }
 }

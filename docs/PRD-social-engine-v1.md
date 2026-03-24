@@ -64,31 +64,40 @@ No competitor combines AI content creation + scheduling + direct posting + analy
 
 ## 2. Pricing (6 Tiers)
 
+> **Pricing direction (2026-03-24):** Top tiers being pushed UP. We massively undercut Hootsuite ($99-249/seat), Sprout Social ($199-399/seat), and Sprinklr ($299+/seat) while offering AI generation they don't have. Final pricing TBD after competitive positioning research with Don. Below is the working model.
+
 All 6 tiers are approved. Annual pricing is 20% off monthly.
 
-| Tier | Monthly | Annual (20% off) | AI Captions | Videos | Posts | Voice Clones | Key Features |
-|---|---|---|---|---|---|---|---|
-| **Free** | $0 | - | 5/mo | 1/mo | 0 | 0 | Export only (copy/download) |
-| **Starter** | $9.99 | $95.90/yr | 50/mo | 5/mo | 0 | 0 | Unlimited exports |
-| **Basic** | $14.99 | $143.90/yr | 100/mo | 10/mo | 30/mo | 0 | Direct posting, scheduling |
-| **Pro** | $29.99 | $287.90/yr | 500/mo | 25/mo | 100/mo | 5 | Automations, analytics |
-| **Business** | $100.00 | $960.00/yr | 2,000/mo | 100/mo | 500/mo | 20 | Priority support, advanced analytics |
-| **Agency** | $299.00 | $2,870.40/yr | Unlimited* | Unlimited* | Unlimited* | 50 | White-label, API access |
+| Tier | Monthly | Annual (20% off) | AI Captions | Videos | Posts | Platforms | Voice Clones | Key Features |
+|---|---|---|---|---|---|---|---|---|
+| **Free** | $0 | - | 5/mo | 1/mo | 0 | 0 | 0 | Export only (copy/download) |
+| **Starter** | $9.99 | $95.90/yr | 50/mo | 5/mo | 0 | 0 | 0 | Unlimited exports |
+| **Basic** | $14.99 | $143.90/yr | 100/mo | 10/mo | 30/mo | 3 | 0 | Direct posting, scheduling |
+| **Pro** | $29.99 | $287.90/yr | 500/mo | 25/mo | 100/mo | 5 | 5 | Automations, analytics, DMs |
+| **Business** | $300.00 | $2,880.00/yr | 2,000/mo | 100/mo | 500/mo | All | 20 | Priority support, advanced analytics, white-label |
+| **Enterprise** | $750+ / Talk to Us | Custom | Unlimited* | Unlimited* | Unlimited* | All + API | 50+ | Dedicated AM, custom integrations, SLA |
 
-*Agency "Unlimited" is subject to Fair Use Caps (see below).
+*Enterprise "Unlimited" is subject to Fair Use Caps (see below).
 
-### Fair Use Caps (Agency Tier)
+### Fair Use Caps (Enterprise Tier)
 
-To prevent abuse, the Agency tier has soft caps:
+To prevent abuse, the Enterprise tier has soft caps:
 
 | Resource | Soft Cap | Overage Rate |
 |---|---|---|
-| Captions | 5,000/mo | $0.01 per caption |
-| Videos | 250/mo | $0.20 per video |
-| Posts | 2,500/mo | $0.05 per post |
+| Captions | 10,000/mo | $0.01 per caption |
+| Videos | 500/mo | $0.20 per video |
+| Posts | 5,000/mo | $0.05 per post |
 | Voice Clones | 50 active | Contact sales |
 
 Throttling applied beyond caps. Overage billed automatically via Stripe metered billing.
+
+### Launch Strategy: Export-First
+- **v1 launch:** Free + Starter = export only. No Zernio cost for these users.
+- **v1.1:** Basic tier activates posting via Zernio. Users connect platforms via OAuth.
+- Providers toggled on/off per user. Platform count gated by tier.
+- Analytics and Comments+DMs are add-ons / tier-gated (Pro+ for analytics, Business+ for DMs).
+- Cached sessions and working history are tier-gated upsells (see UX section).
 
 ### Cost Per Operation (Margin Analysis)
 
@@ -136,7 +145,7 @@ Throttling applied beyond caps. Overage billed automatically via Stripe metered 
 | Auth Provider | Clerk Pro ($25/mo) | Individual users, NO orgs in v1 |
 | Auth Mode | App Router middleware | `@clerk/nextjs` v7+ |
 | Session | Clerk session tokens | JWT-based, server-side validation |
-| Billing Auth | Stripe direct | NOT Clerk Billing — Stripe handles all payment |
+| Billing | Clerk Billing (v1) | Stripe under the hood, zero glue code. Migrate to Stripe direct when metered billing needed. |
 
 **Why Clerk over Firebase Auth:** Social Engine is a standalone product. Shindig uses Firebase Auth. Using Clerk keeps the products completely independent. Clerk Pro provides the user management dashboard, webhooks, and compliance features needed for a SaaS without building them.
 
@@ -144,11 +153,27 @@ Throttling applied beyond caps. Overage billed automatically via Stripe metered 
 
 | Component | Technology | Notes |
 |---|---|---|
-| Payment | Stripe | Direct integration, not through Clerk |
-| Subscriptions | Stripe Billing | 6 products, monthly + annual prices |
-| Metered Billing | Stripe Usage Records | Agency overage tracking |
-| Webhooks | Stripe Webhooks | `checkout.session.completed`, `customer.subscription.*` |
-| Checkout | Stripe Checkout (hosted) | Redirect-based, not embedded |
+| Payment | Clerk Billing | Uses Stripe under the hood, fully integrated with Clerk auth |
+| Subscriptions | Clerk Billing | 6 plans, monthly + annual prices, managed in Clerk Dashboard |
+| Entitlements | Clerk JWT claims | `auth.has({ plan: 'pro' })` — zero custom code, in session token |
+| Pricing UI | `<PricingTable />` | Clerk's built-in pricing table component |
+| Trials | Clerk Billing | Free trials for paid tiers — live now |
+| Add-ons | Clerk Billing (coming soon) | Paid add-on features for analytics, DMs, extra platforms |
+| Metered Billing | Clerk Billing (coming soon, top priority) | Usage-based billing for generation overages |
+| Coupons | Clerk Billing (coming soon) | Discount codes for launch promos |
+
+**Why Clerk Billing (full commitment, not just v1):**
+- Zero integration code — auth + billing in one system, no Stripe webhook plumbing
+- Entitlements in JWT — `auth.has({ plan: 'pro' })` works server + client, no sync
+- `<PricingTable />` component — free, production-ready pricing UI
+- Free trials — live now, great for conversion
+- Paid add-ons — on Clerk roadmap (analytics, DMs, extra platforms as add-ons)
+- Metered/usage-based billing — marked "top priority" on Clerk roadmap (Enterprise overages)
+- Coupons & discounts — coming soon (launch promos)
+- Per-seat billing — coming soon (Agency tier potential)
+- Feature gating is SEPARATE from billing — our MongoDB feature flags handle granular per-user toggles, deals, enterprise overrides independently of what tier they pay for
+- Stripe is underneath — if Clerk ever falls short, we can drop to Stripe direct without data migration
+- 3.6% + $0.30 per transaction (0.7% Clerk + 2.9% Stripe) — same ballpark as Stripe direct at our scale
 
 ### Database
 
