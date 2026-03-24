@@ -30,6 +30,10 @@ pnpm lint       # Lint all packages
 - Commit format: `feat(service-name): description` or `fix(service-name): description`
 - Each service has its own Dockerfile
 - Shared types go in `packages/core`
+- **AFTER creating a PR**:
+  1. Move ticket to "In Review" immediately
+  2. If PR has CI checks, wait for them or note "CI pending" in ticket comment
+  3. NEVER leave a ticket in Agent Queue after PR exists
 
 ## Linear Project
 FFE Social Engine — tickets FIR-1139 through FIR-1149+
