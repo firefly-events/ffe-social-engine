@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import Home from '../app/page';
+import Home from '../app/(marketing)/page';
 import { redirect } from 'next/navigation';
 
 jest.mock('next/navigation', () => ({
