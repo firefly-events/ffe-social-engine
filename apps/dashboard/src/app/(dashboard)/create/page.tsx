@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { generateContent, getMockContent, type Platform, type Tone, type PlatformContent } from '@/app/actions/generate'
+import type { ContentExport } from '@/types/export'
 
 type TabId = 'chat' | 'wizard' | 'pipeline'
 
@@ -365,10 +366,12 @@ function AiResponseCard({
   msg,
   onExportJson,
   onExportText,
+  onExportModal,
 }: {
   msg: AiMessage
   onExportJson: (content: Partial<Record<Platform, PlatformContent>>) => void
   onExportText: (content: Partial<Record<Platform, PlatformContent>>) => void
+  onExportModal: (content: Partial<Record<Platform, PlatformContent>>) => void
 }) {
   const platforms = Object.keys(msg.content) as Platform[]
   const [activeTab, setActiveTab] = useState<Platform>(platforms[0])
@@ -415,6 +418,16 @@ function AiResponseCard({
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               JSON
+            </button>
+            <button
+              onClick={() => onExportModal(msg.content)}
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-purple-600 hover:text-purple-800 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors border border-purple-200"
+              title="Open export options"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              Export
             </button>
           </div>
         </div>
@@ -510,6 +523,24 @@ function ChatModePanel() {
     a.download = `social-content-${Date.now()}.txt`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  const [exportModalData, setExportModalData] = useState<ContentExport | null>(null)
+
+  const handleExportModal = (content: Partial<Record<Platform, PlatformContent>>) => {
+    const variants = Object.entries(content).map(([platform, data]) => ({
+      platform:    platform.toLowerCase() as ContentExport['variants'][number]['platform'],
+      text:        data.caption,
+      hashtags:    data.hashtags,
+      callToAction: data.callToAction,
+    }))
+    const exportData: ContentExport = {
+      id:          crypto.randomUUID(),
+      title:       variants[0]?.text.slice(0, 60) ?? 'Untitled',
+      variants,
+      generatedAt: new Date().toISOString(),
+    }
+    setExportModalData(exportData)
   }
 
   const send = useCallback(
@@ -614,6 +645,7 @@ function ChatModePanel() {
   const isEmpty = messages.length === 0
 
   return (
+    <>
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-280px)] min-h-[500px]">
       {/* Main chat column */}
       <div className="flex-1 flex flex-col min-w-0 card overflow-hidden">
@@ -709,6 +741,7 @@ function ChatModePanel() {
                       msg={msg}
                       onExportJson={handleExportJson}
                       onExportText={handleExportText}
+                      onExportModal={handleExportModal}
                     />
                   )
                 }
@@ -893,7 +926,51 @@ function ChatModePanel() {
         </div>
       </div>
     </div>
+
+    {exportModalData && (
+      <ExportModalLazy
+        content={exportModalData}
+        onClose={() => setExportModalData(null)}
+      />
+    )}
+    </>
   )
+}
+
+// ── Lazy ExportModal wrapper for ChatModePanel ──────────────────────────────
+
+function ExportModalLazy({
+  content,
+  onClose,
+}: {
+  content: ContentExport
+  onClose: () => void
+}) {
+  const [Modal, setModal] = useState<React.ComponentType<{
+    content: ContentExport
+    onClose: () => void
+  }> | null>(null)
+
+  useState(() => {
+    import('@/components/ExportModal').then((m) => {
+      setModal(() => m.default)
+    })
+  })
+
+  if (!Modal) {
+    return (
+      <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+        <div className="bg-white rounded-xl p-8 shadow-xl">
+          <svg className="w-6 h-6 animate-spin text-purple-600 mx-auto" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        </div>
+      </div>
+    )
+  }
+
+  return <Modal content={content} onClose={onClose} />
 }
 
 function WizardModePanel() {
