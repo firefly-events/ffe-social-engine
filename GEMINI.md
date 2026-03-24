@@ -44,8 +44,8 @@ You have access to these MCP servers — USE THEM:
 
 ## Key Architecture (from PRD v3)
 - **Auth**: Clerk Pro (individual users, no Orgs in v1)
-- **Billing**: Stripe direct, 5 tiers: Free/$9.99/$14.99/$29.99/$299
-- **Social Posting**: bundle.social Pro ($100/mo, unlimited profiles)
+- **Billing**: Stripe direct, 6 tiers: Free/$9.99/$14.99/$29.99/$299/Enterprise
+- **Social Posting**: Zernio ($33/mo → $667/mo unlimited at 50 users)
 - **Token Vault**: MongoDB (encrypted OAuth tokens)
 - **Free tier**: Export-only (copy caption + download video, no direct posting)
 - **Guided Unlock Wizard**: Try-one-free mechanic per feature per user
