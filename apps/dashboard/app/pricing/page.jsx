@@ -152,7 +152,7 @@ export default function PricingPage() {
                 marginTop: '1.5rem'
               }}
             >
-              {tier.id === 'free' ? 'Get Started' : `Upgrade to ${tier.name}`}
+              {tier.id === 'free' ? 'Current Plan' : `Upgrade to ${tier.name}`}
             </button>
           </div>
         ))}

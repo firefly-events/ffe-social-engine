@@ -24,7 +24,6 @@ model Content {
   userId      String?
   user        User?     @relation(fields: [userId], references: [id])
   type        String
-...
   status      String
   text        String?
   audioUrl    String?
