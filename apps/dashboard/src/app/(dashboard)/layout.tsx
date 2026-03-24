@@ -26,6 +26,16 @@ const navItems: Array<{ label: string; href: string; icon: React.ReactNode; badg
     badge: 'New',
   },
   {
+    label: 'Sessions',
+    href: '/sessions',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+      </svg>
+    ),
+    badge: 'New',
+  },
+  {
     label: 'Voice',
     href: '/voice',
     icon: (
@@ -34,6 +44,26 @@ const navItems: Array<{ label: string; href: string; icon: React.ReactNode; badg
       </svg>
     ),
     badge: 'AI',
+  },
+  {
+    label: 'Workflows',
+    href: '/workflows',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2v-4M9 21H5a2 2 0 01-2-2v-4m0 0h18" />
+      </svg>
+    ),
+    badge: 'New',
+  },
+  {
+    label: 'Preview',
+    href: '/preview',
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+      </svg>
+    ),
+    badge: 'New',
   },
   {
     label: 'Schedule',
@@ -109,7 +139,7 @@ function SidebarContent({
           <p className="px-3 text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
             Main
           </p>
-          {allNavItems.slice(0, 5).map((item) => {
+          {allNavItems.slice(0, 7).map((item) => {
             const isActive =
               item.href === '/dashboard'
                 ? pathname === '/dashboard' || pathname === '/'
@@ -141,7 +171,7 @@ function SidebarContent({
           <p className="px-3 text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2 mt-4">
             Account
           </p>
-          {allNavItems.slice(5).map((item) => {
+          {allNavItems.slice(7).map((item) => {
             const isActive = pathname.startsWith(item.href)
             const isAdminItem = item.href === '/admin'
             return (
@@ -217,7 +247,10 @@ export default function DashboardLayout({
   const pageTitles: Record<string, string> = {
     '/dashboard': 'Dashboard',
     '/create': 'Create Content',
+    '/sessions': 'Sessions',
     '/voice': 'Voice Cloning',
+    '/workflows': 'Workflows',
+    '/preview': 'Platform Preview',
     '/schedule': 'Schedule',
     '/analytics': 'Analytics',
     '/settings': 'Settings',
