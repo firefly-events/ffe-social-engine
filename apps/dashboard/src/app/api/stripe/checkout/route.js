@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { stripe, TIERS } from '../../../../../lib/stripe';
+import { stripe, TIERS } from '../../../../lib/stripe';
 
 export async function POST(req) {
   const { userId } = await auth();
