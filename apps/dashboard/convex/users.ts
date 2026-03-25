@@ -65,13 +65,15 @@ export const markFreeTrialUsed = mutation({
       .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
       .first();
 
-    if (existingUser) {
-      const usedFreeTrials = existingUser.usedFreeTrials || [];
-      if (!usedFreeTrials.includes(args.feature)) {
-        await ctx.db.patch(existingUser._id, {
-          usedFreeTrials: [...usedFreeTrials, args.feature],
-        });
-      }
+    if (!existingUser) {
+      throw new Error("User not found for clerkId");
+    }
+
+    const usedFreeTrials = existingUser.usedFreeTrials || [];
+    if (!usedFreeTrials.includes(args.feature)) {
+      await ctx.db.patch(existingUser._id, {
+        usedFreeTrials: [...usedFreeTrials, args.feature],
+      });
     }
   },
 });

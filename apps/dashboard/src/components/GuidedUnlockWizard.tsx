@@ -54,10 +54,10 @@ export function GuidedUnlockWizard({
     setIsProcessing(true);
     try {
       await onRunTrial();
-      setStep(2);
       if (user) {
         await markTrialUsed({ clerkId: user.id, feature: featureId });
       }
+      setStep(2);
     } catch (e) {
       console.error(e);
       alert("Something went wrong");

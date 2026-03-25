@@ -7,13 +7,34 @@ export default function VoicesPage() {
   const [output, setOutput] = useState<string | null>(null);
 
   const handleRunVoiceClone = async () => {
-    // Simulate a voice clone generation process
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        setOutput("https://example.com/generated-voice-sample.mp3");
-        resolve();
-      }, 2000);
-    });
+    try {
+      const response = await fetch("/api/voice/clone", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "Test Voice",
+          audioData: "dGVzdA==", // base64 encoded "test"
+          mimeType: "audio/mp3",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to clone voice");
+      }
+
+      const data = await response.json();
+      if (data.sampleUrl) {
+        setOutput(data.sampleUrl);
+      } else {
+        throw new Error("No URL returned from voice clone API");
+      }
+    } catch (error) {
+      console.error("Voice clone error:", error);
+      alert("Failed to clone voice.");
+      throw error;
+    }
   };
 
   return (
