@@ -1,0 +1,59 @@
+name: Deploy n8n to Cloud Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deploy environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options: [dev, prod]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GCP_PROJECT: ffe-cicd
+  REGION: us-central1
+  WIF_PROVIDER: projects/817549545781/locations/global/workloadIdentityPools/ffe-github-pool/providers/github-actions
+  WIF_SERVICE_ACCOUNT: ffe-cicd-deployer@ffe-cicd.iam.gserviceaccount.com
+
+jobs:
+  deploy:
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - id: secrets
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            zernio-api-key:ffe-cicd/social-engine-dev-zernio-api-key
+
+      # Cloud Run source deploy — builds from Dockerfile automatically
+      - name: Deploy to Cloud Run (source)
+        env:
+          DEPLOY_ENV: ${{ inputs.environment }}
+          ZERNIO_KEY: ${{ steps.secrets.outputs.zernio-api-key }}
+        run: |
+          gcloud run deploy "social-engine-n8n-$DEPLOY_ENV" \
+            --source docker/n8n/ \
+            --region "$REGION" \
+            --project "$GCP_PROJECT" \
+            --allow-unauthenticated \
+            --port 5678 \
+            --memory 512Mi \
+            --cpu 1 \
+            --min-instances 0 \
+            --max-instances 1 \
+            --set-env-vars "ZERNIO_API_KEY=$ZERNIO_KEY,N8N_BASIC_AUTH_ACTIVE=true,GENERIC_TIMEZONE=America/Chicago"
