@@ -51,6 +51,7 @@ jobs:
             convex-deploy-key:ffe-cicd/social-engine-dev-convex-deploy-key
             zernio-api-key:ffe-cicd/social-engine-dev-zernio-api-key
             sentry-dsn:ffe-cicd/social-engine-dev-sentry-dsn
+            posthog-key:ffe-cicd/social-engine-dev-posthog-key
 
       # Install dependencies
       - run: pnpm install --frozen-lockfile
@@ -70,6 +71,8 @@ jobs:
           CONVEX_DEPLOYMENT: ${{ steps.secrets.outputs.convex-deployment }}
           ZERNIO_API_KEY: ${{ steps.secrets.outputs.zernio-api-key }}
           NEXT_PUBLIC_SENTRY_DSN: ${{ steps.secrets.outputs.sentry-dsn }}
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ steps.secrets.outputs.posthog-key }}
+          NEXT_PUBLIC_POSTHOG_HOST: https://us.posthog.com
           SENTRY_DSN: ${{ steps.secrets.outputs.sentry-dsn }}
           SENTRY_ORG: firefly-events-inc
           SENTRY_PROJECT: social-engine
