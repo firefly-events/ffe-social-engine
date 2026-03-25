@@ -1,0 +1,61 @@
+{
+  "name": "Scheduled Zernio Post",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "post",
+        "profileId": "={{$json[\"profileId\"]}}",
+        "content": "Hello from n8n! This is a scheduled post via Zernio.",
+        "platforms": [
+          "twitter",
+          "linkedin"
+        ]
+      },
+      "name": "Zernio",
+      "type": "n8n-nodes-zernio.zernio",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ],
+      "credentials": {
+        "zernioApi": {
+          "id": "1",
+          "name": "Zernio account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Zernio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}
