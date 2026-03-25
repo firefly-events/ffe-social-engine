@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install Node dependencies
+        run: pnpm install
+
+      - name: Lint Node
+        run: pnpm run --recursive --if-present lint
+
+      - name: Test Node
+        run: pnpm run --recursive --if-present test
+
+      - name: Install Python dependencies
+        run: |
+          pip install -r services/visual-gen/requirements.txt
+          pip install -r services/voice-gen/requirements.txt
+
+      - name: Lint Python
+        run: |
+          cd services/visual-gen && ruff check .
+          cd ../voice-gen && ruff check .
+
+      - name: Test Python
+        run: |
+          cd services/visual-gen && pytest
+          cd ../voice-gen && pytest
+
+  build:
+    runs-on: ubuntu-latest
+    env:
+      # Stub env vars so turbo build doesn't fail on missing keys
+      # Real values are injected by Vercel at deploy time
+      CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'sk_test_stub_for_ci' }}
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_stub_for_ci' }}
+      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+      NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+      NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /dashboard
+      NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /dashboard
+      NEXT_PUBLIC_CONVEX_URL: ${{ secrets.NEXT_PUBLIC_CONVEX_URL || 'https://stub.convex.cloud' }}
+      CONVEX_DEPLOYMENT: ${{ secrets.CONVEX_DEPLOYMENT || 'stub-deployment' }}
+      ZERNIO_API_KEY: ${{ secrets.ZERNIO_API_KEY || 'stub_zernio_key' }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY || 'stub_google_key' }}
+      NEXT_PUBLIC_APP_URL: https://social-engine-five.vercel.app
+      NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY || 'phc_stub' }}
+      NEXT_PUBLIC_POSTHOG_HOST: https://app.posthog.com
+      NODE_ENV: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install Node dependencies
+        run: pnpm install
+
+      - name: Build dashboard (turbo)
+        run: pnpm turbo run build --filter=@ffe/dashboard
+
+  deploy-convex:
+    runs-on: ubuntu-latest
+    # Only deploy Convex schema on pushes to main (not PRs)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [lint-and-test, build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Install Node dependencies
+        run: pnpm install
+
+      - name: Deploy Convex schema (prod)
+        working-directory: apps/dashboard
+        env:
+          CONVEX_DEPLOY_KEY: ${{ secrets.CONVEX_DEPLOY_KEY }}
+        run: npx convex deploy --cmd 'pnpm build'
