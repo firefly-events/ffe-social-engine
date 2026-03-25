@@ -1,12 +1,12 @@
 import {
   ClerkProvider,
   SignInButton,
-  SignedIn,
-  SignedOut,
   UserButton
 } from '@clerk/nextjs'
+import { auth } from '@clerk/nextjs/server'
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const { userId } = await auth();
   return (
     <ClerkProvider>
       <html lang="en">
@@ -21,14 +21,13 @@ export default function RootLayout({ children }) {
             <a href="/templates" style={{ color: 'white', textDecoration: 'none' }}>Templates</a>
             <a href="/pricing" style={{ color: 'white', textDecoration: 'none' }}>Pricing</a>
             <div style={{ marginLeft: 'auto' }}>
-              <SignedOut>
+              {!userId ? (
                 <SignInButton mode="modal">
-                  <button style={{ color: 'white', backgroundColor: 'transparent', border: 'none', cursor: 'pointer' }}>Sign In</button>
+                  <button style={{ padding: '0.5rem 1rem', cursor: 'pointer' }}>Sign In</button>
                 </SignInButton>
-              </SignedOut>
-              <SignedIn>
+              ) : (
                 <UserButton afterSignOutUrl="/" />
-              </SignedIn>
+              )}
             </div>
           </nav>
           <main style={{ padding: '2rem' }}>
