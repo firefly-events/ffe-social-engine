@@ -6,9 +6,23 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+model User {
+  id                     String    @id // Clerk user ID
+  email                  String    @unique
+  name                   String?
+  tier                   String    @default("FREE")
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?   @unique
+  currentPeriodEnd       DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  contents               Content[]
+}
 
 model Content {
   id          String    @id @default(uuid())
+  userId      String?
+  user        User?     @relation(fields: [userId], references: [id])
   type        String
   status      String
   text        String?
