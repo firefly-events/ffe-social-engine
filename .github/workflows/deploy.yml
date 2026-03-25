@@ -1,0 +1,96 @@
+name: Deploy Social Engine
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write  # Required for WIF
+
+env:
+  GCP_PROJECT: ffe-cicd
+  WIF_PROVIDER: projects/817549545781/locations/global/workloadIdentityPools/ffe-github-pool/providers/github-actions
+  WIF_SERVICE_ACCOUNT: ffe-cicd-deployer@ffe-cicd.iam.gserviceaccount.com
+  VERCEL_ORG_ID: team_9LvKhV1a433uROYAAXl6lbhV
+  VERCEL_PROJECT_ID: prj_JSD2sPXbFcJuYQZutwdbV8FGBMj7
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      # Authenticate to GCP via Workload Identity Federation
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
+
+      # Pull secrets from GCP Secret Manager
+      - id: secrets
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            clerk-publishable-key:ffe-cicd/social-engine-dev-clerk-publishable-key
+            clerk-secret-key:ffe-cicd/social-engine-dev-clerk-secret-key
+            convex-url:ffe-cicd/social-engine-dev-convex-url
+            convex-deployment:ffe-cicd/social-engine-dev-convex-deployment
+            convex-deploy-key:ffe-cicd/social-engine-dev-convex-deploy-key
+            zernio-api-key:ffe-cicd/social-engine-dev-zernio-api-key
+            sentry-dsn:ffe-cicd/social-engine-dev-sentry-dsn
+
+      # Install dependencies
+      - run: pnpm install --frozen-lockfile
+
+      # Deploy Convex schema
+      - name: Deploy Convex
+        env:
+          CONVEX_DEPLOY_KEY: ${{ steps.secrets.outputs.convex-deploy-key }}
+        run: cd apps/dashboard && npx convex deploy --cmd "echo ok"
+
+      # Build with secrets injected from GCP SM
+      - name: Build
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ steps.secrets.outputs.clerk-publishable-key }}
+          CLERK_SECRET_KEY: ${{ steps.secrets.outputs.clerk-secret-key }}
+          NEXT_PUBLIC_CONVEX_URL: ${{ steps.secrets.outputs.convex-url }}
+          CONVEX_DEPLOYMENT: ${{ steps.secrets.outputs.convex-deployment }}
+          ZERNIO_API_KEY: ${{ steps.secrets.outputs.zernio-api-key }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ steps.secrets.outputs.sentry-dsn }}
+          SENTRY_DSN: ${{ steps.secrets.outputs.sentry-dsn }}
+          SENTRY_ORG: firefly-events-inc
+          SENTRY_PROJECT: social-engine
+          NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
+          NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
+          NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /dashboard
+          NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /dashboard
+          NEXT_PUBLIC_APP_URL: https://social-engine-five.vercel.app
+        run: pnpm turbo run build --filter=@ffe/dashboard
+
+      # Deploy to Vercel
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          IS_PROD: ${{ github.ref == 'refs/heads/main' }}
+        run: |
+          npx vercel pull --yes --token="$VERCEL_TOKEN"
+          if [ "$IS_PROD" = "true" ]; then
+            npx vercel build --prod --token="$VERCEL_TOKEN"
+            npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          else
+            npx vercel build --token="$VERCEL_TOKEN"
+            npx vercel deploy --prebuilt --token="$VERCEL_TOKEN"
+          fi
