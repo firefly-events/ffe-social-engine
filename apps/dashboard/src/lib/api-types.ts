@@ -5,7 +5,7 @@
  * Each store is annotated with the intended collection/table name.
  */
 
-import type { Platform } from '@/types/export'
+export type Platform = 'twitter' | 'linkedin' | 'instagram' | 'tiktok' | 'facebook' | 'youtube'
 import type { WorkflowNodeType } from '@/lib/workflow-types'
 
 // ── COMMON ────────────────────────────────────────────────────────────────────

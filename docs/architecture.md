@@ -214,3 +214,38 @@ All secrets vaulted in GCP Secret Manager (project: `ffe-cicd`). Naming: `social
 - [ ] Tailscale tunnel to hive
 - [ ] Cross-product API endpoints
 - [ ] Vercel server actions for edge operations
+
+## Deployment
+
+### Vercel Deployment (apps/dashboard)
+The Vercel configuration is defined in `apps/dashboard/vercel.json`.
+
+**Environment Variables Required in Vercel Dashboard:**
+- `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: Clerk client-side key
+- `CLERK_SECRET_KEY`: Clerk secret key
+- `CONVEX_DEPLOYMENT`: Convex deployment URL
+- `NEXT_PUBLIC_CONVEX_URL`: Convex public URL
+- `ZERNIO_API_KEY`: Zernio API Key
+- `STRIPE_SECRET_KEY`: Stripe API Key
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: Stripe publishable key
+
+### GCP + WIF Setup
+The infrastructure on GCP requires Workload Identity Federation (WIF) for secure deployments.
+
+**Setup WIF:**
+1. Create a GCP WIF Pool for GitHub Actions.
+2. Bind GitHub repository `firefly-events/ffe-social-engine` to the WIF Pool.
+3. Create a Service Account for WIF to impersonate (e.g., `social-engine-deployer@ffe-cicd.iam.gserviceaccount.com`).
+4. Grant the Service Account necessary roles: `roles/run.admin`, `roles/artifactregistry.writer`, `roles/iam.serviceAccountUser`.
+
+### n8n Deployment
+We deploy n8n to **Cloud Run** or **GCE** using Docker Compose.
+- GCE is preferred if persistent volumes for n8n local files are needed without setting up Cloud SQL/Cloud Storage for Cloud Run.
+- **Docker Compose Setup**: `docker/n8n/docker-compose.yml` configures n8n, redis, and potentially postgres.
+
+### Tailscale Setup
+To connect to the local GPU hardware (Hive Mac Studio):
+1. Install Tailscale on the n8n GCP deployment instances (either as a sidecar container in Cloud Run, or natively on GCE).
+2. Generate an ephemeral, reusable Auth Key from the Tailscale admin console.
+3. Ensure the GCP deployment nodes can resolve Hive's Tailnet IP or MagicDNS hostname.
+4. Set the `TAILSCALE_AUTH_KEY` in the deployment environment.

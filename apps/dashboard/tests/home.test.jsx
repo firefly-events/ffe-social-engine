@@ -1,9 +1,10 @@
 import { render } from '@testing-library/react';
-import Home from '../app/page';
+import Home from '../src/app/page';
 import { redirect } from 'next/navigation';
+import { vi, describe, it, expect } from 'vitest';
 
-jest.mock('next/navigation', () => ({
-  redirect: jest.fn(),
+vi.mock('next/navigation', () => ({
+  redirect: vi.fn(),
 }));
 
 describe('Home', () => {

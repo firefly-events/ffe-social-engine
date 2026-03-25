@@ -616,7 +616,7 @@ function ConfigPanel({
               <label className="block text-xs font-medium text-slate-400 mb-1.5">Tone</label>
               <select
                 value={(node.config as { tone?: string }).tone ?? 'professional'}
-                onChange={(e) => onUpdate({ config: { ...node.config, tone: e.target.value } })}
+                onChange={(e) => onUpdate({ config: { ...node.config, tone: e.target.value } as any })}
                 className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:border-purple-500"
               >
                 <option>professional</option>

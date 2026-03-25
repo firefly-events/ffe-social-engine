@@ -25,7 +25,8 @@ import type {
   CreateScheduleBody,
   ScheduleStatus,
 } from '@/lib/api-types'
-import type { Platform } from '@/types/export'
+
+type Platform = 'twitter' | 'linkedin' | 'instagram' | 'tiktok' | 'facebook' | 'youtube'
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 

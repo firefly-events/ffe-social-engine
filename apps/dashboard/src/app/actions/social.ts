@@ -3,7 +3,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { zernio } from '../../lib/zernio';
 import { fetchQuery } from 'convex/nextjs';
-import { api } from '../../../../../convex/_generated/api';
+import { api } from '../../../convex/_generated/api';
 
 export async function postToSocial(content: string, platforms: string[]) {
   const { userId } = await auth();
