@@ -1,6 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import TemplateCard from '../../../components/TemplateCard';
+import TemplateCard from '@/components/TemplateCard';
 
 export default function CreatePage() {
   const router = useRouter();
