@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.6",
-    "@ffe/db": "workspace:^",
+    "@ffe/db": "workspace:*",
+    "@google/generative-ai": "^0.24.1",
     "@sentry/nextjs": "^10.45.0",
     "convex": "^1.34.0",
     "next": "^16.2.1",

@@ -1,6 +1,12 @@
 import Stripe from 'stripe';
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy', {
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_dummy';
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.warn('STRIPE_SECRET_KEY is not defined in the environment variables, using dummy key for build');
+}
+
+export const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2024-06-20', // Using latest version
 });
 
