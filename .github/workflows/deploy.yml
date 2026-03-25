@@ -104,14 +104,14 @@ jobs:
 
       # Playwright E2E — runs against the deployed preview/prod URL
       - name: Install Playwright browsers
+        working-directory: apps/dashboard
         run: npx playwright install chromium --with-deps
 
       - name: Run Playwright smoke tests
+        working-directory: apps/dashboard
         env:
           PLAYWRIGHT_BASE_URL: ${{ steps.vercel-deploy.outputs.url }}
-        run: |
-          cd apps/dashboard
-          npx playwright test --reporter=github
+        run: npx playwright test --reporter=github
         continue-on-error: false
 
       - name: Upload Playwright report
