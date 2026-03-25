@@ -1,6 +1,7 @@
 import { ClerkProvider } from '@clerk/nextjs'
 import { PostHogProvider } from '@/providers/posthog'
 import { ConvexClientProvider } from '@/providers/convex'
+import { SentryErrorBoundary } from '@/components/error-boundary'
 
 export default function RootLayout({
   children,
@@ -23,7 +24,9 @@ export default function RootLayout({
                 <a href="/templates" style={{ color: 'white', textDecoration: 'none' }}>Templates</a>
               </nav>
               <main style={{ padding: '2rem' }}>
-                {children}
+                <SentryErrorBoundary>
+                  {children}
+                </SentryErrorBoundary>
               </main>
             </ConvexClientProvider>
           </ClerkProvider>
