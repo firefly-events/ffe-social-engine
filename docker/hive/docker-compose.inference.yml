@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  inference-api:
+    build:
+      context: ../../inference-api
+      dockerfile: Containerfile
+    image: inference-api:local
+    container_name: inference_api_service
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      - INFERENCE_API_KEY=${INFERENCE_API_KEY}
+      - INFERENCE_HMAC_SECRET=${INFERENCE_HMAC_SECRET}
+    networks:
+      - inference_bridge
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    volumes:
+      - /path/to/models:/models:ro
+      # Allow write to specific temporary directory if needed, 
+      # but instructions say read-only root FS, let's keep it strict.
+      # uvicorn doesn't need write by default.
+
+networks:
+  inference_bridge:
+    driver: bridge
+    internal: true
