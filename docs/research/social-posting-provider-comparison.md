@@ -82,13 +82,23 @@
 
 ---
 
-## Decision
+## Decision (REVISED 2026-03-23)
 
-**v1 (M2):** bundle.social Pro at $100/mo. Covers our needs for unlimited profiles and direct posting.
+bundle.social's 1,000 post/mo cap on the $100 Pro plan is a dealbreaker. A power user does 30+ posts/month. At 500 users that's 15,000+ posts/mo — bundle.social can't serve us past MVP.
 
-**Scale trigger:** When we exceed 1,000 posts/month, evaluate bundle.social Business ($400/mo) vs Zernio Unlimited ($667/mo) vs Ayrshare volume pricing.
+**Zernio is the long-term pick.**
 
-**Budget impact:** $100/mo social posting + $25/mo Clerk = $125/mo total platform overhead. Break-even at 13 users on Starter ($9.99/mo).
+| Phase | Users | Provider | Cost | Why |
+|---|---|---|---|---|
+| **MVP** (M2) | 0-50 | Zernio Accelerate | $33/mo | 50 profiles, no post cap, 600 req/min |
+| **Growth** | 50+ | Zernio Unlimited | $667/mo | Unlimited everything. Revenue covers it: 50 users × ~$15 avg = $750/mo |
+| **Scale** | 200+ | Zernio Unlimited (or Ayrshare volume) | $667/mo | Re-evaluate only if Zernio has reliability issues |
+
+**Why not bundle.social?** 1K posts/mo limit. Our ideal user does 30+ posts/mo. At just 34 power users we hit the cap. Business tier ($400/mo, 100K posts) works but Zernio unlimited at $667/mo has no post limits AND no profile limits. One clean jump at 50 users, no sliding scale.
+
+**Budget impact:** $33/mo social posting + $25/mo Clerk = $58/mo total platform overhead. Break-even at 6 users on Starter ($9.99/mo). At 50 users ($750/mo revenue), upgrade to Zernio Unlimited ($667/mo) and still profitable.
+
+**Note:** Marblism uses Ayrshare but doesn't support TikTok — we can do better. Ayrshare remains the backup at 200+ profiles if we need volume pricing negotiations.
 
 ---
 
