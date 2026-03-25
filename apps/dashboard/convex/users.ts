@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const syncUser = mutation({
@@ -43,6 +43,30 @@ export const deleteUser = mutation({
 
     if (existingUser) {
       await ctx.db.delete(existingUser._id);
+    }
+  },
+});
+
+export const getUser = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+  },
+});
+
+export const updateZernioProfileId = mutation({
+  args: { clerkId: v.string(), zernioProfileId: v.string() },
+  handler: async (ctx, args) => {
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+
+    if (existingUser) {
+      await ctx.db.patch(existingUser._id, { zernioProfileId: args.zernioProfileId });
     }
   },
 });
