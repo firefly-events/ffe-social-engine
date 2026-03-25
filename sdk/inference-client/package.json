@@ -1,0 +1,17 @@
+{
+  "name": "@social-engine/inference-client",
+  "version": "1.0.0",
+  "description": "SDK for Social Engine Inference API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest"
+  },
+  "dependencies": {
+    "crypto": "^1.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
