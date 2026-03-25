@@ -8,6 +8,9 @@
     "test": "echo 'No tests'",
     "lint": "eslint ."
   },
+  "peerDependencies": {
+    "convex": "^1.0.0"
+  },
   "devDependencies": {
     "eslint": "^8.0.0",
     "jest": "^29.5.0",

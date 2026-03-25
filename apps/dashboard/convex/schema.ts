@@ -3,15 +3,19 @@ import { v } from "convex/values";
 
 export default defineSchema({
   users: defineTable({
-    clerkId: v.string(),
+    clerkId: v.optional(v.string()),
     email: v.string(),
     name: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
     zernioProfileId: v.optional(v.string()),
     usedFreeTrials: v.optional(v.array(v.string())),
     plan: v.string(),
     createdAt: v.number(),
-  }).index("by_clerkId", ["clerkId"]),
-  
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_clerkId", ["clerkId"])
+    .index("by_email", ["email"]),
+
   posts: defineTable({
     userId: v.string(),
     content: v.string(),
@@ -21,7 +25,7 @@ export default defineSchema({
     zernioPostId: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_userId", ["userId"]),
-  
+
   socialAccounts: defineTable({
     userId: v.string(),
     platform: v.string(),
@@ -29,7 +33,7 @@ export default defineSchema({
     handle: v.string(),
     connectedAt: v.number(),
   }).index("by_userId", ["userId"]),
-  
+
   analytics: defineTable({
     postId: v.id("posts"),
     platform: v.string(),
