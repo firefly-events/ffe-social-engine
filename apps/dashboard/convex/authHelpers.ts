@@ -1,3 +1,4 @@
+import { ConvexError } from 'convex/values';
 import type { QueryCtx, MutationCtx } from './_generated/server';
 import type { Doc, Id } from './_generated/dataModel';
 
@@ -36,7 +37,7 @@ export async function getCurrentUserId(ctx: AuthContext): Promise<Id<'users'> | 
 export async function requireAuth(ctx: AuthContext): Promise<Id<'users'>> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
-    throw new Error('Not authenticated');
+    throw new ConvexError('Not authenticated');
   }
 
   const user = await ctx.db
@@ -45,7 +46,7 @@ export async function requireAuth(ctx: AuthContext): Promise<Id<'users'>> {
     .first();
 
   if (!user) {
-    throw new Error('User not found — Clerk webhook may not have synced yet');
+    throw new ConvexError('User not found — Clerk webhook may not have synced yet');
   }
 
   return user._id;
