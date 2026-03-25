@@ -81,13 +81,16 @@ jobs:
           NEXT_PUBLIC_APP_URL: https://social-engine-five.vercel.app
         run: pnpm turbo run build --filter=@ffe/dashboard
 
-      # Deploy to Vercel
+      # Deploy to Vercel — env vars pulled from Vercel project settings (set via GCP SM)
       - name: Deploy to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          IS_PROD: ${{ github.ref == 'refs/heads/main' }}
+          VERCEL_ORG_ID: team_9LvKhV1a433uROYAAXl6lbhV
+          VERCEL_PROJECT_ID: prj_JSD2sPXbFcJuYQZutwdbV8FGBMj7
+          IS_PROD: ${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}
+          VERCEL_ENV: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
         run: |
-          npx vercel pull --yes --token="$VERCEL_TOKEN"
+          npx vercel pull --yes --environment="$VERCEL_ENV" --token="$VERCEL_TOKEN"
           if [ "$IS_PROD" = "true" ]; then
             npx vercel build --prod --token="$VERCEL_TOKEN"
             npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
