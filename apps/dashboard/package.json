@@ -11,8 +11,11 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.0.6",
+    "@ffe/db": "workspace:^",
     "convex": "^1.34.0",
     "next": "^16.2.1",
+    "posthog-js": "^1.363.4",
+    "posthog-node": "^5.28.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "stripe": "^20.4.1",

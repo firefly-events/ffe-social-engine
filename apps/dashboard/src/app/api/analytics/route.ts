@@ -126,7 +126,7 @@ const SAMPLE_CAPTIONS: string[] = [
   'How we use AI to write better event descriptions in half the time',
   'Weekly tip: Use countdown timers to double your ticket conversions',
   'The future of live events — a thread',
-  'Our team just hit 10K followers. Here's what worked.',
+  "Our team just hit 10K followers. Here's what worked.",
 ]
 
 function generateTopPosts(filter?: Platform): PostPerformance[] {

@@ -1,11 +1,14 @@
 'use client';
 import { useState } from 'react';
+import { usePostHog } from 'posthog-js/react';
 
 export default function CreatePage() {
   const [type, setType] = useState('poetry');
+  const posthog = usePostHog();
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    posthog?.capture('post_created', { type });
     alert('Generation started for: ' + type);
   };
 
@@ -33,3 +36,4 @@ export default function CreatePage() {
     </div>
   );
 }
+

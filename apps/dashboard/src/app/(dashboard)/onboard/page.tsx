@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { usePostHog } from 'posthog-js/react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -560,6 +561,7 @@ function Confetti() {
 
 export default function OnboardPage() {
   const router = useRouter()
+  const posthog = usePostHog()
   const [step, setStep] = useState(1)
   const [done, setDone] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -625,6 +627,7 @@ export default function OnboardPage() {
     if (step < 4) {
       setStep((s) => s + 1)
     } else {
+      posthog?.capture('signup_complete')
       setDone(true)
       setTimeout(() => router.push('/dashboard'), 3500)
     }
