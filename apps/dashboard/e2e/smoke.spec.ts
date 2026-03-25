@@ -1,21 +1,84 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Social Engine Smoke Tests', () => {
-  test('landing page loads with content', async ({ page }) => {
+/**
+ * UI Smoke Tests — Social Engine (FIR-1240)
+ *
+ * KNOWN DEPLOYMENT ISSUE (2026-03-25):
+ *   /dashboard and all protected routes return HTTP 404 instead of redirecting to /sign-in.
+ *   Root cause: Vercel deployment uses a Clerk dev key (pk_test_...) which requires a
+ *   "dev-browser" cookie that is absent for unauthenticated visitors.
+ *   Evidence: response header `x-clerk-auth-reason: protect-rewrite, dev-browser-missing`
+ *   Fix: set NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY and CLERK_SECRET_KEY to production (pk_live_...)
+ *        values in Vercel environment variables.
+ */
+
+test.describe('Public routes — HTTP status', () => {
+  test('all public pages return 200', async ({ request }) => {
+    const publicRoutes = ['/', '/sign-in', '/sign-up', '/pricing'];
+    for (const path of publicRoutes) {
+      const response = await request.get(path);
+      expect(response.status(), `${path} returned ${response.status()}`).toBe(200);
+    }
+  });
+
+  test('no public page returns 500', async ({ request }) => {
+    const routes = ['/', '/sign-in', '/sign-up', '/pricing'];
+    for (const path of routes) {
+      const response = await request.get(path);
+      expect(response.status(), `${path} returned ${response.status()}`).not.toBe(500);
+    }
+  });
+});
+
+test.describe('Protected routes — auth behaviour', () => {
+  /**
+   * EXPECTED: /dashboard should redirect (3xx) to /sign-in for unauthenticated users.
+   * CURRENT STATE: returns 404 due to Clerk dev key / dev-browser-missing issue.
+   * This test documents the *correct* expectation; it will pass once the Clerk keys
+   * are swapped to production values.
+   */
+  test('dashboard redirects to sign-in when unauthenticated', async ({ page }) => {
+    await page.goto('/dashboard');
+    await expect(page).toHaveURL(/sign-in/);
+  });
+
+  test('protected routes do not return 500', async ({ request }) => {
+    const protectedRoutes = ['/dashboard', '/create', '/connect', '/sessions', '/analytics'];
+    for (const path of protectedRoutes) {
+      const response = await request.get(path);
+      expect(response.status(), `${path} should not 500`).not.toBe(500);
+    }
+  });
+
+  /**
+   * Verifies Clerk auth middleware headers are present — confirms the middleware is
+   * running (even if the dev-browser-missing redirect is going to /404 right now).
+   */
+  test('Clerk auth middleware runs on protected routes', async ({ request }) => {
+    const response = await request.get('/dashboard');
+    const authStatus = response.headers()['x-clerk-auth-status'];
+    // Middleware is running if Clerk sets this header
+    expect(authStatus, 'x-clerk-auth-status header should be present').toBeTruthy();
+  });
+});
+
+test.describe('Landing page content', () => {
+  test('landing page loads with content and nav', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/Social Engine|FFE/i);
 
-    // Verify key content renders (not a blank page or error)
-    const heroText = page.getByText(/your social media|content creation|AI-powered/i);
-    await expect(heroText.first()).toBeVisible({ timeout: 15000 });
-
-    // Verify nav exists
+    // Nav must exist
     const nav = page.locator('nav');
     await expect(nav).toBeVisible();
 
-    // Verify CTA button exists
+    // Verify hero / marketing copy renders
+    const heroText = page.getByText(/your social media|content creation|AI-powered/i);
+    await expect(heroText.first()).toBeVisible({ timeout: 15000 });
+
+    // CTA button must be visible and clickable
     const cta = page.getByText(/get started|sign up/i);
     await expect(cta.first()).toBeVisible();
+    await expect(cta.first()).toBeEnabled();
   });
 
   test('CSS loads — page is styled (not raw HTML)', async ({ page }) => {
@@ -58,55 +121,67 @@ test.describe('Social Engine Smoke Tests', () => {
     });
   });
 
-  test('no console errors on landing page', async ({ page }) => {
+  test('nav links are present', async ({ page }) => {
+    await page.goto('/');
+    // Check that navigation link to pricing exists
+    const pricingLink = page.getByRole('link', { name: /pricing/i });
+    await expect(pricingLink.first()).toBeVisible();
+  });
+
+  test('no blocking console errors on landing page', async ({ page }) => {
     const errors: string[] = [];
     page.on('console', msg => {
       if (msg.type() === 'error') errors.push(msg.text());
     });
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-    // Filter out known non-blocking warnings
+    // Filter known non-blocking third-party warnings
     const blocking = errors.filter(e =>
-      !e.includes('PostHog') && // PostHog init warning is non-blocking
-      !e.includes('favicon')
+      !e.includes('PostHog') &&
+      !e.includes('favicon') &&
+      !e.includes('Clerk') // Clerk dev-mode console warnings are non-blocking
     );
     expect(blocking).toHaveLength(0);
   });
+});
 
-  test('no 500 errors on any page', async ({ request }) => {
-    const pages = ['/', '/sign-in', '/sign-up', '/pricing'];
-    for (const path of pages) {
-      const response = await request.get(path);
-      expect(response.status(), `${path} returned ${response.status()}`).not.toBe(500);
-    }
-  });
-
-  test('sign-in page loads', async ({ page }) => {
+test.describe('Auth pages', () => {
+  test('sign-in page renders Clerk script', async ({ page }) => {
     await page.goto('/sign-in');
     await expect(page.locator('body')).toBeVisible();
+    // Clerk sign-in script tag must be present
+    const clerkScript = page.locator('script[data-clerk-js-script]');
+    await expect(clerkScript).toHaveCount(1);
   });
 
-  test('sign-up page loads', async ({ page }) => {
+  test('sign-up page renders Clerk script', async ({ page }) => {
     await page.goto('/sign-up');
     await expect(page.locator('body')).toBeVisible();
+    const clerkScript = page.locator('script[data-clerk-js-script]');
+    await expect(clerkScript).toHaveCount(1);
   });
+});
 
-  test('dashboard redirects to sign-in when unauthenticated', async ({ page }) => {
-    await page.goto('/dashboard');
-    await expect(page).toHaveURL(/sign-in/);
-  });
-
-  test('pricing page loads with content', async ({ page }) => {
+test.describe('Pricing page', () => {
+  test('pricing page loads with plan information', async ({ page }) => {
     await page.goto('/pricing');
     await expect(page.locator('body')).toBeVisible();
-    // Verify pricing content actually rendered
+    // Pricing content should render
     const pricingText = page.getByText(/month|free|starter|pro/i);
     await expect(pricingText.first()).toBeVisible({ timeout: 10000 });
   });
+});
 
-  test('API responds without 500', async ({ request }) => {
+test.describe('API health', () => {
+  test('API route returns non-500 for unauthenticated request', async ({ request }) => {
+    // Expecting 401 (unauthenticated) or 404 (Clerk dev-browser issue) — never 500
     const response = await request.get('/api/social/accounts');
-    // Any response except 500 means the server is running
     expect(response.status()).not.toBe(500);
+  });
+
+  test('health endpoint responds', async ({ request }) => {
+    const response = await request.get('/api/health');
+    // 200 = healthy, 404 = route not deployed, 500 = broken
+    expect(response.status(), '/api/health should not 500').not.toBe(500);
   });
 });
