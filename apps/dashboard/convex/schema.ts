@@ -7,6 +7,7 @@ export default defineSchema({
     email: v.string(),
     name: v.optional(v.string()),
     zernioProfileId: v.optional(v.string()),
+    usedFreeTrials: v.optional(v.array(v.string())),
     plan: v.string(),
     createdAt: v.number(),
   }).index("by_clerkId", ["clerkId"]),
