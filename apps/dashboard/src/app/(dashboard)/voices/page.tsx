@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { GuidedUnlockWizard } from "../../components/GuidedUnlockWizard";
+import { GuidedUnlockWizard } from "../../../components/GuidedUnlockWizard";
 
 export default function VoicesPage() {
   const [output, setOutput] = useState<string | null>(null);
