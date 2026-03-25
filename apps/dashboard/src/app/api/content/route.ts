@@ -19,6 +19,7 @@ import {
   nowISO,
 } from '@/lib/api-helpers'
 import { contentStore } from '@/lib/api-store'
+import { getPostHogServer } from '@/lib/posthog-server'
 import type {
   ContentItem,
   CreateContentBody,
@@ -116,6 +117,9 @@ export async function POST(request: NextRequest) {
 
     // TODO(migration): contentStore.set → Convex mutation / MongoDB insertOne
     contentStore.set(item.id, item)
+
+    const ph = getPostHogServer()
+    ph.capture({ distinctId: session.userId, event: 'api_call_made', properties: { endpoint: '/api/content', method: 'POST' } })
 
     return created(item)
   } catch (err) {
