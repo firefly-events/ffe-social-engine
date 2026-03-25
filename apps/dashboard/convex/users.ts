@@ -57,6 +57,27 @@ export const getUser = query({
   },
 });
 
+export const markFreeTrialUsed = mutation({
+  args: { clerkId: v.string(), feature: v.string() },
+  handler: async (ctx, args) => {
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+
+    if (!existingUser) {
+      throw new Error("User not found for clerkId");
+    }
+
+    const usedFreeTrials = existingUser.usedFreeTrials || [];
+    if (!usedFreeTrials.includes(args.feature)) {
+      await ctx.db.patch(existingUser._id, {
+        usedFreeTrials: [...usedFreeTrials, args.feature],
+      });
+    }
+  },
+});
+
 export const updateZernioProfileId = mutation({
   args: { clerkId: v.string(), zernioProfileId: v.string() },
   handler: async (ctx, args) => {
