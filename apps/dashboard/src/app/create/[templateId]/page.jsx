@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import CaptionEditor from '../../../../components/CaptionEditor';
-import HashtagChips from '../../../../components/HashtagChips';
-import PhonePreview from '../../../../components/PhonePreview';
+import CaptionEditor from '@/components/CaptionEditor';
+import HashtagChips from '@/components/HashtagChips';
+import PhonePreview from '@/components/PhonePreview';
 
 export default function CustomizePage() {
   const { templateId } = useParams();
