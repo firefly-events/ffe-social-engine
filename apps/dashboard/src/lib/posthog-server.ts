@@ -1,0 +1,13 @@
+import { PostHog } from 'posthog-node'
+
+let posthogClient: PostHog | null = null
+
+export function getPostHogServer(): PostHog {
+  if (!posthogClient) {
+    posthogClient = new PostHog(
+      process.env.NEXT_PUBLIC_POSTHOG_KEY!,
+      { host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.posthog.com' }
+    )
+  }
+  return posthogClient
+}

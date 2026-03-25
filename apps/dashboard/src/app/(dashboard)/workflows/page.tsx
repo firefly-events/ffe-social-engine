@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { usePostHog } from 'posthog-js/react'
 import type {
   Workflow,
   WorkflowNode,
@@ -1224,6 +1225,7 @@ function WorkflowCanvas({
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 
 export default function WorkflowsPage() {
+  const posthog = usePostHog()
   const [workflows, setWorkflows]   = useState<Workflow[]>(MOCK_WORKFLOWS)
   const [activeWorkflow, setActive] = useState<Workflow | null>(null)
   const [showNew, setShowNew]       = useState(false)
@@ -1244,6 +1246,7 @@ export default function WorkflowsPage() {
   const handleSave = (updated: Workflow) => {
     setWorkflows((prev) => prev.map((w) => (w.id === updated.id ? updated : w)))
     setActive(updated)
+    posthog?.capture('workflow_created', { node_count: updated.nodes.length })
   }
 
   const handleToggle = (id: string) => {
