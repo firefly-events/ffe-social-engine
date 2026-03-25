@@ -80,56 +80,15 @@ const TIERS: Tier[] = [
       '1 AI video / month',
       'Export-only (no direct posting)',
       'Basic templates',
+      'API access (100 req/day)',
       'Community support',
     ],
     limits: { captions: '5 / mo', videos: '1 / mo', posts: 'Export only', platforms: '—' },
   },
   {
-    id: 'starter',
-    name: 'Starter',
-    tagline: 'For solo creators',
-    monthlyPrice: 9.99,
-    annualPrice: 7.99,
-    color: 'text-sky-400',
-    accentBg: 'bg-cyan-500/8',
-    accentBorder: 'border-cyan-500/20',
-    cta: 'Get Starter',
-    ctaStyle: 'outline',
-    features: [
-      '50 AI captions / month',
-      '5 AI videos / month',
-      'Unlimited exports',
-      'All UX modes (Chat, Wizard)',
-      'Basic analytics',
-      'Email support',
-    ],
-    limits: { captions: '50 / mo', videos: '5 / mo', posts: 'Export only', platforms: '—' },
-  },
-  {
-    id: 'basic',
-    name: 'Basic',
-    tagline: 'For growing creators',
-    monthlyPrice: 14.99,
-    annualPrice: 11.99,
-    color: 'text-sky-300',
-    accentBg: 'bg-sky-500/8',
-    accentBorder: 'border-sky-500/20',
-    cta: 'Get Basic',
-    ctaStyle: 'outline',
-    features: [
-      '100 AI captions / month',
-      '10 AI videos / month',
-      '30 direct posts / month',
-      '3 platforms connected',
-      'Post scheduling',
-      'Basic analytics',
-    ],
-    limits: { captions: '100 / mo', videos: '10 / mo', posts: '30 / mo', platforms: '3' },
-  },
-  {
     id: 'pro',
     name: 'Pro',
-    tagline: 'Most popular choice',
+    tagline: 'The obvious buy — replaces a $229/mo stack',
     monthlyPrice: 29.99,
     annualPrice: 23.99,
     color: 'text-purple-300',
@@ -144,37 +103,37 @@ const TIERS: Tier[] = [
       '100 direct posts / month',
       '5 platforms connected',
       '5 voice clones',
+      'Automation workflows (visual DAG)',
       'Advanced analytics & insights',
-      'Pipeline Mode (visual DAG)',
-      'Automation workflows',
-      'Priority support',
+      'Full API + webhooks',
+      'Priority email support',
     ],
     limits: { captions: '500 / mo', videos: '25 / mo', posts: '100 / mo', platforms: '5' },
   },
   {
-    id: 'business',
-    name: 'Business',
-    tagline: 'For teams & agencies',
-    monthlyPrice: 300,
-    annualPrice: 240,
+    id: 'agency',
+    name: 'Agency',
+    tagline: 'Multi-tenant, teams & white-label',
+    monthlyPrice: 99,
+    annualPrice: 82,
     color: 'text-violet-400',
     accentBg: 'bg-violet-500/8',
     accentBorder: 'border-violet-500/25',
-    cta: 'Get Business',
+    cta: 'Get Agency',
     ctaStyle: 'outline',
     features: [
-      '2,000 AI captions / month',
-      '100 AI videos / month',
-      '500 direct posts / month',
+      'Unlimited AI captions',
+      '250 AI videos / month',
+      'Unlimited direct posts',
       'All 14+ platforms',
-      '20 voice clones',
+      '50 voice clones',
+      'Multi-tenant sub-users (5 seats)',
       'White-label interface',
-      'Team seats (up to 10)',
       'Custom brand profiles',
-      'API access (limited)',
-      'Priority support + onboarding',
+      'API + MCP server access',
+      'Dedicated support + onboarding call',
     ],
-    limits: { captions: '2,000 / mo', videos: '100 / mo', posts: '500 / mo', platforms: 'All 14+' },
+    limits: { captions: 'Unlimited', videos: '250 / mo', posts: 'Unlimited', platforms: 'All 14+' },
   },
   {
     id: 'enterprise',
@@ -182,23 +141,21 @@ const TIERS: Tier[] = [
     tagline: 'Custom scale & SLA',
     monthlyPrice: null,
     annualPrice: null,
-    priceLabel: '$750+',
+    priceLabel: '$499+',
     color: 'text-amber-400',
     accentBg: 'bg-amber-500/8',
     accentBorder: 'border-amber-500/20',
     cta: 'Talk to Us',
     ctaStyle: 'enterprise',
     features: [
-      'Unlimited captions',
-      'Unlimited videos',
-      'Unlimited posts',
+      'Unlimited everything',
       'All 14+ platforms',
       'Unlimited voice clones',
-      'Full API access',
+      'SSO / SAML integration',
+      'Full API + priority rate limits (10K req/min)',
+      'Custom AI model fine-tuning',
       'Dedicated account manager',
       'Custom SLA & uptime guarantee',
-      'SSO / SAML integration',
-      'Custom AI model fine-tuning',
       'SOC 2 compliance docs',
     ],
     limits: { captions: 'Unlimited', videos: 'Unlimited', posts: 'Unlimited', platforms: 'All + custom' },
@@ -228,7 +185,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Can I use Social Engine for multiple brands?',
-    a: 'Business and Enterprise plans support multiple brand profiles with separate voice tones, audiences, and platform connections.',
+    a: 'Agency and Enterprise plans support multiple brand profiles with separate voice tones, audiences, and platform connections.',
   },
 ]
 
@@ -255,6 +212,7 @@ export default function PricingPage() {
       return
     }
     // Clerk Billing: redirect to billing portal or upgrade flow
+    // Handles 'pro', 'agency', and any future paid tiers
     router.push('/settings?upgrade=' + tierId)
   }
 
@@ -338,12 +296,12 @@ export default function PricingPage() {
       {isAnnual && (
         <div className="mt-0 mb-6 py-3.5 px-6 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/15 flex items-center justify-center gap-2.5 text-sm text-emerald-300 font-medium">
           <span className="text-emerald-400"><IconCheck /></span>
-          Annual billing saves you up to $72/year on Pro. All prices shown as monthly equivalent.
+          Annual billing saves you up to $84/year on Pro and $204/year on Agency. All prices shown as monthly equivalent.
         </div>
       )}
 
       {/* ── TIER CARDS ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mt-10 items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mt-10 items-start">
         {TIERS.map((tier) => (
           <div
             key={tier.id}
@@ -465,14 +423,14 @@ export default function PricingPage() {
                 </tr>
               ))}
               {[
-                { label: 'Direct Posting',  values: [false, false, true,  true,  true,  true] },
-                { label: 'Voice Cloning',   values: [false, false, false, true,  true,  true] },
-                { label: 'Analytics',       values: [false, true,  true,  true,  true,  true] },
-                { label: 'Pipeline Mode',   values: [false, false, false, true,  true,  true] },
-                { label: 'White-label',     values: [false, false, false, false, true,  true] },
-                { label: 'API Access',      values: [false, false, false, false, 'Limited', 'Full'] },
-                { label: 'Dedicated AM',    values: [false, false, false, false, false, true] },
-                { label: 'Custom SLA',      values: [false, false, false, false, false, true] },
+                { label: 'Direct Posting',   values: [false, true,  true,  true] },
+                { label: 'Voice Cloning',    values: [false, true,  true,  true] },
+                { label: 'Analytics',        values: [false, true,  true,  true] },
+                { label: 'Workflow Builder', values: [false, true,  true,  true] },
+                { label: 'White-label',      values: [false, false, true,  true] },
+                { label: 'Multi-tenant',     values: [false, false, true,  true] },
+                { label: 'API Access',       values: ['100 req/day', 'Full', 'Full + MCP', 'Priority 10K/min'] },
+                { label: 'Custom SLA',       values: [false, false, false, true] },
               ].map((row) => (
                 <tr key={row.label} className="hover:bg-white/[0.02]">
                   <td className="px-3 py-2.5 text-left text-slate-300 font-medium border-b border-white/[0.04]">
