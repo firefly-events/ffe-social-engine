@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=n8n.local
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://n8n.local:5678/
+      - GENERIC_TIMEZONE=UTC
+      - N8N_CUSTOM_EXTENSIONS=n8n-nodes-zernio
+    volumes:
+      - n8n_data:/home/node/.n8n
+    command: /bin/sh -c "npm install -g n8n-nodes-zernio && n8n start"
+
+volumes:
+  n8n_data:
