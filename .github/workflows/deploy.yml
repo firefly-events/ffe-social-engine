@@ -54,11 +54,11 @@ jobs:
       # Install dependencies
       - run: pnpm install --frozen-lockfile
 
-      # Deploy Convex schema
-      - name: Deploy Convex
-        env:
-          CONVEX_DEPLOY_KEY: ${{ steps.secrets.outputs.convex-deploy-key }}
-        run: cd apps/dashboard && npx convex deploy --cmd "echo ok"
+      # Deploy Convex schema (skipped until deploy key format is verified)
+      # - name: Deploy Convex
+      #   env:
+      #     CONVEX_DEPLOY_KEY: ${{ steps.secrets.outputs.convex-deploy-key }}
+      #   run: cd apps/dashboard && npx convex deploy --cmd "echo ok"
 
       # Build with secrets injected from GCP SM
       - name: Build
