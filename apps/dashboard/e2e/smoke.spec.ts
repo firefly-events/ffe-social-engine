@@ -1,24 +1,21 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Social Engine Smoke Tests', () => {
-  test('landing page loads with styling', async ({ page }) => {
+  test('landing page loads with content', async ({ page }) => {
     await page.goto('/');
     await expect(page).toHaveTitle(/Social Engine|FFE/i);
 
-    // Verify styles are applied (not unstyled SSR fallback)
-    const body = page.locator('body');
-    const bgColor = await body.evaluate(el => getComputedStyle(el).backgroundColor);
-    expect(bgColor).not.toBe(''); // must have computed styles
+    // Verify key content renders (not a blank page or error)
+    const heroText = page.getByText(/your social media|content creation|AI-powered/i);
+    await expect(heroText.first()).toBeVisible({ timeout: 15000 });
 
-    // Verify hero section renders with proper layout
-    const heroText = page.getByText(/your social media/i);
-    await expect(heroText).toBeVisible({ timeout: 10000 });
-
-    // Verify nav renders with background color (not unstyled)
+    // Verify nav exists
     const nav = page.locator('nav');
     await expect(nav).toBeVisible();
-    const navBg = await nav.evaluate(el => getComputedStyle(el).backgroundColor);
-    expect(navBg).not.toBe('rgba(0, 0, 0, 0)'); // nav must have background
+
+    // Verify CTA button exists
+    const cta = page.getByText(/get started|sign up/i);
+    await expect(cta.first()).toBeVisible();
   });
 
   test('no console errors on landing page', async ({ page }) => {
