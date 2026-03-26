@@ -23,13 +23,23 @@
 - **Transcription**: Whisper self-hosted (FREE, <2 sec/min on M4 Max)
 
 ### Self-Hosted Value
-| Capability | Worth It? | Why |
-|---|---|---|
-| Image (FLUX.1-schnell) | YES | $0, 10-20 sec, Apache 2.0, good quality |
-| Video | NO | Apple Silicon too slow, needs NVIDIA 24-80GB |
-| Voice (XTTSv2) | MARGINAL | MPS broken, CPU-only = slow. Batch backup only |
-| Transcription (Whisper) | ABSOLUTELY | 10 min audio in 1.2 sec. No-brainer. |
-| Text | NO | Cloud is $0.0002/caption already |
+| Capability | Worth It? | Hardware | Why |
+|---|---|---|---|
+| Image (FLUX.1-schnell) | YES | Dragon (ROCm) or Hive (MPS) | $0, 10-20 sec, Apache 2.0, good quality |
+| Video | YES — EVALUATE | Dragon (RX 7900 XT, 24GB VRAM, ROCm) | LTX/Wan/CogVideo viable on 24GB ROCm. Test quality vs Hailuo. |
+| Voice (XTTSv2) | YES | Dragon (ROCm) | MPS broken on Mac but ROCm works on Dragon. Test quality vs Fish/ElevenLabs. |
+| Transcription (Whisper) | ABSOLUTELY | Hive (CoreML) | 10 min audio in 1.2 sec. No-brainer. |
+| Text | NO | — | Cloud is $0.0002/caption already |
+
+### Hardware
+- **Dragon Desktop**: AMD RX 7900 XT/XTX, 24GB VRAM, ROCm via /dev/kfd. Use for GPU workloads.
+- **Mac Studio (hive)**: M4 Max, 36GB unified. CoreML for Whisper. MPS for FLUX. CPU-only for XTTSv2 (MPS broken).
+
+### Tier Strategy (Approved)
+- **Free/Starter**: Self-hosted (FLUX, XTTSv2, Whisper) + cheapest APIs (Flash-Lite, Hailuo, Fish Audio)
+- **Pro**: Same defaults + access to premium models as upgrade options
+- **Business**: ElevenLabs, Veo 3, Runway Gen-4.5 included (costs us money → behind subscription)
+- **BYO Key (V2)**: Users bring own ElevenLabs/OpenAI/Runway keys → costs us nothing
 
 ### BYOP Priority (V2)
 1. ElevenLabs (voice — highest demand)
@@ -37,3 +47,6 @@
 3. Google Gemini (generous free tier)
 4. Runway (video — dev-friendly API)
 5. Stability AI / FLUX (power users)
+
+### Key Rule
+Anything that costs US money for an account → behind paid tiers only. Self-hosted + cheap APIs for free/starter. Evaluate ElevenLabs quality vs Fish Audio vs XTTSv2 before committing to paid integrations.
