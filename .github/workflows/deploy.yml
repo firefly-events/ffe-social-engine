@@ -37,16 +37,16 @@ jobs:
           workload_identity_provider: ${{ env.WIF_PROVIDER }}
           service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
 
-      # Pull secrets from GCP Secret Manager
+      # Pull secrets from GCP Secret Manager (prod on main, dev on PR)
       - id: secrets
         uses: google-github-actions/get-secretmanager-secrets@v2
         with:
           secrets: |-
             clerk-publishable-key:ffe-cicd/social-engine-dev-clerk-publishable-key
             clerk-secret-key:ffe-cicd/social-engine-dev-clerk-secret-key
-            convex-url:ffe-cicd/social-engine-dev-convex-url
-            convex-deployment:ffe-cicd/social-engine-dev-convex-deployment
-            convex-deploy-key:ffe-cicd/social-engine-dev-convex-deploy-key
+            convex-url:ffe-cicd/social-engine-${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}-convex-url
+            convex-deployment:ffe-cicd/social-engine-${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}-convex-deployment
+            convex-deploy-key:ffe-cicd/social-engine-${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}-convex-deploy-key
             zernio-api-key:ffe-cicd/social-engine-dev-zernio-api-key
             sentry-dsn:ffe-cicd/social-engine-dev-sentry-dsn
             posthog-key:ffe-cicd/social-engine-dev-posthog-key
@@ -54,11 +54,11 @@ jobs:
       # Install dependencies
       - run: pnpm install --frozen-lockfile
 
-      # Deploy Convex schema (skipped until deploy key format is verified)
-      # - name: Deploy Convex
-      #   env:
-      #     CONVEX_DEPLOY_KEY: ${{ steps.secrets.outputs.convex-deploy-key }}
-      #   run: cd apps/dashboard && npx convex deploy --cmd "echo ok"
+      # Deploy Convex schema + functions before Vercel build
+      - name: Deploy Convex
+        env:
+          CONVEX_DEPLOY_KEY: ${{ steps.secrets.outputs.convex-deploy-key }}
+        run: cd apps/dashboard && npx convex deploy --cmd "echo ok"
 
       # Build with secrets injected from GCP SM
       - name: Build
