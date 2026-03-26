@@ -72,7 +72,19 @@ app.post('/compose', async (req, res) => {
         options: '1080:1920'
       });
     }
-    
+
+    // 16:9 format (YouTube/Twitter) — landscape
+    if (format === '16:9') {
+      filters.push({ filter: 'crop', options: 'iw:iw*(9/16)' });
+      filters.push({ filter: 'scale', options: '1920:1080' });
+    }
+
+    // 1:1 format (Instagram feed) — square
+    if (format === '1:1') {
+      filters.push({ filter: 'crop', options: 'min(iw\\,ih):min(iw\\,ih)' });
+      filters.push({ filter: 'scale', options: '1080:1080' });
+    }
+
     // Text overlay with configurable timing
     if (text_overlay && text_overlay.text) {
       filters.push({

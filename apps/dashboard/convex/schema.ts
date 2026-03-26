@@ -50,6 +50,7 @@ export default defineSchema({
     fetchedAt: v.number(),
   }).index("by_postId", ["postId"]),
 
+<<<<<<< HEAD
   content: defineTable({
     userId: v.string(),
     externalId: v.string(),
@@ -128,4 +129,26 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_externalId", ["externalId"])
     .index("by_workflowId", ["workflowId"]),
+
+  composedVideos: defineTable({
+    userId: v.string(),
+    platform: v.string(),
+    format: v.string(),
+    textOverlay: v.optional(v.string()),
+    sourceVideoUrl: v.string(),
+    composerJobId: v.optional(v.string()),
+    status: v.string(),
+    storageId: v.optional(v.id("_storage")),
+    resultUrl: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
+  mediaFiles: defineTable({
+    userId: v.string(),
+    storageId: v.string(),
+    filename: v.string(),
+    mimeType: v.string(),
+    size: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_userId", ["userId"]),
 });

@@ -5,6 +5,7 @@ export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
   const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: '📊', minTier: 'FREE' },
     { label: 'Create', href: '/create', icon: '✨', minTier: 'FREE' },
+    { label: 'Compose', href: '/compose', icon: '🎬', minTier: 'FREE' },
     { label: 'Content Library', href: '/library', icon: '📁', minTier: 'FREE' },
     { label: 'Schedule', href: '/schedule', icon: '📅', minTier: 'BASIC' },
     { label: 'Analytics', href: '/analytics', icon: '📈', minTier: 'PRO' },
