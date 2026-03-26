@@ -1,0 +1,127 @@
+{
+  "_meta": {
+    "description": "Session replay configuration for FFE Social Engine. Defines URL patterns, masking rules, sample rates, and cohort targeting for PostHog session replay.",
+    "ticket": "FIR-1179",
+    "created": "2026-03-25",
+    "app": "ffe-social-engine",
+    "implementation_note": "Apply these settings via posthog-js initialization in apps/dashboard/src/lib/posthog.ts. Some settings (masking, sample rates) are SDK-side; URL filtering and cohort targeting are configured in PostHog project settings."
+  },
+  "session_replay": {
+    "enabled": true,
+    "url_patterns": [
+      {
+        "pattern": "/onboard*",
+        "description": "Full onboarding wizard — 4 steps from connect accounts to scheduling",
+        "sample_rate": 1.0,
+        "priority": "high",
+        "rationale": "Highest value flow for product team — understand wizard drop-off"
+      },
+      {
+        "pattern": "/checkout*",
+        "description": "Payment checkout flow",
+        "sample_rate": 1.0,
+        "priority": "critical",
+        "rationale": "Every drop-off here is direct revenue loss — record all sessions"
+      },
+      {
+        "pattern": "/pricing*",
+        "description": "Pricing page and plan comparison",
+        "sample_rate": 1.0,
+        "priority": "high",
+        "rationale": "Intent signal — users on pricing page are evaluating conversion"
+      },
+      {
+        "pattern": "/*",
+        "description": "General app usage",
+        "sample_rate": 0.2,
+        "priority": "low",
+        "rationale": "20% general sampling for feature adoption and bug discovery"
+      }
+    ],
+    "masking": {
+      "mask_all_inputs": false,
+      "mask_inputs": [
+        {
+          "selector": "input[type='password']",
+          "description": "Password fields — always mask"
+        },
+        {
+          "selector": "input[name='cardNumber'], input[name='card-number'], input[data-testid='card-number']",
+          "description": "Credit card number fields"
+        },
+        {
+          "selector": "input[name='cvc'], input[name='cvv'], input[data-testid='card-cvc']",
+          "description": "Card security code fields"
+        },
+        {
+          "selector": "input[name='cardExpiry'], input[name='card-expiry']",
+          "description": "Card expiry fields"
+        },
+        {
+          "selector": "[data-ph-no-capture]",
+          "description": "Any element explicitly marked to not be captured"
+        }
+      ],
+      "block_selector": ".ph-no-capture",
+      "mask_text_selector": ".ph-mask",
+      "privacy_note": "Stripe Elements are rendered in iframes and are automatically excluded from replay. No raw card data is ever captured."
+    },
+    "cohort_targeting": {
+      "description": "Use PostHog feature flags linked to cohorts to control which users receive session replay",
+      "rules": [
+        {
+          "cohort": "SE Trial Users",
+          "slug": "se_trial_users",
+          "replay_enabled": true,
+          "sample_rate": 1.0,
+          "rationale": "Full recording for all trial users — highest conversion optimization value"
+        },
+        {
+          "cohort": "SE At-Risk Users",
+          "slug": "se_at_risk_users",
+          "replay_enabled": true,
+          "sample_rate": 1.0,
+          "rationale": "Understand why at-risk users stopped engaging — look for frustration signals"
+        },
+        {
+          "cohort": "SE Converted Users",
+          "slug": "se_converted_users",
+          "replay_enabled": true,
+          "sample_rate": 0.1,
+          "rationale": "Light sampling of power users for feature usage patterns"
+        }
+      ]
+    },
+    "feature_flags": {
+      "description": "Link these feature flags to cohorts in PostHog to conditionally enable replay features",
+      "flags": [
+        {
+          "key": "se-replay-onboarding",
+          "description": "Enable enhanced session replay for users going through onboarding",
+          "default": true
+        },
+        {
+          "key": "se-replay-checkout",
+          "description": "Enable enhanced session replay for checkout flows",
+          "default": true
+        }
+      ]
+    }
+  },
+  "posthog_js_config": {
+    "description": "Configuration object to pass to posthog.init() in apps/dashboard/src/lib/posthog.ts",
+    "config": {
+      "session_recording": {
+        "maskAllInputs": false,
+        "maskInputFn": null,
+        "blockClass": "ph-no-capture",
+        "maskTextClass": "ph-mask",
+        "collectFonts": false,
+        "inlineStylesheet": true
+      },
+      "disable_session_recording": false,
+      "enable_recording_console_log": false,
+      "_note": "URL-based sample rates cannot be set directly in posthog.init. Implement via posthog.startSessionRecording() called conditionally based on current pathname."
+    }
+  }
+}

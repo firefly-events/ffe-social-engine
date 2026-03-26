@@ -1,0 +1,525 @@
+{
+  "_meta": {
+    "description": "PostHog dashboard definitions for FFE Social Engine. Covers growth metrics, content pipeline, conversion funnels, revenue, and feature adoption.",
+    "ticket": "FIR-1179",
+    "created": "2026-03-25",
+    "app": "ffe-social-engine",
+    "posthog_projects": {
+      "social_engine_prod": null,
+      "social_engine_dev": null
+    },
+    "notes": "Deploy to the Social Engine PostHog project. Set POSTHOG_SE_PROJECT_ID env var or use --project flag with posthog-provision.js --app social-engine. Project IDs will be assigned when the PostHog project is created."
+  },
+  "team_filtering": {
+    "approach": "filter_test_accounts: true on all user-interaction tiles",
+    "filters": [
+      { "key": "$email", "operator": "icontains", "value": "@ff.events", "type": "person" },
+      { "key": "$email", "operator": "icontains", "value": "@firefly.events", "type": "person" }
+    ]
+  },
+  "dashboards": {
+    "se-growth": {
+      "name": "SE Growth",
+      "description": "Daily/weekly/monthly active users, signups, activation rate, and onboarding completion for the Social Engine",
+      "tags": ["social-engine", "growth"],
+      "tiles": [
+        {
+          "name": "Daily Active Users (DAU)",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "$pageview", "math": "dau", "name": "DAU" }],
+            "interval": "day",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Weekly Active Users (WAU)",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "$pageview", "math": "weekly_active", "name": "WAU" }],
+            "interval": "week",
+            "date_from": "-12w",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Monthly Active Users (MAU)",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "$pageview", "math": "monthly_active", "name": "MAU" }],
+            "interval": "month",
+            "date_from": "-6m",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "New Signups Per Day",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_user_signed_up", "math": "total", "name": "Signups" }],
+            "interval": "day",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Signups by Method",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_user_signed_up", "math": "total", "name": "Signups" }],
+            "breakdown": "signup_method",
+            "breakdown_type": "event",
+            "display": "ActionsPie",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Activation Rate (content created within 24h of signup)",
+          "type": "trends",
+          "description": "% of users who fire se_content_created within 24h of se_user_signed_up. Configure as Lifecycle or use funnel with conversion window 1 day.",
+          "query": {
+            "insight": "LIFECYCLE",
+            "events": [{ "id": "se_content_created", "math": "total" }],
+            "interval": "week",
+            "date_from": "-8w",
+            "filter_test_accounts": true
+          },
+          "_notes": "For exact 24h activation rate, create a Funnel insight with conversion window set to 1 day: se_user_signed_up → se_content_created"
+        },
+        {
+          "name": "Onboarding Completion Rate",
+          "type": "funnel",
+          "query": {
+            "insight": "FUNNELS",
+            "events": [
+              { "id": "se_onboarding_started", "name": "Started Onboarding" },
+              { "id": "se_onboarding_step_completed", "name": "Step 1: Connect Accounts", "properties": [{ "key": "step", "value": "connect_accounts", "operator": "exact", "type": "event" }] },
+              { "id": "se_onboarding_step_completed", "name": "Step 2: Brand Voice", "properties": [{ "key": "step", "value": "brand_voice", "operator": "exact", "type": "event" }] },
+              { "id": "se_onboarding_step_completed", "name": "Step 3: First Content", "properties": [{ "key": "step", "value": "first_content", "operator": "exact", "type": "event" }] },
+              { "id": "se_onboarding_completed", "name": "Onboarding Complete" }
+            ],
+            "funnel_window_days": 7,
+            "filter_test_accounts": true,
+            "date_from": "-30d"
+          }
+        },
+        {
+          "name": "Session Replay — Onboarding Flow",
+          "type": "text",
+          "body": "**Session Replay: Onboarding Flow**\n\nSession replay is configured for `/onboard/*` URLs with 100% sample rate.\n\n**How to access:**\n1. Go to Session Replay in PostHog\n2. Filter by URL contains `/onboard`\n3. Filter by cohort: *Active Trial Users* or *Not Converted*\n\nUse replays to identify where users drop off in the 4-step wizard (Connect Accounts → Brand Voice → First Content → Schedule)."
+        }
+      ]
+    },
+    "se-content-pipeline": {
+      "name": "SE Content Pipeline",
+      "description": "Content creation volume, export rates, post success rates, AI model usage, and platform breakdown",
+      "tags": ["social-engine", "content"],
+      "tiles": [
+        {
+          "name": "Content Created Per Day",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_content_created", "math": "total", "name": "Created" }],
+            "interval": "day",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Content Created by Status",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_content_created", "math": "total", "name": "Created" }],
+            "breakdown": "status",
+            "breakdown_type": "event",
+            "display": "ActionsPie",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Content Exported Per Day",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_content_exported", "math": "total", "name": "Exported" }],
+            "interval": "day",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Post Success Rate (Scheduled → Posted)",
+          "type": "funnel",
+          "query": {
+            "insight": "FUNNELS",
+            "events": [
+              { "id": "se_content_scheduled", "name": "Scheduled" },
+              { "id": "se_content_posted", "name": "Posted Successfully" }
+            ],
+            "funnel_window_days": 3,
+            "filter_test_accounts": true,
+            "date_from": "-30d"
+          }
+        },
+        {
+          "name": "AI Content Generation — Model Breakdown",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_ai_content_generated", "math": "total", "name": "Generations" }],
+            "breakdown": "model",
+            "breakdown_type": "event",
+            "display": "ActionsPie",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "AI Generations Per Day",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_ai_content_generated", "math": "total", "name": "AI Generations" }],
+            "interval": "day",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Content by Platform",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_content_created", "math": "total", "name": "Content" }],
+            "breakdown": "platforms",
+            "breakdown_type": "event",
+            "display": "ActionsBar",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Content Failures by Platform",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_content_failed", "math": "total", "name": "Failures" }],
+            "breakdown": "platform",
+            "breakdown_type": "event",
+            "interval": "day",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        }
+      ]
+    },
+    "se-conversion-funnel": {
+      "name": "SE Conversion Funnel",
+      "description": "End-to-end conversion funnels from signup to first post and from trial to paid. Includes session replay for checkout.",
+      "tags": ["social-engine", "conversion", "funnel"],
+      "tiles": [
+        {
+          "name": "Main Activation Funnel",
+          "type": "funnel",
+          "query": {
+            "insight": "FUNNELS",
+            "events": [
+              { "id": "se_user_signed_up", "name": "1. Signed Up" },
+              { "id": "se_onboarding_started", "name": "2. Started Onboarding" },
+              { "id": "se_content_created", "name": "3. Created Content" },
+              { "id": "se_content_exported", "name": "4. Exported Content" },
+              { "id": "se_content_posted", "name": "5. Content Posted" },
+              { "id": "se_checkout_completed", "name": "6. Checkout Completed" }
+            ],
+            "funnel_window_days": 30,
+            "filter_test_accounts": true,
+            "date_from": "-90d"
+          }
+        },
+        {
+          "name": "Trial-to-Paid Funnel",
+          "type": "funnel",
+          "query": {
+            "insight": "FUNNELS",
+            "events": [
+              { "id": "se_trial_started", "name": "1. Trial Started" },
+              { "id": "se_content_created", "name": "2. Created Content (1+)" },
+              { "id": "se_checkout_started", "name": "3. Checkout Started" },
+              { "id": "se_trial_converted", "name": "4. Trial Converted" }
+            ],
+            "funnel_window_days": 14,
+            "filter_test_accounts": true,
+            "date_from": "-90d"
+          }
+        },
+        {
+          "name": "Signup to First Content (Time Distribution)",
+          "type": "trends",
+          "query": {
+            "insight": "FUNNELS",
+            "events": [
+              { "id": "se_user_signed_up", "name": "Signed Up" },
+              { "id": "se_content_created", "name": "First Content" }
+            ],
+            "funnel_window_days": 7,
+            "funnel_viz_type": "time_to_convert",
+            "filter_test_accounts": true,
+            "date_from": "-30d"
+          }
+        },
+        {
+          "name": "Checkout Drop-off",
+          "type": "funnel",
+          "query": {
+            "insight": "FUNNELS",
+            "events": [
+              { "id": "se_checkout_started", "name": "Checkout Started" },
+              { "id": "se_checkout_completed", "name": "Checkout Completed" }
+            ],
+            "funnel_window_days": 1,
+            "filter_test_accounts": true,
+            "date_from": "-30d"
+          }
+        },
+        {
+          "name": "Checkout Started — Source Breakdown",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_checkout_started", "math": "total", "name": "Checkout Started" }],
+            "breakdown": "trigger",
+            "breakdown_type": "event",
+            "display": "ActionsPie",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Session Replay — Checkout & Pricing",
+          "type": "text",
+          "body": "**Session Replay: Checkout & Pricing Flow**\n\nSession replay is configured for `/checkout/*` and `/pricing/*` with 100% sample rate.\n\n**How to access:**\n1. Go to Session Replay in PostHog\n2. Filter by URL contains `/checkout` OR `/pricing`\n3. Look for sessions with `se_checkout_started` but NOT `se_checkout_completed`\n\nThese are the drop-off sessions — highest value for conversion optimization."
+        }
+      ]
+    },
+    "se-revenue": {
+      "name": "SE Revenue",
+      "description": "Subscription tier distribution, MRR trend, upgrade/downgrade flow, churn rate, and trial conversion",
+      "tags": ["social-engine", "revenue", "churn"],
+      "tiles": [
+        {
+          "name": "Plan Distribution",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_checkout_completed", "math": "total", "name": "Subscribers" }],
+            "breakdown": "plan",
+            "breakdown_type": "event",
+            "display": "ActionsPie",
+            "date_from": "-all",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "New Subscriptions Per Week (MRR Proxy)",
+          "type": "trends",
+          "query": {
+            "events": [
+              {
+                "id": "se_checkout_completed",
+                "math": "sum",
+                "math_property": "amount_cents",
+                "name": "Revenue (cents)"
+              }
+            ],
+            "interval": "week",
+            "date_from": "-12w",
+            "filter_test_accounts": true
+          },
+          "_notes": "Sum of amount_cents per week. Divide by 100 for USD. True MRR requires subscription management system; this is a proxy from checkout events."
+        },
+        {
+          "name": "Upgrades vs Downgrades",
+          "type": "trends",
+          "query": {
+            "events": [
+              { "id": "se_plan_upgraded", "math": "total", "name": "Upgrades" },
+              { "id": "se_plan_downgraded", "math": "total", "name": "Downgrades" }
+            ],
+            "interval": "week",
+            "date_from": "-12w",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Upgrade — From/To Plan Breakdown",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_plan_upgraded", "math": "total", "name": "Upgrades" }],
+            "breakdown": "to_plan",
+            "breakdown_type": "event",
+            "display": "ActionsPie",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Churn — Subscription Cancellations Per Week",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_subscription_cancelled", "math": "total", "name": "Cancellations" }],
+            "interval": "week",
+            "date_from": "-12w",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Churn Reason Breakdown",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_subscription_cancelled", "math": "total", "name": "Cancelled" }],
+            "breakdown": "reason",
+            "breakdown_type": "event",
+            "display": "ActionsPie",
+            "date_from": "-90d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Trial Conversion Rate",
+          "type": "funnel",
+          "query": {
+            "insight": "FUNNELS",
+            "events": [
+              { "id": "se_trial_started", "name": "Trial Started" },
+              { "id": "se_trial_converted", "name": "Trial Converted" }
+            ],
+            "funnel_window_days": 14,
+            "filter_test_accounts": true,
+            "date_from": "-90d"
+          }
+        },
+        {
+          "name": "Trial Starts Per Week",
+          "type": "trends",
+          "query": {
+            "events": [
+              { "id": "se_trial_started", "math": "total", "name": "Trials Started" },
+              { "id": "se_trial_converted", "math": "total", "name": "Trials Converted" }
+            ],
+            "interval": "week",
+            "date_from": "-12w",
+            "filter_test_accounts": true
+          }
+        }
+      ]
+    },
+    "se-feature-adoption": {
+      "name": "SE Feature Adoption",
+      "description": "Onboarding wizard completion, voice clone adoption, workflow/automation usage, and onboarding step drop-off analysis",
+      "tags": ["social-engine", "feature-adoption", "retention"],
+      "tiles": [
+        {
+          "name": "Guided Wizard Completion Rate",
+          "type": "funnel",
+          "query": {
+            "insight": "FUNNELS",
+            "events": [
+              { "id": "se_onboarding_started", "name": "Wizard Started" },
+              { "id": "se_onboarding_completed", "name": "Wizard Completed" }
+            ],
+            "funnel_window_days": 3,
+            "filter_test_accounts": true,
+            "date_from": "-30d"
+          }
+        },
+        {
+          "name": "Onboarding Step Drop-off",
+          "type": "funnel",
+          "query": {
+            "insight": "FUNNELS",
+            "events": [
+              { "id": "se_onboarding_started", "name": "Started" },
+              { "id": "se_onboarding_step_completed", "name": "Step 1: Connect Accounts", "properties": [{ "key": "step", "value": "connect_accounts", "operator": "exact", "type": "event" }] },
+              { "id": "se_onboarding_step_completed", "name": "Step 2: Brand Voice", "properties": [{ "key": "step", "value": "brand_voice", "operator": "exact", "type": "event" }] },
+              { "id": "se_onboarding_step_completed", "name": "Step 3: First Content", "properties": [{ "key": "step", "value": "first_content", "operator": "exact", "type": "event" }] },
+              { "id": "se_onboarding_step_completed", "name": "Step 4: Schedule", "properties": [{ "key": "step", "value": "first_schedule", "operator": "exact", "type": "event" }] },
+              { "id": "se_onboarding_completed", "name": "Completed" }
+            ],
+            "funnel_window_days": 3,
+            "filter_test_accounts": true,
+            "date_from": "-30d"
+          }
+        },
+        {
+          "name": "Voice Clone Adoption (Unique Users Who Started)",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_voice_clone_started", "math": "dau", "name": "Voice Clone Users" }],
+            "interval": "week",
+            "date_from": "-12w",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Voice Clone Completion Rate",
+          "type": "funnel",
+          "query": {
+            "insight": "FUNNELS",
+            "events": [
+              { "id": "se_voice_clone_started", "name": "Clone Started" },
+              { "id": "se_voice_clone_completed", "name": "Clone Completed" }
+            ],
+            "funnel_window_days": 1,
+            "filter_test_accounts": true,
+            "date_from": "-30d"
+          }
+        },
+        {
+          "name": "Workflow Usage — Unique Users Per Week",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_workflow_executed", "math": "weekly_active", "name": "Workflow Users" }],
+            "interval": "week",
+            "date_from": "-12w",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Workflows Created Per Week",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_workflow_created", "math": "total", "name": "Workflows Created" }],
+            "interval": "week",
+            "date_from": "-12w",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Workflow Trigger Type Breakdown",
+          "type": "trends",
+          "query": {
+            "events": [{ "id": "se_workflow_executed", "math": "total", "name": "Executions" }],
+            "breakdown": "trigger_type",
+            "breakdown_type": "event",
+            "display": "ActionsPie",
+            "date_from": "-30d",
+            "filter_test_accounts": true
+          }
+        },
+        {
+          "name": "Feature Adoption Summary",
+          "type": "text",
+          "body": "**Feature Adoption Targets**\n\n| Feature | Target | Notes |\n|---------|--------|-------|\n| Onboarding completion | > 60% | 4-step wizard |\n| Voice clone adoption | > 15% of MAU | Unique users who started |\n| Workflow creation | > 20% of MAU | Users who built at least 1 workflow |\n| Workflow execution | > 10% of MAU | Users running automations weekly |\n\n**Interpretation:**\n- Low wizard completion → friction in a specific step → review session replays for that step\n- Low voice clone adoption → feature discovery problem → add in-app prompts\n- Low workflow usage → complexity barrier → onboarding tour needed"
+        }
+      ]
+    }
+  },
+  "event_naming_convention": {
+    "format": "snake_case",
+    "prefix": "se_",
+    "pattern": "se_{object}_{action} or se_{action}_{object}",
+    "examples": [
+      "se_user_signed_up",
+      "se_content_created",
+      "se_onboarding_step_completed",
+      "se_trial_converted",
+      "se_voice_clone_completed"
+    ]
+  }
+}

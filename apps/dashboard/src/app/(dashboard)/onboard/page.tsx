@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { usePostHog } from 'posthog-js/react'
+import { track } from '@/lib/posthog'
+import { SE_EVENTS } from '@/lib/posthog-events'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -561,7 +562,6 @@ function Confetti() {
 
 export default function OnboardPage() {
   const router = useRouter()
-  const posthog = usePostHog()
   const [step, setStep] = useState(1)
   const [done, setDone] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -626,8 +626,18 @@ export default function OnboardPage() {
   function handleNext() {
     if (step < 4) {
       setStep((s) => s + 1)
+      track(SE_EVENTS.ONBOARDING_STEP_COMPLETED, {
+        user_id: 'current_user',
+        step: STEPS[step-1].label.toLowerCase().replace(' ', '_') as any,
+        step_number: step as any,
+      })
     } else {
-      posthog?.capture('signup_complete')
+      track(SE_EVENTS.ONBOARDING_COMPLETED, {
+        user_id: 'current_user',
+        platforms_count: connectedPlatforms.size,
+        tone: tone || 'professional',
+        frequency: frequency || '3',
+      })
       setDone(true)
       setTimeout(() => router.push('/dashboard'), 3500)
     }

@@ -14,15 +14,15 @@ export default function RootLayout({
         <title>FFE Social Engine Dashboard</title>
       </head>
       <body style={{ margin: 0, fontFamily: 'system-ui, sans-serif', backgroundColor: '#f5f5f5' }}>
-        <PostHogProvider>
-          <ClerkProvider>
+        <ClerkProvider>
+          <PostHogProvider>
             <ConvexClientProvider>
               <SentryErrorBoundary>
                 {children}
               </SentryErrorBoundary>
             </ConvexClientProvider>
-          </ClerkProvider>
-        </PostHogProvider>
+          </PostHogProvider>
+        </ClerkProvider>
       </body>
     </html>
   )
