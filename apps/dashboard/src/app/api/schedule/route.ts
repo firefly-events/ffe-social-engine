@@ -1,9 +1,6 @@
 /**
  * GET  /api/schedule — list scheduled posts (filterable by status/platform)
  * POST /api/schedule — create a new schedule entry
- *
- * TODO(migration): Replace scheduleStore / contentStore Map calls with Convex
- * queries/mutations or MongoDB driver calls against the "schedules" collection.
  */
 
 import { auth } from '@clerk/nextjs/server'
@@ -17,15 +14,31 @@ import {
   serverError,
   generateId,
   paginate,
-  nowISO,
 } from '@/lib/api-helpers'
-import { scheduleStore, contentStore } from '@/lib/api-store'
+import { convexClient } from '@/lib/convex-client'
+import { api } from '../../../../convex/_generated/api'
 import type {
   ScheduleItem,
   CreateScheduleBody,
   ScheduleStatus,
 } from '@/lib/api-types'
 import type { Platform } from '@/types/export'
+
+/** Map a Convex schedule document to the public ScheduleItem shape. */
+function toScheduleItem(doc: Record<string, unknown>): ScheduleItem {
+  return {
+    id:           doc.externalId as string,
+    contentId:    doc.contentId as string,
+    userId:       doc.userId as string,
+    platform:     doc.platform as Platform,
+    scheduledAt:  new Date(doc.scheduledAt as number).toISOString(),
+    status:       doc.status as ScheduleStatus,
+    postedAt:     doc.postedAt != null ? new Date(doc.postedAt as number).toISOString() : undefined,
+    errorMessage: doc.errorMessage as string | undefined,
+    createdAt:    new Date(doc.createdAt as number).toISOString(),
+    updatedAt:    new Date(doc.updatedAt as number).toISOString(),
+  }
+}
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 
@@ -42,26 +55,15 @@ export async function GET(request: NextRequest) {
     const cursor   = sp.get('cursor')  ?? undefined
     const limit    = Math.min(Number(sp.get('limit') ?? 20), 100)
 
-    // TODO(migration): push filters into Convex query / MongoDB $match
-    let items = Array.from(scheduleStore.values())
-      .filter((s) => s.userId === session.userId)
+    const docs = await convexClient.query(api.schedules.list, {
+      userId:   session.userId,
+      status:   status   ?? undefined,
+      platform: platform ?? undefined,
+      after:    after  ? new Date(after).getTime()  : undefined,
+      before:   before ? new Date(before).getTime() : undefined,
+    })
 
-    if (status)   items = items.filter((s) => s.status   === status)
-    if (platform) items = items.filter((s) => s.platform === platform)
-    if (after) {
-      const afterMs = new Date(after).getTime()
-      items = items.filter((s) => new Date(s.scheduledAt).getTime() > afterMs)
-    }
-    if (before) {
-      const beforeMs = new Date(before).getTime()
-      items = items.filter((s) => new Date(s.scheduledAt).getTime() < beforeMs)
-    }
-
-    // Sort by scheduledAt ascending (soonest first)
-    items.sort(
-      (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
-    )
-
+    const items = (docs as Record<string, unknown>[]).map(toScheduleItem)
     const { page, nextCursor } = paginate(items, cursor, limit)
 
     return ok({ items: page, nextCursor, total: items.length })
@@ -85,8 +87,8 @@ export async function POST(request: NextRequest) {
       return badRequest('Invalid JSON body')
     }
 
-    if (!body.contentId) return badRequest('contentId is required')
-    if (!body.platform)  return badRequest('platform is required')
+    if (!body.contentId)   return badRequest('contentId is required')
+    if (!body.platform)    return badRequest('platform is required')
     if (!body.scheduledAt) return badRequest('scheduledAt is required')
 
     const scheduledDate = new Date(body.scheduledAt)
@@ -98,28 +100,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify the referenced content item exists and belongs to this user
-    // TODO(migration): → Convex query / MongoDB findOne
-    const content = contentStore.get(body.contentId)
-    if (!content || content.userId !== session.userId) {
+    const content = await convexClient.query(api.content.getByExternalId, {
+      externalId: body.contentId,
+    })
+    if (!content || (content as Record<string, unknown>).userId !== session.userId) {
       return notFound('Content')
     }
 
-    const now   = nowISO()
-    const entry: ScheduleItem = {
-      id:          generateId('sch'),
+    const nowMs = Date.now()
+    const externalId = generateId('sch')
+
+    const doc = await convexClient.mutation(api.schedules.create, {
+      externalId,
       contentId:   body.contentId,
       userId:      session.userId,
       platform:    body.platform,
-      scheduledAt: body.scheduledAt,
+      scheduledAt: scheduledDate.getTime(),
       status:      'pending',
-      createdAt:   now,
-      updatedAt:   now,
-    }
+      createdAt:   nowMs,
+      updatedAt:   nowMs,
+    })
 
-    // TODO(migration): → Convex mutation / MongoDB insertOne
-    scheduleStore.set(entry.id, entry)
-
-    return created(entry)
+    return created(toScheduleItem(doc as Record<string, unknown>))
   } catch (err) {
     console.error('[POST /api/schedule]', err)
     return serverError()

@@ -42,4 +42,83 @@ export default defineSchema({
     clicks: v.number(),
     fetchedAt: v.number(),
   }).index("by_postId", ["postId"]),
+
+  content: defineTable({
+    userId: v.string(),
+    externalId: v.string(),
+    text: v.string(),
+    imageUrl: v.optional(v.string()),
+    audioUrl: v.optional(v.string()),
+    videoUrl: v.optional(v.string()),
+    platforms: v.array(v.string()),
+    status: v.string(),
+    aiModel: v.optional(v.string()),
+    prompt: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_externalId", ["externalId"]),
+
+  schedules: defineTable({
+    externalId: v.string(),
+    contentId: v.string(),
+    userId: v.string(),
+    platform: v.string(),
+    scheduledAt: v.number(),
+    status: v.string(),
+    postedAt: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_externalId", ["externalId"])
+    .index("by_contentId", ["contentId"]),
+
+  voice_clones: defineTable({
+    externalId: v.string(),
+    userId: v.string(),
+    name: v.string(),
+    sampleUrl: v.string(),
+    status: v.string(),
+    durationSeconds: v.optional(v.number()),
+    errorMessage: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_externalId", ["externalId"]),
+
+  workflows: defineTable({
+    externalId: v.string(),
+    userId: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    status: v.string(),
+    nodes: v.any(),
+    edges: v.any(),
+    config: v.any(),
+    runCount: v.number(),
+    lastRunAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_externalId", ["externalId"]),
+
+  workflow_runs: defineTable({
+    externalId: v.string(),
+    workflowId: v.string(),
+    userId: v.string(),
+    status: v.string(),
+    snapshot: v.any(),
+    startedAt: v.number(),
+    completedAt: v.optional(v.number()),
+    error: v.optional(v.string()),
+    output: v.optional(v.any()),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_externalId", ["externalId"])
+    .index("by_workflowId", ["workflowId"]),
 });

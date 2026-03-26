@@ -2,8 +2,6 @@
  * GET    /api/content/[id] — fetch a single content item
  * PATCH  /api/content/[id] — update a content item
  * DELETE /api/content/[id] — delete a content item
- *
- * TODO(migration): Replace contentStore calls with Convex / MongoDB operations.
  */
 
 import { auth } from '@clerk/nextjs/server'
@@ -17,13 +15,31 @@ import {
   notFound,
   serverError,
   assertOwner,
-  nowISO,
 } from '@/lib/api-helpers'
-import { contentStore } from '@/lib/api-store'
-import type { UpdateContentBody } from '@/lib/api-types'
+import { convexClient } from '@/lib/convex-client'
+import { api } from '../../../../../convex/_generated/api'
+import type { ContentItem, UpdateContentBody } from '@/lib/api-types'
 
 interface RouteContext {
   params: Promise<{ id: string }>
+}
+
+/** Map a Convex content document to the public ContentItem shape. */
+function toContentItem(doc: Record<string, unknown>): ContentItem {
+  return {
+    id:        doc.externalId as string,
+    userId:    doc.userId as string,
+    text:      doc.text as string,
+    imageUrl:  doc.imageUrl as string | undefined,
+    audioUrl:  doc.audioUrl as string | undefined,
+    videoUrl:  doc.videoUrl as string | undefined,
+    platforms: doc.platforms as string[],
+    status:    doc.status as ContentItem['status'],
+    aiModel:   doc.aiModel as string | undefined,
+    prompt:    doc.prompt as string | undefined,
+    createdAt: new Date(doc.createdAt as number).toISOString(),
+    updatedAt: new Date(doc.updatedAt as number).toISOString(),
+  }
 }
 
 // ── GET ───────────────────────────────────────────────────────────────────────
@@ -34,10 +50,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (!session.userId) return unauthorized()
 
     const { id } = await context.params
-    // TODO(migration): contentStore.get → Convex query / MongoDB findOne({ _id: id })
-    const item = contentStore.get(id)
-    if (!item) return notFound('Content')
+    const doc = await convexClient.query(api.content.getByExternalId, { externalId: id })
+    if (!doc) return notFound('Content')
 
+    const item = toContentItem(doc as Record<string, unknown>)
     if (!assertOwner(item.userId, session.userId)) return forbidden()
 
     return ok(item)
@@ -55,11 +71,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (!session.userId) return unauthorized()
 
     const { id } = await context.params
-    // TODO(migration): → Convex / MongoDB findOne
-    const item = contentStore.get(id)
-    if (!item) return notFound('Content')
+    const existing = await convexClient.query(api.content.getByExternalId, { externalId: id })
+    if (!existing) return notFound('Content')
 
-    if (!assertOwner(item.userId, session.userId)) return forbidden()
+    const existingItem = toContentItem(existing as Record<string, unknown>)
+    if (!assertOwner(existingItem.userId, session.userId)) return forbidden()
 
     let body: UpdateContentBody
     try {
@@ -72,8 +88,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return badRequest('platforms must not be empty')
     }
 
-    const updated = {
-      ...item,
+    const updated = await convexClient.mutation(api.content.update, {
+      externalId: id,
       ...(body.text      !== undefined && { text:      body.text.trim() }),
       ...(body.imageUrl  !== undefined && { imageUrl:  body.imageUrl }),
       ...(body.audioUrl  !== undefined && { audioUrl:  body.audioUrl }),
@@ -82,13 +98,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       ...(body.status    !== undefined && { status:    body.status }),
       ...(body.aiModel   !== undefined && { aiModel:   body.aiModel }),
       ...(body.prompt    !== undefined && { prompt:    body.prompt }),
-      updatedAt: nowISO(),
-    }
+      updatedAt: Date.now(),
+    })
 
-    // TODO(migration): → Convex mutation / MongoDB updateOne
-    contentStore.set(id, updated)
+    if (!updated) return notFound('Content')
 
-    return ok(updated)
+    return ok(toContentItem(updated as Record<string, unknown>))
   } catch (err) {
     console.error('[PATCH /api/content/[id]]', err)
     return serverError()
@@ -103,14 +118,13 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     if (!session.userId) return unauthorized()
 
     const { id } = await context.params
-    // TODO(migration): → Convex / MongoDB findOne
-    const item = contentStore.get(id)
-    if (!item) return notFound('Content')
+    const doc = await convexClient.query(api.content.getByExternalId, { externalId: id })
+    if (!doc) return notFound('Content')
 
+    const item = toContentItem(doc as Record<string, unknown>)
     if (!assertOwner(item.userId, session.userId)) return forbidden()
 
-    // TODO(migration): → Convex mutation / MongoDB deleteOne
-    contentStore.delete(id)
+    await convexClient.mutation(api.content.remove, { externalId: id })
 
     return noContent()
   } catch (err) {

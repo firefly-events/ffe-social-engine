@@ -1,9 +1,6 @@
 /**
  * GET  /api/content — list content items (paginated, filterable)
  * POST /api/content — create a new content item
- *
- * TODO(migration): Replace contentStore Map calls with Convex queries/mutations
- * or MongoDB driver calls against the "content" collection.
  */
 
 import { auth } from '@clerk/nextjs/server'
@@ -16,15 +13,33 @@ import {
   serverError,
   generateId,
   paginate,
-  nowISO,
 } from '@/lib/api-helpers'
-import { contentStore } from '@/lib/api-store'
+import { convexClient } from '@/lib/convex-client'
+import { api } from '../../../../convex/_generated/api'
 import { getPostHogServer } from '@/lib/posthog-server'
 import type {
   ContentItem,
   CreateContentBody,
   ListContentParams,
 } from '@/lib/api-types'
+
+/** Map a Convex content document to the public ContentItem shape. */
+function toContentItem(doc: Record<string, unknown>): ContentItem {
+  return {
+    id:        doc.externalId as string,
+    userId:    doc.userId as string,
+    text:      doc.text as string,
+    imageUrl:  doc.imageUrl as string | undefined,
+    audioUrl:  doc.audioUrl as string | undefined,
+    videoUrl:  doc.videoUrl as string | undefined,
+    platforms: doc.platforms as string[],
+    status:    doc.status as ContentItem['status'],
+    aiModel:   doc.aiModel as string | undefined,
+    prompt:    doc.prompt as string | undefined,
+    createdAt: new Date(doc.createdAt as number).toISOString(),
+    updatedAt: new Date(doc.updatedAt as number).toISOString(),
+  }
+}
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 
@@ -35,43 +50,26 @@ export async function GET(request: NextRequest) {
 
     const sp = request.nextUrl.searchParams
     const params: ListContentParams = {
-      platform:  sp.get('platform')  as ListContentParams['platform']  ?? undefined,
-      status:    sp.get('status')    as ListContentParams['status']    ?? undefined,
-      after:     sp.get('after')                                       ?? undefined,
-      before:    sp.get('before')                                      ?? undefined,
-      cursor:    sp.get('cursor')                                      ?? undefined,
-      limit:     Math.min(Number(sp.get('limit') ?? 20), 100),
+      platform: sp.get('platform') as ListContentParams['platform'] ?? undefined,
+      status:   sp.get('status')   as ListContentParams['status']   ?? undefined,
+      after:    sp.get('after')                                     ?? undefined,
+      before:   sp.get('before')                                    ?? undefined,
+      cursor:   sp.get('cursor')                                    ?? undefined,
+      limit:    Math.min(Number(sp.get('limit') ?? 20), 100),
     }
 
-    // TODO(migration): push these filters into a Convex query / MongoDB $match stage
-    let items = Array.from(contentStore.values())
-      .filter((c) => c.userId === session.userId)
+    const docs = await convexClient.query(api.content.list, {
+      userId:   session.userId,
+      status:   params.status,
+      platform: params.platform,
+      after:    params.after  ? new Date(params.after).getTime()  : undefined,
+      before:   params.before ? new Date(params.before).getTime() : undefined,
+    })
 
-    if (params.platform) {
-      items = items.filter((c) => c.platforms.includes(params.platform!))
-    }
-    if (params.status) {
-      items = items.filter((c) => c.status === params.status)
-    }
-    if (params.after) {
-      const after = new Date(params.after).getTime()
-      items = items.filter((c) => new Date(c.createdAt).getTime() > after)
-    }
-    if (params.before) {
-      const before = new Date(params.before).getTime()
-      items = items.filter((c) => new Date(c.createdAt).getTime() < before)
-    }
-
-    // Sort newest-first before paginating
-    items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-
+    const items = (docs as Record<string, unknown>[]).map(toContentItem)
     const { page, nextCursor } = paginate(items, params.cursor, params.limit ?? 20)
 
-    return ok({
-      items:      page,
-      nextCursor,
-      total:      items.length,
-    })
+    return ok({ items: page, nextCursor, total: items.length })
   } catch (err) {
     console.error('[GET /api/content]', err)
     return serverError()
@@ -99,9 +97,11 @@ export async function POST(request: NextRequest) {
       return badRequest('platforms must be a non-empty array')
     }
 
-    const now  = nowISO()
-    const item: ContentItem = {
-      id:        generateId('cnt'),
+    const nowMs = Date.now()
+    const externalId = generateId('cnt')
+
+    const doc = await convexClient.mutation(api.content.create, {
+      externalId,
       userId:    session.userId,
       text:      body.text.trim(),
       imageUrl:  body.imageUrl,
@@ -111,12 +111,11 @@ export async function POST(request: NextRequest) {
       status:    body.status ?? 'draft',
       aiModel:   body.aiModel,
       prompt:    body.prompt,
-      createdAt: now,
-      updatedAt: now,
-    }
+      createdAt: nowMs,
+      updatedAt: nowMs,
+    })
 
-    // TODO(migration): contentStore.set → Convex mutation / MongoDB insertOne
-    contentStore.set(item.id, item)
+    const item = toContentItem(doc as Record<string, unknown>)
 
     const ph = getPostHogServer()
     ph.capture({ distinctId: session.userId, event: 'api_call_made', properties: { endpoint: '/api/content', method: 'POST' } })
