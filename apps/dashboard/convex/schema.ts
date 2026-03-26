@@ -50,7 +50,6 @@ export default defineSchema({
     fetchedAt: v.number(),
   }).index("by_postId", ["postId"]),
 
-<<<<<<< HEAD
   content: defineTable({
     userId: v.string(),
     externalId: v.string(),
