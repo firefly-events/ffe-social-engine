@@ -1,8 +1,9 @@
+import React from 'react';
 import Sidebar from '../../components/Sidebar';
 import { UserButton } from '@clerk/nextjs';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
-export default function DashboardLayout({ children }: any) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   // We should ideally fetch the real user tier here, but for now we'll pass stubs
   const usage = {
     captions: 3,

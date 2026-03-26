@@ -520,7 +520,7 @@ export default function AnalyticsPage() {
           <div className="overflow-x-auto">
             <div className="min-w-[340px]">
               {/* Header row */}
-              <div className="grid gap-1.5 mb-1.5" className="[grid-template-columns:36px_repeat(6,1fr)]">
+              <div className="grid gap-1.5 mb-1.5 [grid-template-columns:36px_repeat(6,1fr)]">
                 <div />
                 {HOURS.map((h) => (
                   <div key={h} className="text-center text-xs text-gray-400 font-medium">{h}</div>
@@ -528,7 +528,7 @@ export default function AnalyticsPage() {
               </div>
               {/* Data rows */}
               {DAYS.map((day) => (
-                <div key={day} className="grid gap-1.5 mb-1.5" className="[grid-template-columns:36px_repeat(6,1fr)]">
+                <div key={day} className="grid gap-1.5 mb-1.5 [grid-template-columns:36px_repeat(6,1fr)]">
                   <div className="flex items-center text-xs text-gray-500 font-medium">{day}</div>
                   {HEATMAP_DATA[day].map((v, i) => (
                     <HeatmapCell key={i} value={v} />
