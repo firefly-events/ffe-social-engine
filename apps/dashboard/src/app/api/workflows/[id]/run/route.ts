@@ -106,9 +106,50 @@ export async function POST(_request: NextRequest, context: RouteContext) {
 
     const run = toWorkflowRun(runDoc as Record<string, unknown>)
 
-    // TODO(engine): Enqueue execution job here (QStash, BullMQ, etc.)
-    // For now, simulate immediate completion in the background.
-    void simulateRun(runExternalId)
+    // ── n8n webhook (FIR-1305) ─────────────────────────────────────────────
+    const n8nUrl = process.env.N8N_WEBHOOK_URL
+    if (n8nUrl) {
+      void (async () => {
+        try {
+          const n8nRes = await fetch(n8nUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              runId:      runExternalId,
+              workflowId: id,
+              nodes:      workflow.nodes,
+              edges:      workflow.edges,
+              userId:     session.userId,
+            }),
+          })
+          // Mark run as completed or failed based on n8n response status
+          if (n8nRes.ok) {
+            await convexClient.mutation(api.workflowRuns.update, {
+              externalId:  runExternalId,
+              status:      'completed',
+              completedAt: Date.now(),
+              output:      { n8nStatus: n8nRes.status },
+            })
+          } else {
+            await convexClient.mutation(api.workflowRuns.update, {
+              externalId:  runExternalId,
+              status:      'failed',
+              completedAt: Date.now(),
+              error:       `n8n responded with HTTP ${n8nRes.status}`,
+            })
+          }
+        } catch (err) {
+          // n8n unreachable — keep run in 'running' state, don't fail the request
+          console.warn('[POST /api/workflows/[id]/run] n8n unreachable:', err)
+          void simulateRun(runExternalId)
+        }
+      })()
+    } else {
+      // TODO(engine): Enqueue execution job here (QStash, BullMQ, etc.)
+      // For now, simulate immediate completion in the background.
+      void simulateRun(runExternalId)
+    }
+    // ── End n8n ────────────────────────────────────────────────────────────
 
     return created(run)
   } catch (err) {

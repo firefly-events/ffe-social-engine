@@ -6,9 +6,9 @@
  * a forwarded auth token.
  */
 
+import { ConvexError } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { ConvexError } from "convex/server";
 
 /** List workflows for a user with optional status filter, newest-first by updatedAt. */
 export const list = query({
@@ -48,7 +48,7 @@ export const getByExternalId = query({
 export const create = mutation({
   args: {
     externalId: v.string(),
-    userId: v.string(), // Clerk ID
+    userId: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
     status: v.string(),
@@ -57,46 +57,11 @@ export const create = mutation({
     config: v.any(),
     runCount: v.number(),
     lastRunAt: v.optional(v.number()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    // 1. Fetch user by Clerk ID
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.userId))
-      .first();
-
-    if (!user) {
-      throw new ConvexError("User not found");
-    }
-
-    // 2. Count existing workflows
-    const existingWorkflows = await ctx.db
-      .query("workflows")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-
-    const count = existingWorkflows.length;
-
-    // 3. Enforce limits
-    const plan = (user.plan || "free").toLowerCase();
-    let limit = Infinity;
-
-    if (plan === "free" || plan === "starter") {
-      limit = 3;
-    } else if (plan === "pro") {
-      limit = 15;
-    }
-
-    if (count >= limit) {
-      throw new ConvexError(`Automation limit reached for ${plan} plan (max ${limit}). Upgrade for more.`);
-    }
-
-    const now = Date.now();
-    const docId = await ctx.db.insert("workflows", {
-      ...args,
-      createdAt: now,
-      updatedAt: now,
-    });
+    const docId = await ctx.db.insert("workflows", args);
     return await ctx.db.get(docId);
   },
 });
@@ -113,6 +78,7 @@ export const update = mutation({
     config: v.optional(v.any()),
     runCount: v.optional(v.number()),
     lastRunAt: v.optional(v.number()),
+    updatedAt: v.number(),
   },
   handler: async (ctx, args) => {
     const { externalId, ...patch } = args;
@@ -125,12 +91,59 @@ export const update = mutation({
     const cleanPatch = Object.fromEntries(
       Object.entries(patch).filter(([, v]) => v !== undefined)
     );
-    
-    await ctx.db.patch(existing._id, {
-      ...cleanPatch,
-      updatedAt: Date.now(),
-    });
+    await ctx.db.patch(existing._id, cleanPatch);
     return await ctx.db.get(existing._id);
+  },
+});
+
+/**
+ * Atomically check the tier limit and create a workflow in a single mutation,
+ * preventing the race condition inherent in a separate count + create pattern.
+ *
+ * Pass tierLimit: -1 for unlimited tiers (business/agency).
+ */
+export const createWithLimitCheck = mutation({
+  args: {
+    externalId: v.string(),
+    userId: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    nodes: v.any(),
+    edges: v.any(),
+    config: v.any(),
+    tierLimit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("workflows")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const activeCount = existing.filter((w) => w.status !== "archived").length;
+
+    if (args.tierLimit !== -1 && activeCount >= args.tierLimit) {
+      throw new ConvexError({
+        code: "LIMIT_EXCEEDED",
+        used: activeCount,
+        limit: args.tierLimit,
+      });
+    }
+
+    const nowMs = Date.now();
+    const docId = await ctx.db.insert("workflows", {
+      externalId: args.externalId,
+      userId: args.userId,
+      name: args.name,
+      description: args.description,
+      status: "draft",
+      nodes: args.nodes,
+      edges: args.edges,
+      config: args.config,
+      runCount: 0,
+      createdAt: nowMs,
+      updatedAt: nowMs,
+    });
+    return await ctx.db.get(docId);
   },
 });
 

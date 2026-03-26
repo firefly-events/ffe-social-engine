@@ -166,7 +166,8 @@ export default defineSchema({
     completedAt: v.optional(v.number()),
   })
     .index("by_userId", ["userId"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_topic", ["topic"]),
 
   contentSessions: defineTable({
     userId: v.string(),
@@ -189,4 +190,16 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_status", ["status"]),
+
+  exportHistory: defineTable({
+    externalId: v.string(),
+    userId: v.string(),
+    assetIds: v.array(v.string()),
+    format: v.string(),        // "zip" | "json" | "webhook"
+    platform: v.optional(v.string()),
+    n8nResponse: v.optional(v.any()),
+    exportedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_externalId", ["externalId"]),
 });

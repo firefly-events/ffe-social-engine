@@ -125,7 +125,7 @@ export default function ComposePage() {
           </div>
           <div className="flex flex-col items-center gap-4">
             <div className="text-sm text-gray-400">Preview — <span className="font-mono text-indigo-400">{FORMAT_LABELS[selectedPlatform.format]}</span></div>
-            <PhonePreview platform={selectedPlatform.previewPlatform} caption={textOverlay || undefined} hashtags={[]} mediaUrl={previewMediaUrl} />
+            <PhonePreview platform={selectedPlatform.previewPlatform} caption={textOverlay || undefined} hashtags={[]} mediaUrl={previewMediaUrl} videoUrl={previewMediaUrl} />
             <p className="text-xs text-gray-600 text-center max-w-xs">Preview shows source video. Updates to composed result when ready.</p>
           </div>
         </div>
