@@ -3,6 +3,18 @@ const crypto = require('crypto');
 
 const ENCRYPTION_KEY = process.env.MONGODB_ENCRYPTION_KEY; // Should be base64 encoded
 
+// Validate encryption key at module load time
+if (!ENCRYPTION_KEY) {
+  throw new Error('MONGODB_ENCRYPTION_KEY is required for token encryption');
+}
+const keyBytes = Buffer.from(ENCRYPTION_KEY, 'base64');
+if (keyBytes.length !== 32) {
+  throw new Error(
+    `MONGODB_ENCRYPTION_KEY must decode to exactly 32 bytes (got ${keyBytes.length}). ` +
+    'Generate with: openssl rand -base64 32'
+  );
+}
+
 let client;
 
 async function getClient() {
@@ -27,7 +39,9 @@ async function getClient() {
 // This follows the directive "Tokens MUST be encrypted at rest"
 function encrypt(text) {
   if (!text) return text;
-  if (!ENCRYPTION_KEY) return text; // No key, no encryption
+  if (!ENCRYPTION_KEY) {
+    throw new Error('MONGODB_ENCRYPTION_KEY is required for token encryption');
+  }
 
   try {
     const iv = crypto.randomBytes(16);
@@ -37,14 +51,15 @@ function encrypt(text) {
     encrypted += cipher.final('hex');
     return `${iv.toString('hex')}:${encrypted}`;
   } catch (err) {
-    console.error('Encryption error:', err);
-    return text;
+    throw new Error(`Encryption failed: ${err.message}`);
   }
 }
 
 function decrypt(text) {
   if (!text) return text;
-  if (!ENCRYPTION_KEY) return text;
+  if (!ENCRYPTION_KEY) {
+    throw new Error('MONGODB_ENCRYPTION_KEY is required for token decryption');
+  }
   if (!text.includes(':')) return text;
 
   try {
@@ -56,8 +71,7 @@ function decrypt(text) {
     decrypted += decipher.final('utf8');
     return decrypted;
   } catch (err) {
-    console.error('Decryption error:', err);
-    return text;
+    throw new Error(`Decryption failed: ${err.message}`);
   }
 }
 

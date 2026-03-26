@@ -48,12 +48,16 @@ describe('encrypt / decrypt', () => {
     expect(decrypt(plain)).toBe(plain);
   });
 
-  it('handles missing ENCRYPTION_KEY gracefully by passing text through', () => {
-    // encrypt/decrypt pass through if key not set; the module already loaded with
-    // key present, so verify basic pass-through path via text without separator
-    const text = 'plain-no-colon';
-    // decrypt with no colon returns as-is
-    expect(decrypt(text)).toBe(text);
+  it('throws at module load when ENCRYPTION_KEY is missing', () => {
+    jest.resetModules();
+    const originalKey = process.env.MONGODB_ENCRYPTION_KEY;
+    delete process.env.MONGODB_ENCRYPTION_KEY;
+    try {
+      expect(() => require('./mongo')).toThrow('MONGODB_ENCRYPTION_KEY is required for token encryption');
+    } finally {
+      process.env.MONGODB_ENCRYPTION_KEY = originalKey;
+      jest.resetModules();
+    }
   });
 });
 
