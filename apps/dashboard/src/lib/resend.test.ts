@@ -1,206 +1,123 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { sendEmail } from './resend';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { sendEmail, renderNewsletterHtml } from './resend';
 
-describe('sendEmail', () => {
-  const originalEnv = { ...process.env };
+const mockFetch = vi.fn();
+global.fetch = mockFetch;
 
+describe('Resend Email Client', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
-    process.env.RESEND_API_KEY = 'test-resend-key';
-    process.env.RESEND_FROM_EMAIL = 'events@firefly.test';
+    vi.clearAllMocks();
   });
 
-  afterEach(() => {
-    process.env = { ...originalEnv };
+  describe('sendEmail', () => {
+    it('should send an email successfully', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: 'email_123' }),
+      });
+
+      const result = await sendEmail({
+        to: 'test@example.com',
+        subject: 'Test Subject',
+        html: '<p>Hello</p>',
+      });
+
+      expect(result).toEqual({ id: 'email_123' });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toContain('resend.com/emails');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.to).toEqual(['test@example.com']);
+      expect(body.subject).toBe('Test Subject');
+    });
+
+    it('should handle array of recipients', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ id: 'email_456' }),
+      });
+
+      await sendEmail({
+        to: ['a@test.com', 'b@test.com'],
+        subject: 'Test',
+        html: '<p>Hi</p>',
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.to).toEqual(['a@test.com', 'b@test.com']);
+    });
+
+    it('should throw on API error', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        text: () => Promise.resolve('Unauthorized'),
+      });
+
+      await expect(
+        sendEmail({ to: 'test@test.com', subject: 'Test', html: '<p>Hi</p>' })
+      ).rejects.toThrow('Resend API error 401');
+    });
   });
 
-  it('returns success with id on successful send', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: 'email-123' }),
+  describe('renderNewsletterHtml', () => {
+    it('should render a basic newsletter', () => {
+      const html = renderNewsletterHtml({
+        subject: 'Weekly Events',
+        sections: [
+          {
+            title: 'Concert in the Park',
+            body: 'Join us for a night of music',
+          },
+        ],
+      });
+
+      expect(html).toContain('Concert in the Park');
+      expect(html).toContain('Join us for a night of music');
+      expect(html).toContain('Firefly Events');
     });
 
-    const result = await sendEmail({
-      to: 'user@example.com',
-      subject: 'Test Subject',
-      html: '<p>Hello</p>',
+    it('should include preheader when provided', () => {
+      const html = renderNewsletterHtml({
+        subject: 'Test',
+        preheader: 'Preview text here',
+        sections: [{ title: 'Title', body: 'Body' }],
+      });
+
+      expect(html).toContain('Preview text here');
     });
 
-    expect(result).toEqual({ success: true, id: 'email-123' });
-  });
+    it('should render CTA buttons when ctaUrl is provided', () => {
+      const html = renderNewsletterHtml({
+        subject: 'Test',
+        sections: [
+          {
+            title: 'Event',
+            body: 'Description',
+            ctaUrl: 'https://tickets.example.com',
+            ctaText: 'Buy Tickets',
+          },
+        ],
+      });
 
-  it('returns failure on API error', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 422,
-      text: async () => 'Validation error',
+      expect(html).toContain('https://tickets.example.com');
+      expect(html).toContain('Buy Tickets');
     });
 
-    const result = await sendEmail({
-      to: 'user@example.com',
-      subject: 'Test',
-      html: '<p>Hi</p>',
+    it('should render images when imageUrl is provided', () => {
+      const html = renderNewsletterHtml({
+        subject: 'Test',
+        sections: [
+          {
+            title: 'Event',
+            body: 'Desc',
+            imageUrl: 'https://img.example.com/photo.jpg',
+          },
+        ],
+      });
+
+      expect(html).toContain('https://img.example.com/photo.jpg');
     });
-
-    expect(result).toEqual({ success: false, error: 'Resend API error: 422' });
-  });
-
-  it('returns failure on network error', async () => {
-    global.fetch = vi.fn().mockRejectedValue(new Error('Connection refused'));
-
-    const result = await sendEmail({
-      to: 'user@example.com',
-      subject: 'Test',
-      html: '<p>Hi</p>',
-    });
-
-    expect(result).toEqual({ success: false, error: 'Connection refused' });
-  });
-
-  it('returns failure when API key is missing', async () => {
-    delete process.env.RESEND_API_KEY;
-    global.fetch = vi.fn();
-
-    const result = await sendEmail({
-      to: 'user@example.com',
-      subject: 'Test',
-      html: '<p>Hi</p>',
-    });
-
-    expect(result).toEqual({ success: false, error: 'Resend API key not configured' });
-    expect(global.fetch).not.toHaveBeenCalled();
-  });
-
-  it('sends correct request body format', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: 'email-456' }),
-    });
-
-    await sendEmail({
-      to: 'user@example.com',
-      subject: 'Weekly Digest',
-      html: '<h1>Digest</h1>',
-    });
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      'https://api.resend.com/emails',
-      expect.objectContaining({
-        method: 'POST',
-        headers: {
-          Authorization: 'Bearer test-resend-key',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'events@firefly.test',
-          to: ['user@example.com'],
-          subject: 'Weekly Digest',
-          html: '<h1>Digest</h1>',
-        }),
-      }),
-    );
-  });
-
-  it('uses default from email when env var is not set', async () => {
-    delete process.env.RESEND_FROM_EMAIL;
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: 'email-789' }),
-    });
-
-    await sendEmail({
-      to: 'user@example.com',
-      subject: 'Test',
-      html: '<p>Hi</p>',
-    });
-
-    const callBody = JSON.parse(
-      (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
-    );
-    expect(callBody.from).toBe('noreply@firefly.events');
-  });
-
-  it('wraps single to address in array', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: 'email-abc' }),
-    });
-
-    await sendEmail({
-      to: 'single@example.com',
-      subject: 'Test',
-      html: '<p>Hi</p>',
-    });
-
-    const callBody = JSON.parse(
-      (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
-    );
-    expect(callBody.to).toEqual(['single@example.com']);
-  });
-
-  it('passes array of to addresses as-is', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: 'email-def' }),
-    });
-
-    await sendEmail({
-      to: ['a@example.com', 'b@example.com'],
-      subject: 'Test',
-      html: '<p>Hi</p>',
-    });
-
-    const callBody = JSON.parse(
-      (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
-    );
-    expect(callBody.to).toEqual(['a@example.com', 'b@example.com']);
-  });
-
-  it('passes HTML content correctly', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: 'email-html' }),
-    });
-
-    const complexHtml = '<html><body><h1>Title</h1><p>Content with <strong>bold</strong></p></body></html>';
-    await sendEmail({
-      to: 'user@example.com',
-      subject: 'Test',
-      html: complexHtml,
-    });
-
-    const callBody = JSON.parse(
-      (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body,
-    );
-    expect(callBody.html).toBe(complexHtml);
-  });
-
-  it('handles non-Error thrown objects in catch', async () => {
-    global.fetch = vi.fn().mockRejectedValue('string error');
-
-    const result = await sendEmail({
-      to: 'user@example.com',
-      subject: 'Test',
-      html: '<p>Hi</p>',
-    });
-
-    expect(result).toEqual({ success: false, error: 'Unknown error' });
-  });
-
-  it('handles API error with JSON error body', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 400,
-      text: async () => JSON.stringify({ message: 'Bad request' }),
-    });
-
-    const result = await sendEmail({
-      to: 'user@example.com',
-      subject: 'Test',
-      html: '<p>Hi</p>',
-    });
-
-    expect(result.success).toBe(false);
-    expect(result.error).toBe('Resend API error: 400');
   });
 });

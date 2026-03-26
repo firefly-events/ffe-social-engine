@@ -46,47 +46,54 @@ export default defineSchema({
   automationRules: defineTable({
     userId: v.string(),
     name: v.string(),
-    triggerType: v.union(
-      v.literal("event_created"),
-      v.literal("event_updated"),
-      v.literal("weekly_digest"),
-      v.literal("analytics_threshold")
-    ),
-    platforms: v.array(v.string()),
-    actions: v.array(
-      v.union(
-        v.literal("generate_post"),
-        v.literal("send_newsletter"),
-        v.literal("publish_post")
-      )
-    ),
+    description: v.optional(v.string()),
+    type: v.union(v.literal("event-to-social"), v.literal("event-to-newsletter"), v.literal("weekly-digest")),
     enabled: v.boolean(),
-    config: v.optional(v.any()),
+    config: v.object({
+      eventFilters: v.optional(v.object({
+        categories: v.optional(v.array(v.string())),
+        location: v.optional(v.string()),
+        dateRange: v.optional(v.object({
+          start: v.optional(v.string()),
+          end: v.optional(v.string()),
+        })),
+      })),
+      platforms: v.optional(v.array(v.string())),
+      newsletterConfig: v.optional(v.object({
+        subject: v.optional(v.string()),
+        recipientListId: v.optional(v.string()),
+        template: v.optional(v.string()),
+      })),
+      schedule: v.optional(v.string()),
+      aiPromptOverride: v.optional(v.string()),
+    }),
+    lastRunAt: v.optional(v.number()),
+    runCount: v.number(),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_userId", ["userId"])
-    .index("by_triggerType", ["triggerType"]),
+    .index("by_type", ["type"])
+    .index("by_enabled", ["enabled"]),
 
   automationQueue: defineTable({
     ruleId: v.id("automationRules"),
     userId: v.string(),
-    triggerData: v.any(),
-    status: v.union(
-      v.literal("pending"),
-      v.literal("processing"),
-      v.literal("posted"),
-      v.literal("completed"),
-      v.literal("failed"),
-      v.literal("rejected")
-    ),
-    result: v.optional(v.any()),
-    error: v.optional(v.string()),
-    createdAt: v.number(),
+    status: v.union(v.literal("pending"), v.literal("processing"), v.literal("completed"), v.literal("failed")),
+    triggerData: v.object({
+      eventIds: v.optional(v.array(v.string())),
+      source: v.string(),
+      triggeredAt: v.number(),
+    }),
+    result: v.optional(v.object({
+      postIds: v.optional(v.array(v.string())),
+      newsletterId: v.optional(v.string()),
+      error: v.optional(v.string()),
+    })),
     processedAt: v.optional(v.number()),
-    postedAt: v.optional(v.number()),
+    createdAt: v.number(),
   })
+    .index("by_ruleId", ["ruleId"])
     .index("by_status", ["status"])
-    .index("by_userId", ["userId"])
-    .index("by_ruleId", ["ruleId"]),
+    .index("by_userId", ["userId"]),
 });

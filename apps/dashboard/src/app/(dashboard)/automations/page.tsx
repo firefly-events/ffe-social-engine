@@ -1,211 +1,433 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { useUser } from '@clerk/nextjs'
-import { useQuery, useMutation } from 'convex/react'
-import { api } from '../../../../convex/_generated/api'
-import type { Id } from '../../../../convex/_generated/dataModel'
+import { useState } from 'react';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../../../convex/_generated/api';
 
-const TRIGGER_LABELS: Record<string, string> = {
-  event_created: 'Event Created',
-  event_updated: 'Event Updated',
-  weekly_digest: 'Weekly Digest',
-  analytics_threshold: 'Analytics Threshold',
-}
+type RuleType = 'event-to-social' | 'event-to-newsletter' | 'weekly-digest';
 
-const PLATFORM_COLORS: Record<string, string> = {
-  instagram: 'bg-pink-100 text-pink-700',
-  facebook: 'bg-blue-100 text-blue-700',
-  twitter: 'bg-gray-100 text-gray-700',
-  linkedin: 'bg-sky-100 text-sky-700',
-  tiktok: 'bg-neutral-100 text-neutral-800',
-}
+type RuleFormState = {
+  name: string;
+  type: RuleType;
+  platforms: string;
+  schedule: string;
+};
+
+const EMPTY_FORM: RuleFormState = {
+  name: '',
+  type: 'event-to-social',
+  platforms: '',
+  schedule: '',
+};
+
+const TYPE_OPTIONS: { value: RuleType; label: string; description: string }[] = [
+  { value: 'event-to-social', label: 'Event → Social Post', description: 'Auto-generate social posts when new events are created' },
+  { value: 'event-to-newsletter', label: 'Event → Newsletter', description: 'Include new events in email newsletters' },
+  { value: 'weekly-digest', label: 'Weekly Digest', description: 'Send a weekly roundup of upcoming events' },
+];
 
 export default function AutomationsPage() {
-  const { user } = useUser()
-  const userId = user?.id ?? ''
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<RuleFormState>(EMPTY_FORM);
 
-  const rules = useQuery(
-    api.automations.listRules,
-    userId ? {} : 'skip'
-  )
-  const toggleRule = useMutation(api.automations.toggleRule)
-  const deleteRule = useMutation(api.automations.deleteRule)
+  const rules = useQuery(api.automations.listRules);
+  const queueItems = useQuery(api.automations.listQueueItems, {});
+  const createRule = useMutation(api.automations.createRule);
+  const updateRuleMut = useMutation(api.automations.updateRule);
+  const deleteRuleMut = useMutation(api.automations.deleteRule);
 
-  const [deletingId, setDeletingId] = useState<string | null>(null)
-
-  const handleToggle = async (id: Id<'automationRules'>) => {
-    if (!userId) return
-    await toggleRule({ id })
-  }
-
-  const handleDelete = async (id: Id<'automationRules'>) => {
-    if (!userId) return
-    setDeletingId(id)
+  const handleCreate = async () => {
+    if (!form.name.trim()) return;
     try {
-      await deleteRule({ id })
-    } finally {
-      setDeletingId(null)
+      const platforms = form.platforms
+        .split(',')
+        .map((p) => p.trim())
+        .filter(Boolean);
+      await createRule({
+        name: form.name,
+        type: form.type,
+        config: {
+          platforms: platforms.length > 0 ? platforms : undefined,
+          schedule: form.schedule || undefined,
+        },
+      });
+      setForm(EMPTY_FORM);
+      setShowForm(false);
+    } catch (err) {
+      console.error('Failed to create rule:', err);
     }
-  }
+  };
+
+  const handleToggle = async (ruleId: any, currentEnabled: boolean) => {
+    try {
+      await updateRuleMut({ ruleId, enabled: !currentEnabled });
+    } catch (err) {
+      console.error('Failed to toggle rule:', err);
+    }
+  };
+
+  const handleDelete = async (ruleId: any) => {
+    try {
+      await deleteRuleMut({ ruleId });
+    } catch (err) {
+      console.error('Failed to delete rule:', err);
+    }
+  };
+
+  const isLoading = rules === undefined;
 
   return (
-    <div className="space-y-8">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Automations</h2>
-          <p className="text-gray-500 mt-0.5 text-sm">
-            Manage your automated content rules
+          <h1 style={{ margin: 0, fontSize: '1.75rem' }}>Automations</h1>
+          <p style={{ margin: '0.25rem 0 0 0', color: '#666' }}>
+            Create rules to automate your content workflow
           </p>
         </div>
-        <Link
-          href="/automations/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors"
+        <button
+          onClick={() => setShowForm(!showForm)}
+          style={{
+            padding: '0.75rem 1.5rem',
+            backgroundColor: '#8e44ad',
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            boxShadow: '0 4px 12px rgba(142,68,173,0.3)',
+          }}
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
-            />
-          </svg>
-          New Rule
-        </Link>
+          {showForm ? 'Cancel' : '+ New Rule'}
+        </button>
       </div>
 
-      {/* Content */}
-      {rules === undefined ? (
-        <div className="flex items-center justify-center py-16">
-          <div className="text-gray-400 text-sm">Loading automation rules...</div>
-        </div>
-      ) : rules.length === 0 ? (
-        <div className="card p-12 text-center">
-          <div className="text-4xl mb-3">
-            <svg
-              className="w-12 h-12 mx-auto text-gray-300"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.5}
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 010-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-              />
-            </svg>
+      {/* Create Rule Form */}
+      {showForm && (
+        <div style={{
+          padding: '1.5rem',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          border: '1px solid #ddd',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '1rem',
+        }}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Create New Rule</h3>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#444' }}>
+              Rule Name
+            </label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="e.g. Auto-post for new music events"
+              style={{
+                padding: '0.75rem',
+                border: '1px solid #ddd',
+                borderRadius: '8px',
+                fontSize: '0.9rem',
+                outline: 'none',
+              }}
+            />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">
-            No automation rules yet
-          </h3>
-          <p className="text-sm text-gray-500 mb-4">
-            Create your first rule to get started.
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#444' }}>
+                Rule Type
+              </label>
+              <select
+                value={form.type}
+                onChange={(e) => setForm({ ...form, type: e.target.value as RuleType })}
+                style={{
+                  padding: '0.75rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
+                  backgroundColor: 'white',
+                }}
+              >
+                {TYPE_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#444' }}>
+                Platforms (comma-separated)
+              </label>
+              <input
+                type="text"
+                value={form.platforms}
+                onChange={(e) => setForm({ ...form, platforms: e.target.value })}
+                placeholder="instagram, twitter, linkedin"
+                style={{
+                  padding: '0.75rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                }}
+              />
+            </div>
+          </div>
+
+          {form.type === 'weekly-digest' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#444' }}>
+                Schedule (cron expression)
+              </label>
+              <input
+                type="text"
+                value={form.schedule}
+                onChange={(e) => setForm({ ...form, schedule: e.target.value })}
+                placeholder="0 9 * * 1 (every Monday at 9am)"
+                style={{
+                  padding: '0.75rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem',
+                  fontFamily: 'monospace',
+                  outline: 'none',
+                }}
+              />
+            </div>
+          )}
+
+          <p style={{ margin: 0, fontSize: '0.8rem', color: '#888' }}>
+            {TYPE_OPTIONS.find((t) => t.value === form.type)?.description}
           </p>
-          <Link
-            href="/automations/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors"
+
+          <button
+            onClick={handleCreate}
+            disabled={!form.name.trim()}
+            style={{
+              padding: '0.75rem 1.5rem',
+              backgroundColor: form.name.trim() ? '#8e44ad' : '#ccc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: form.name.trim() ? 'pointer' : 'not-allowed',
+              fontWeight: 'bold',
+              alignSelf: 'flex-end',
+            }}
           >
             Create Rule
-          </Link>
+          </button>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {rules.map((rule) => (
-            <div key={rule._id} className="card p-5">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-gray-900 truncate">
-                      {rule.name}
-                    </h3>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                        rule.enabled
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-gray-100 text-gray-500'
-                      }`}
-                    >
-                      {rule.enabled ? 'Active' : 'Disabled'}
-                    </span>
-                  </div>
+      )}
 
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs text-gray-500">Trigger:</span>
-                    <span className="inline-flex items-center rounded-md bg-purple-50 px-2 py-0.5 text-xs font-medium text-purple-700">
-                      {TRIGGER_LABELS[rule.triggerType] || rule.triggerType}
-                    </span>
-                  </div>
+      {/* Rules List and Queue Items */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
+        {/* Rules List */}
+        <section>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Your Rules</h2>
 
-                  <div className="flex flex-wrap gap-1.5">
-                    {rule.platforms.map((platform) => (
-                      <span
-                        key={platform}
-                        className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${
-                          PLATFORM_COLORS[platform] || 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {platform}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+          {isLoading && (
+            <div style={{
+              padding: '2rem',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '1px solid #ddd',
+              textAlign: 'center',
+              color: '#999',
+            }}>
+              Loading rules...
+            </div>
+          )}
 
-                <div className="flex items-center gap-2 flex-shrink-0">
+          {!isLoading && rules.length === 0 && (
+            <div style={{
+              padding: '2rem',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '1px solid #ddd',
+              textAlign: 'center',
+              color: '#999',
+            }}>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem' }}>
+                No automation rules yet. Create one to get started.
+              </p>
+            </div>
+          )}
+
+          {!isLoading && rules.length > 0 && (
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '1px solid #ddd',
+              overflow: 'hidden',
+            }}>
+              {rules.map((rule: any, idx: number) => (
+                <div
+                  key={rule._id}
+                  style={{
+                    padding: '1rem 1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem',
+                    borderBottom: idx < rules.length - 1 ? '1px solid #eee' : 'none',
+                  }}
+                >
                   {/* Toggle */}
                   <button
-                    onClick={() => handleToggle(rule._id)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      rule.enabled ? 'bg-purple-600' : 'bg-gray-200'
-                    }`}
-                    title={rule.enabled ? 'Disable rule' : 'Enable rule'}
+                    onClick={() => handleToggle(rule._id, rule.enabled)}
+                    style={{
+                      width: '44px',
+                      height: '24px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      backgroundColor: rule.enabled ? '#8e44ad' : '#ccc',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      flexShrink: 0,
+                      transition: 'background-color 0.2s',
+                    }}
                   >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        rule.enabled ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
+                    <span style={{
+                      width: '18px',
+                      height: '18px',
+                      borderRadius: '50%',
+                      backgroundColor: 'white',
+                      position: 'absolute',
+                      top: '3px',
+                      left: rule.enabled ? '23px' : '3px',
+                      transition: 'left 0.2s',
+                      display: 'block',
+                    }} />
                   </button>
+
+                  {/* Info */}
+                  <div style={{ flexGrow: 1 }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '0.95rem' }}>{rule.name}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
+                      {TYPE_OPTIONS.find((t) => t.value === rule.type)?.label || rule.type}
+                      {rule.config?.platforms?.length ? ` • ${rule.config.platforms.join(', ')}` : ''}
+                      {rule.runCount > 0 ? ` • ${rule.runCount} runs` : ''}
+                    </div>
+                  </div>
+
+                  {/* Status */}
+                  <span style={{
+                    padding: '0.2rem 0.6rem',
+                    borderRadius: '20px',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    backgroundColor: rule.enabled ? '#e8f5e9' : '#f5f5f5',
+                    color: rule.enabled ? '#2e7d32' : '#999',
+                  }}>
+                    {rule.enabled ? 'Active' : 'Paused'}
+                  </span>
 
                   {/* Delete */}
                   <button
                     onClick={() => handleDelete(rule._id)}
-                    disabled={deletingId === rule._id}
-                    className="rounded-lg p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
-                    title="Delete rule"
+                    style={{
+                      padding: '0.4rem 0.6rem',
+                      backgroundColor: 'transparent',
+                      border: '1px solid #ddd',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      color: '#999',
+                      fontSize: '0.8rem',
+                    }}
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                      />
-                    </svg>
+                    Delete
                   </button>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )}
+        </section>
+
+        {/* Queue / Execution History */}
+        <section>
+          <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Recent Executions</h2>
+
+          {queueItems === undefined && (
+            <div style={{
+              padding: '2rem',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '1px solid #ddd',
+              textAlign: 'center',
+              color: '#999',
+            }}>
+              Loading history...
+            </div>
+          )}
+
+          {queueItems !== undefined && queueItems.length === 0 && (
+            <div style={{
+              padding: '2rem',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '1px solid #ddd',
+              textAlign: 'center',
+              color: '#999',
+            }}>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem' }}>
+                No executions yet. Rules will log activity here.
+              </p>
+            </div>
+          )}
+
+          {queueItems !== undefined && queueItems.length > 0 && (
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: '1px solid #ddd',
+              overflow: 'hidden',
+            }}>
+              {queueItems.map((item: any, idx: number) => (
+                <div
+                  key={item._id}
+                  style={{
+                    padding: '0.75rem 1rem',
+                    borderBottom: idx < queueItems.length - 1 ? '1px solid #eee' : 'none',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '0.85rem' }}>
+                      {item.triggerData?.source || 'Unknown'}
+                    </span>
+                    <span style={{
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: '20px',
+                      fontSize: '0.7rem',
+                      fontWeight: 'bold',
+                      backgroundColor:
+                        item.status === 'completed' ? '#e8f5e9' :
+                        item.status === 'failed' ? '#ffebee' :
+                        item.status === 'processing' ? '#e3f2fd' :
+                        '#f5f5f5',
+                      color:
+                        item.status === 'completed' ? '#2e7d32' :
+                        item.status === 'failed' ? '#c62828' :
+                        item.status === 'processing' ? '#1565c0' :
+                        '#999',
+                    }}>
+                      {item.status}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#999', marginTop: '0.25rem' }}>
+                    {item.createdAt
+                      ? new Date(item.createdAt).toLocaleString()
+                      : 'Unknown time'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
-  )
+  );
 }
