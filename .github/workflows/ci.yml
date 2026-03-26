@@ -44,5 +44,5 @@ jobs:
           
       - name: Test Python
         run: |
-          cd services/visual-gen && pytest
-          cd ../voice-gen && pytest
+          cd services/visual-gen && pytest --rootdir=.
+          cd ../voice-gen && pytest --rootdir=.
