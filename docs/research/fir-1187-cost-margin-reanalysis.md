@@ -1,6 +1,9 @@
 # FIR-1187: Cost-Margin Reanalysis for Social Engine V1
 
+Linear: https://linear.app/fireflyevents/issue/FIR-1187
+
 ## Executive Summary
+
 This document provides a comprehensive reanalysis of the cost structures and margin profiles for the Social Engine platform. By leveraging a hybrid infrastructure—combining low-cost LLMs (Gemini Flash-Lite), high-efficiency image models (FLUX), and self-hosted intensive generation (XTTSv2/Video)—we achieve a robust margin profile that supports sustainable growth at a competitive $29.99/mo floor.
 
 ## 1. Tier Definitions (Hormozi Model)
@@ -10,8 +13,8 @@ The product architecture follows a high-value, tiered progression designed to ma
 | Tier | Price | Monthly Content Limits | Features |
 | :--- | :--- | :--- | :--- |
 | **Free** | $0 | 5 captions, 1 video | Export only, Lead Gen focused |
-| **Pro** | $29.99 | 500 caps, 25 vids, 100 posts | 5 platforms, 5 voice clones |
-| **Agency** | $99.00 | Unlimited caps, 250 vids, Unlimited posts | 50 voice clones, 5 multi-tenant seats, White-label |
+| **Pro** | $29.99 | 500 captions, 25 videos, 100 posts | 5 platforms, 5 voice clones |
+| **Agency** | $99.00 | Unlimited captions, 250 videos, Unlimited posts | 50 voice clones, 5 multi-tenant seats, White-label |
 | **Enterprise**| $499+ | Custom / Unlimited | Dedicated hardware, priority support |
 
 ---
@@ -96,4 +99,5 @@ Simplified and similar competitors often offer lower entry points (e.g., $18–$
 3.  **Inference Independence:** Self-hosting allows us to offer "unlimited" feel on intensive features (voice cloning) that competitors must meter aggressively.
 
 ## Conclusion
+
 The current cost model demonstrates extreme capital efficiency. The 90%+ margin on the Pro tier provides the financial ceiling necessary to fund aggressive user acquisition and R&D for the Agency and Enterprise offerings.
