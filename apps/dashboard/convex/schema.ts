@@ -50,6 +50,7 @@ export default defineSchema({
     fetchedAt: v.number(),
   }).index("by_postId", ["postId"]),
 
+<<<<<<< HEAD
   content: defineTable({
     userId: v.string(),
     externalId: v.string(),
@@ -151,4 +152,42 @@ export default defineSchema({
     size: v.optional(v.number()),
     createdAt: v.number(),
   }).index("by_userId", ["userId"]),
+
+  generationJobs: defineTable({
+    userId: v.string(),
+    type: v.string(),           // "single" | "batch" | "thread" | "hashtags"
+    topic: v.string(),
+    platform: v.optional(v.string()),
+    template: v.optional(v.string()),
+    model: v.string(),
+    status: v.string(),         // "pending" | "completed" | "failed"
+    result: v.optional(v.any()),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+    completedAt: v.optional(v.number()),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_status", ["status"]),
+
+  contentSessions: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    template: v.optional(v.string()),
+    platform: v.optional(v.string()),
+    messages: v.array(v.object({
+      role: v.string(),        // "user" | "assistant"
+      content: v.string(),
+      timestamp: v.number(),
+      model: v.optional(v.string()),
+    })),
+    extractedContent: v.optional(v.array(v.object({
+      text: v.string(),
+      savedAt: v.number(),
+    }))),
+    status: v.string(),        // "active" | "archived"
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_status", ["status"]),
 });
