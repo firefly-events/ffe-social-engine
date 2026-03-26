@@ -18,6 +18,7 @@
  */
 
 import { auth } from '@clerk/nextjs/server'
+import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import {
   created,
@@ -37,6 +38,11 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth()
     if (!session.userId) return unauthorized()
+
+    const { has } = session
+    if (!has({ feature: 'voice_cloning' })) {
+      return NextResponse.json({ error: 'Upgrade to Pro to use voice cloning' }, { status: 402 })
+    }
 
     let body: CreateVoiceCloneBody
     try {
