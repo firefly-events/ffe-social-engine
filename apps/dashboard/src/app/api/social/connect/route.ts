@@ -25,7 +25,13 @@ export async function POST(req: Request) {
     }
 
     const ph = getPostHogServer()
-    ph.capture({ distinctId: userId, event: 'social_connected', properties: { platform: 'zernio' } })
+    if (ph) {
+      ph.capture({ 
+        distinctId: userId, 
+        event: 'se_social_connected', 
+        properties: { platform: 'zernio' } 
+      })
+    }
 
     return NextResponse.json(response);
   } catch (error: any) {

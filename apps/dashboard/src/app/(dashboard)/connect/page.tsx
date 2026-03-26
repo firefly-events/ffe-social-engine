@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { usePostHog } from 'posthog-js/react';
+import { useUser } from '@clerk/nextjs';
+import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics';
 
 const PLATFORMS = [
   { id: 'twitter', name: 'Twitter / X', color: 'bg-black text-white' },
@@ -12,17 +13,28 @@ const PLATFORMS = [
 ];
 
 export default function ConnectPage() {
-  const posthog = usePostHog();
+  const { user } = useUser();
   const [connected, setConnected] = useState<Record<string, boolean>>({
     twitter: false,
     linkedin: true, // mock initial state
   });
 
   const handleConnect = (id: string) => {
-    // In a real app, this would redirect to OAuth flow via bundle.social or custom vault
-    if (!connected[id]) {
-      posthog?.capture('social_connected', { platform: id });
+    const isConnecting = !connected[id];
+    
+    if (isConnecting) {
+      trackEvent(ANALYTICS_EVENTS.SOCIAL_CONNECTED, { 
+        platform: id,
+        user_id: user?.id,
+        tier: user?.publicMetadata?.tier || 'free'
+      });
+    } else {
+      trackEvent(ANALYTICS_EVENTS.SOCIAL_DISCONNECTED, {
+        platform: id,
+        user_id: user?.id
+      });
     }
+    
     setConnected(prev => ({ ...prev, [id]: !prev[id] }));
   };
 

@@ -119,7 +119,13 @@ export async function POST(request: NextRequest) {
     contentStore.set(item.id, item)
 
     const ph = getPostHogServer()
-    ph.capture({ distinctId: session.userId, event: 'api_call_made', properties: { endpoint: '/api/content', method: 'POST' } })
+    if (ph) {
+      ph.capture({ 
+        distinctId: session.userId, 
+        event: 'se_api_call_made', 
+        properties: { endpoint: '/api/content', method: 'POST' } 
+      })
+    }
 
     return created(item)
   } catch (err) {
