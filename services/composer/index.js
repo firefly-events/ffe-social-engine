@@ -62,15 +62,20 @@ app.post('/compose', async (req, res) => {
     
     // 9:16 format (TikTok/Reels)
     if (format === '9:16') {
-      // Scale to 1080x1920 or crop
-      filters.push({
-        filter: 'crop',
-        options: 'ih*(9/16):ih'
-      });
-      filters.push({
-        filter: 'scale',
-        options: '1080:1920'
-      });
+      filters.push({ filter: 'crop', options: 'ih*(9/16):ih' });
+      filters.push({ filter: 'scale', options: '1080:1920' });
+    }
+
+    // 16:9 format (YouTube/LinkedIn landscape)
+    if (format === '16:9') {
+      filters.push({ filter: 'crop', options: 'iw:iw*(9/16)' });
+      filters.push({ filter: 'scale', options: '1920:1080' });
+    }
+
+    // 1:1 format (Instagram square)
+    if (format === '1:1') {
+      filters.push({ filter: 'crop', options: 'min(iw\\,ih):min(iw\\,ih)' });
+      filters.push({ filter: 'scale', options: '1080:1080' });
     }
 
     // 16:9 format (YouTube/Twitter) — landscape

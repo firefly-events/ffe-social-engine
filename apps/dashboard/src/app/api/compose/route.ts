@@ -1,50 +1,79 @@
-import { auth } from '@clerk/nextjs/server'
-import type { NextRequest } from 'next/server'
-import { created, badRequest, unauthorized, serverError } from '@/lib/api-helpers'
-import type { ComposeRequest } from '@/lib/api-types'
+import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 
-const COMPOSER_URL = process.env.COMPOSER_SERVICE_URL ?? 'http://localhost:8003'
-const VALID_FORMATS = new Set(['9:16', '16:9', '1:1'])
+const COMPOSER_URL = process.env.COMPOSER_SERVICE_URL || 'http://localhost:3003';
 
-const isValidUrl = (s: string): boolean => { try { new URL(s); return true } catch { return false } }
+export async function POST(req: Request) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    if (!session.userId) return unauthorized()
+    const body = await req.json();
+    const { audioUrl, videoUrl, textOverlay, format = '9:16' } = body;
 
-    let body: ComposeRequest
-    try { body = await request.json() as ComposeRequest } catch { return badRequest('Invalid JSON body') }
-
-    if (!body.videoUrl?.trim()) return badRequest('videoUrl is required')
-    if (!isValidUrl(body.videoUrl)) return badRequest('videoUrl must be a valid URL')
-    if (!body.platform?.trim()) return badRequest('platform is required')
-    if (!body.format || !VALID_FORMATS.has(body.format)) {
-      return badRequest(`format must be one of: ${[...VALID_FORMATS].join(', ')}`)
+    if (!audioUrl && !videoUrl) {
+      return NextResponse.json(
+        { error: 'At least audioUrl or videoUrl is required' },
+        { status: 400 }
+      );
     }
 
-    let upstream: Response
-    try {
-      upstream = await fetch(`${COMPOSER_URL}/compose`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          video_url: body.videoUrl,
-          format: body.format,
-          text_overlay: body.textOverlay ? { text: body.textOverlay } : undefined,
-        }),
-      })
-    } catch { return serverError('Composer service unreachable') }
-
-    if (!upstream.ok) {
-      const err = await upstream.json().catch(() => ({}))
-      return serverError(err.error ?? 'Composer service returned an error')
+    const validFormats = ['9:16', '16:9', '1:1'];
+    if (!validFormats.includes(format)) {
+      return NextResponse.json(
+        { error: `Invalid format. Must be one of: ${validFormats.join(', ')}` },
+        { status: 400 }
+      );
     }
 
-    const data = await upstream.json()
-    return created({ id: data.id, status: data.status, message: data.message })
-  } catch (err) {
-    console.error('[POST /api/compose]', err)
-    return serverError()
+    const response = await fetch(`${COMPOSER_URL}/compose`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        audio_url: audioUrl,
+        video_url: videoUrl,
+        text_overlay: textOverlay,
+        format,
+      }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ error: 'Composer service error' }));
+      return NextResponse.json(err, { status: response.status });
+    }
+
+    const data = await response.json();
+    return NextResponse.json({ ...data, composerUrl: COMPOSER_URL });
+  } catch (error) {
+    console.error('[/api/compose]', error);
+    return NextResponse.json({ error: 'Composition request failed' }, { status: 500 });
+  }
+}
+
+export async function GET(req: Request) {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { searchParams } = new URL(req.url);
+  const jobId = searchParams.get('jobId');
+
+  if (!jobId) {
+    return NextResponse.json({ error: 'jobId is required' }, { status: 400 });
+  }
+
+  try {
+    const response = await fetch(`${COMPOSER_URL}/compose/${jobId}`);
+    if (!response.ok) {
+      return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+    }
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('[/api/compose GET]', error);
+    return NextResponse.json({ error: 'Failed to fetch job status' }, { status: 500 });
   }
 }

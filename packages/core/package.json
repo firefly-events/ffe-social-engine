@@ -2,6 +2,11 @@
   "name": "@ffe/core",
   "version": "0.1.0",
   "private": true,
+  "main": "src/templates.js",
+  "exports": {
+    ".": "./src/templates.js",
+    "./templates": "./src/templates.js"
+  },
   "scripts": {
     "build": "echo build",
     "test": "echo \"No tests\"",
