@@ -8,4 +8,4 @@ ignore = []
 
 [tool.pytest.ini_options]
 addopts = "-v"
-pythonpath = ["."]
+pythonpath = [".", "services/visual-gen", "services/voice-gen"]
