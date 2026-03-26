@@ -1,22 +1,18 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { prisma } from '@ffe/db';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 export async function POST(req) {
-  const { userId } = await auth();
+  const { userId, has } = await auth();
   if (!userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check user tier limits (stub for now)
-  const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  if (!has({ feature: 'ai_captions' })) {
+    return NextResponse.json({ error: 'Upgrade to Pro to use AI captions' }, { status: 402 })
   }
-  // Add tier check here...
 
   try {
     const { topic, template, tone = 'engaging', platform = 'tiktok' } = await req.json();
