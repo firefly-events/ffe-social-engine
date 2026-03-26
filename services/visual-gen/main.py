@@ -3,12 +3,15 @@ from pydantic import BaseModel
 
 app = FastAPI(title="Visual Generation Service")
 
+
 class GenerateRequest(BaseModel):
     prompt: str
+
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
 
 @app.post("/generate")
 def generate_video(request: GenerateRequest):
@@ -17,5 +20,5 @@ def generate_video(request: GenerateRequest):
     return {
         "status": "success",
         "video_url": "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
-        "prompt": request.prompt
+        "prompt": request.prompt,
     }
