@@ -17,7 +17,7 @@ import {
   assertOwner,
 } from '@/lib/api-helpers'
 import { convexClient } from '@/lib/convex-client'
-import { api } from '../../../../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import type { ContentItem, UpdateContentBody } from '@/lib/api-types'
 
 interface RouteContext {

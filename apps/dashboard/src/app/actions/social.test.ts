@@ -10,7 +10,7 @@ vi.mock('convex/nextjs', () => ({
   fetchQuery: vi.fn()
 }));
 
-vi.mock('../../../../../convex/_generated/api', () => ({
+vi.mock('@convex/_generated/api', () => ({
   api: { users: { getUser: 'getUser' } }
 }));
 

@@ -22,7 +22,7 @@ import {
   generateId,
 } from '@/lib/api-helpers'
 import { convexClient } from '@/lib/convex-client'
-import { api } from '../../../../../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import type { WorkflowItem, WorkflowRun, WorkflowRunStatus, WorkflowStatus } from '@/lib/api-types'
 
 interface RouteContext {

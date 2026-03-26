@@ -5,7 +5,7 @@
 import { auth } from '@clerk/nextjs/server'
 import type { NextRequest } from 'next/server'
 import { fetchQuery } from 'convex/nextjs'
-import { api } from '../../../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import {
   ok,
   unauthorized,

@@ -2,7 +2,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@convex/*": ["convex/*"]
     },
     "target": "ES2017",
     "lib": [

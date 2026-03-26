@@ -9,8 +9,8 @@
 import { auth } from '@clerk/nextjs/server'
 import type { NextRequest } from 'next/server'
 import { fetchQuery } from 'convex/nextjs'
-import { api } from '../../../../../convex/_generated/api'
-import type { Id } from '../../../../../convex/_generated/dataModel'
+import { api } from '@convex/_generated/api'
+import type { Id } from '@convex/_generated/dataModel'
 import {
   badRequest,
   unauthorized,

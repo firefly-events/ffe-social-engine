@@ -15,7 +15,7 @@ import {
   paginate,
 } from '@/lib/api-helpers'
 import { convexClient } from '@/lib/convex-client'
-import { api } from '../../../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import { getPostHogServer } from '@/lib/posthog-server'
 import type {
   ContentItem,

@@ -13,7 +13,7 @@ import { auth } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { fetchMutation } from 'convex/nextjs'
-import { api } from '../../../../../convex/_generated/api'
+import { api } from '@convex/_generated/api'
 import {
   created,
   badRequest,

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { useRouter } from "next/navigation";
 
 interface GuidedUnlockWizardProps {

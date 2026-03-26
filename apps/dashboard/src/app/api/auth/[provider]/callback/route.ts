@@ -16,7 +16,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { fetchMutation } from "convex/nextjs";
-import { api } from "../../../../../../convex/_generated/api";
+import { api } from "@convex/_generated/api";
 import { encrypt } from "../../../../../lib/crypto";
 import { providers, isOAuthProvider } from "../../../../../lib/oauth/providers";
 import { getPostHogServer } from "../../../../../lib/posthog-server";

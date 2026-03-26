@@ -2,7 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { zernio } from '../../../../lib/zernio';
 import { fetchMutation, fetchQuery } from 'convex/nextjs';
-import { api } from '../../../../../convex/_generated/api';
+import { api } from '@convex/_generated/api';
 import { getPostHogServer } from '@/lib/posthog-server';
 
 export async function POST(req: Request) {
