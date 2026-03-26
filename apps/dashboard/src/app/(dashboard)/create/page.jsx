@@ -19,29 +19,21 @@ export default function CreatePage() {
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-      <h1 style={{ marginBottom: '0.5rem' }}>Create New Content</h1>
-      <p style={{ color: '#666', marginBottom: '3rem' }}>Pick a template to get started</p>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '2rem' }}>
+    <div className="max-w-[1200px] mx-auto p-8">
+      <h1 className="mb-2">Create New Content</h1>
+      <p className="text-muted-foreground mb-12">Pick a template to get started</p>
+
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-8">
         {templates.map(template => (
           <TemplateCard key={template.id} template={template} onSelect={handleSelect} />
         ))}
       </div>
 
-      <div style={{ marginTop: '5rem' }}>
+      <div className="mt-20">
         <h2>Popular with creators like you</h2>
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', overflowX: 'auto', paddingBottom: '1rem' }}>
+        <div className="flex gap-4 mt-6 overflow-x-auto pb-4">
           {['Weekly Tip', 'Q&A Response', 'Testimonial'].map(name => (
-            <div key={name} style={{ 
-              minWidth: '200px', 
-              padding: '1.5rem', 
-              backgroundColor: 'white', 
-              border: '1px solid #ddd', 
-              borderRadius: '8px',
-              textAlign: 'center',
-              cursor: 'pointer'
-            }}>
+            <div key={name} className="min-w-[200px] p-6 bg-card border border-border rounded-lg text-center cursor-pointer">
               {name}
             </div>
           ))}
@@ -50,4 +42,3 @@ export default function CreatePage() {
     </div>
   );
 }
-

@@ -669,8 +669,7 @@ export default function OnboardPage() {
               {[...Array(3)].map((_, i) => (
                 <div
                   key={i}
-                  className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-bounce"
-                  style={{ animationDelay: `${i * 0.15}s` }}
+                  className={`w-2.5 h-2.5 rounded-full bg-purple-400 animate-bounce ${i === 1 ? '[animation-delay:0.15s]' : i === 2 ? '[animation-delay:0.3s]' : ''}`}
                 />
               ))}
             </div>

@@ -89,7 +89,7 @@
 
 @layer components {
   .card {
-    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+    @apply bg-card text-card-foreground rounded-xl border border-border shadow-sm;
   }
 
   .badge {
@@ -157,13 +157,13 @@
   }
 
   .section-header {
-    @apply text-lg font-semibold text-gray-900;
+    @apply text-lg font-semibold text-foreground;
   }
 
   .input {
-    @apply w-full px-3 py-2 text-sm border border-gray-300 rounded-lg
-           bg-white text-gray-900 placeholder-gray-400
-           focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent
+    @apply w-full px-3 py-2 text-sm border border-input rounded-lg
+           bg-background text-foreground placeholder:text-muted-foreground
+           focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent
            transition-colors;
   }
 

@@ -416,9 +416,9 @@ function CanvasNode({
 
   return (
     <div
-      style={{ left: node.x, top: node.y, width: NODE_WIDTH, minHeight: NODE_HEIGHT, position: 'absolute' }}
-      className={`rounded-xl border ${classes.border} ${classes.bg} backdrop-blur-sm cursor-pointer select-none transition-all
+      className={`absolute w-44 min-h-[80px] rounded-xl border ${classes.border} ${classes.bg} backdrop-blur-sm cursor-pointer select-none transition-all
         ${isSelected ? 'ring-2 ring-purple-400/60 ring-offset-1 ring-offset-slate-900 shadow-lg shadow-purple-500/20' : 'hover:ring-1 hover:ring-slate-500/60'}`}
+      style={{ left: node.x, top: node.y }}
       onMouseDown={(e) => {
         e.stopPropagation()
         onSelect()
@@ -1145,11 +1145,7 @@ function WorkflowCanvas({
         {/* Canvas */}
         <div
           ref={canvasRef}
-          className="flex-1 relative overflow-hidden bg-slate-950 cursor-default"
-          style={{
-            backgroundImage: `radial-gradient(circle, rgba(100,116,139,0.15) 1px, transparent 1px)`,
-            backgroundSize: `${GRID_SIZE}px ${GRID_SIZE}px`,
-          }}
+          className="flex-1 relative overflow-hidden bg-slate-950 cursor-default [background-image:radial-gradient(circle,rgba(100,116,139,0.15)_1px,transparent_1px)] [background-size:20px_20px]"
           onMouseMove={handleCanvasMouseMove}
           onMouseUp={handleCanvasMouseUp}
           onMouseLeave={handleCanvasMouseUp}
@@ -1160,14 +1156,13 @@ function WorkflowCanvas({
           {/* SVG layer for edges */}
           <svg
             className="absolute inset-0 w-full h-full pointer-events-none"
-            style={{ pointerEvents: 'none' }}
           >
             <defs>
               <marker id="arrowhead" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
                 <path d="M0,0 L6,3 L0,6 Z" fill="rgba(139,92,246,0.7)" />
               </marker>
             </defs>
-            <g style={{ pointerEvents: 'all' }}>
+            <g className="[pointer-events:all]">
               {renderEdges()}
               {renderDraftEdge()}
             </g>
