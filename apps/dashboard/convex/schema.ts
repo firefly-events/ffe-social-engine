@@ -42,4 +42,51 @@ export default defineSchema({
     clicks: v.number(),
     fetchedAt: v.number(),
   }).index("by_postId", ["postId"]),
+
+  automationRules: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    triggerType: v.union(
+      v.literal("event_created"),
+      v.literal("event_updated"),
+      v.literal("weekly_digest"),
+      v.literal("analytics_threshold")
+    ),
+    platforms: v.array(v.string()),
+    actions: v.array(
+      v.union(
+        v.literal("generate_post"),
+        v.literal("send_newsletter"),
+        v.literal("publish_post")
+      )
+    ),
+    enabled: v.boolean(),
+    config: v.optional(v.any()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_triggerType", ["triggerType"]),
+
+  automationQueue: defineTable({
+    ruleId: v.id("automationRules"),
+    userId: v.string(),
+    triggerData: v.any(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("processing"),
+      v.literal("posted"),
+      v.literal("completed"),
+      v.literal("failed"),
+      v.literal("rejected")
+    ),
+    result: v.optional(v.any()),
+    error: v.optional(v.string()),
+    createdAt: v.number(),
+    processedAt: v.optional(v.number()),
+    postedAt: v.optional(v.number()),
+  })
+    .index("by_status", ["status"])
+    .index("by_userId", ["userId"])
+    .index("by_ruleId", ["ruleId"]),
 });
