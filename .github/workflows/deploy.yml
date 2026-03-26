@@ -60,7 +60,7 @@ jobs:
       - name: Deploy Convex
         env:
           CONVEX_DEPLOY_KEY: ${{ steps.secrets.outputs.convex-deploy-key }}
-          CLERK_JWT_ISSUER_DOMAIN: "https://pleasing-griffon-12.clerk.accounts.dev/"
+          CLERK_JWT_ISSUER_DOMAIN: "https://regular-ant-26.clerk.accounts.dev"
         run: cd apps/dashboard && npx convex deploy --cmd "echo ok"
 
       # Build with secrets injected from GCP SM
