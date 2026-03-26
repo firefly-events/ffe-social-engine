@@ -142,4 +142,13 @@ export default defineSchema({
     resultUrl: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_userId", ["userId"]),
+
+  mediaFiles: defineTable({
+    userId: v.string(),
+    storageId: v.string(),
+    filename: v.string(),
+    mimeType: v.string(),
+    size: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_userId", ["userId"]),
 });

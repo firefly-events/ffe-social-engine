@@ -1,4 +1,4 @@
-export default function PhonePreview({ platform, caption, hashtags, mediaUrl }) {
+export default function PhonePreview({ platform, caption, hashtags, mediaUrl, videoUrl }) {
   const bgColor = {
     'tiktok': '#000',
     'instagram': '#fafafa',
@@ -24,18 +24,36 @@ export default function PhonePreview({ platform, caption, hashtags, mediaUrl }) 
       boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
     }}>
       {/* Media background */}
-      <div style={{ 
-        width: '100%', 
-        height: '100%', 
-        backgroundColor: '#444', 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        width: '100%',
+        height: '100%',
+        backgroundColor: '#444',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
-        backgroundImage: mediaUrl ? `url(${mediaUrl})` : 'none',
+        position: 'relative',
+        backgroundImage: (!videoUrl && mediaUrl) ? `url(${mediaUrl})` : 'none',
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}>
-        {!mediaUrl && <span>Media Preview</span>}
+        {videoUrl && (
+          <video
+            src={videoUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+          />
+        )}
+        {!videoUrl && !mediaUrl && <span>Media Preview</span>}
       </div>
 
       {/* Overlay for platform specific UI */}

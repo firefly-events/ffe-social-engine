@@ -36,6 +36,38 @@ describe('Composer Endpoints', () => {
     expect(statusRes.body.result_url).toBe(`/output/${id}.mp4`);
   });
 
+  it('POST /compose accepts 16:9 format and returns processing status', async () => {
+    const res = await request(app).post('/compose').send({
+      video_url: 'http://example.com/video.mp4',
+      format: '16:9',
+    });
+    expect(res.status).toBe(202);
+    expect(res.body.status).toBe('processing');
+    expect(res.body.id).toBeDefined();
+
+    const id = res.body.id;
+    const statusRes = await request(app).get(`/compose/${id}`);
+    expect(statusRes.status).toBe(200);
+    expect(statusRes.body.status).toBe('completed');
+    expect(statusRes.body.result_url).toBe(`/output/${id}.mp4`);
+  });
+
+  it('POST /compose accepts 1:1 format and returns processing status', async () => {
+    const res = await request(app).post('/compose').send({
+      video_url: 'http://example.com/video.mp4',
+      format: '1:1',
+    });
+    expect(res.status).toBe(202);
+    expect(res.body.status).toBe('processing');
+    expect(res.body.id).toBeDefined();
+
+    const id = res.body.id;
+    const statusRes = await request(app).get(`/compose/${id}`);
+    expect(statusRes.status).toBe(200);
+    expect(statusRes.body.status).toBe('completed');
+    expect(statusRes.body.result_url).toBe(`/output/${id}.mp4`);
+  });
+
   it('GET /compose/:id returns 404 for unknown job', async () => {
     const res = await request(app).get('/compose/unknown-id');
     expect(res.status).toBe(404);
