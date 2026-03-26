@@ -1,12 +1,13 @@
 /**
  * GET    /api/voice/[id] — fetch a single voice clone
  * DELETE /api/voice/[id] — remove a voice clone
- *
- * TODO(inference): On DELETE, also call Mac Studio API to free model resources.
  */
 
 import { auth } from '@clerk/nextjs/server'
 import type { NextRequest } from 'next/server'
+import { fetchQuery, fetchMutation } from 'convex/nextjs'
+import { api } from '../../../../../convex/_generated/api'
+import type { Id } from '../../../../../convex/_generated/dataModel'
 import {
   ok,
   noContent,
@@ -15,29 +16,10 @@ import {
   forbidden,
   notFound,
   serverError,
-  assertOwner,
 } from '@/lib/api-helpers'
-import { convexClient } from '@/lib/convex-client'
-import { api } from '../../../../../convex/_generated/api'
-import type { VoiceClone, VoiceCloneStatus } from '@/lib/api-types'
 
 interface RouteContext {
   params: Promise<{ id: string }>
-}
-
-/** Map a Convex voice_clones document to the public VoiceClone shape. */
-function toVoiceClone(doc: Record<string, unknown>): VoiceClone {
-  return {
-    id:              doc.externalId as string,
-    userId:          doc.userId as string,
-    name:            doc.name as string,
-    sampleUrl:       doc.sampleUrl as string,
-    status:          doc.status as VoiceCloneStatus,
-    durationSeconds: doc.durationSeconds as number | undefined,
-    errorMessage:    doc.errorMessage as string | undefined,
-    createdAt:       new Date(doc.createdAt as number).toISOString(),
-    updatedAt:       new Date(doc.updatedAt as number).toISOString(),
-  }
 }
 
 // ── GET ───────────────────────────────────────────────────────────────────────
@@ -48,13 +30,32 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (!session.userId) return unauthorized()
 
     const { id } = await context.params
-    const doc = await convexClient.query(api.voiceClones.getByExternalId, { externalId: id })
-    if (!doc) return notFound('Voice clone')
 
-    const clone = toVoiceClone(doc as Record<string, unknown>)
-    if (!assertOwner(clone.userId, session.userId)) return forbidden()
+    let clone: Awaited<ReturnType<typeof fetchQuery<typeof api.voices.getVoiceCloneById>>>
+    try {
+      clone = await fetchQuery(api.voices.getVoiceCloneById, {
+        id:     id as Id<'voice_clones'>,
+        userId: session.userId,
+      })
+    } catch {
+      return notFound('Voice clone')
+    }
 
-    return ok(clone)
+    if (!clone) return notFound('Voice clone')
+    if (clone.userId !== session.userId) return forbidden()
+
+    return ok({
+      id:              clone._id,
+      userId:          clone.userId,
+      name:            clone.name,
+      voiceId:         clone.voiceId,
+      sampleUrl:       clone.sampleUrl,
+      status:          clone.status,
+      errorMessage:    clone.errorMessage,
+      durationSeconds: clone.durationSeconds,
+      createdAt:       new Date(clone.createdAt).toISOString(),
+      updatedAt:       new Date(clone.updatedAt).toISOString(),
+    })
   } catch (err) {
     console.error('[GET /api/voice/[id]]', err)
     return serverError()
@@ -69,20 +70,28 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     if (!session.userId) return unauthorized()
 
     const { id } = await context.params
-    const doc = await convexClient.query(api.voiceClones.getByExternalId, { externalId: id })
-    if (!doc) return notFound('Voice clone')
 
-    const clone = toVoiceClone(doc as Record<string, unknown>)
-    if (!assertOwner(clone.userId, session.userId)) return forbidden()
+    let clone: Awaited<ReturnType<typeof fetchQuery<typeof api.voices.getVoiceCloneById>>>
+    try {
+      clone = await fetchQuery(api.voices.getVoiceCloneById, {
+        id:     id as Id<'voice_clones'>,
+        userId: session.userId,
+      })
+    } catch {
+      return notFound('Voice clone')
+    }
+
+    if (!clone) return notFound('Voice clone')
+    if (clone.userId !== session.userId) return forbidden()
 
     if (clone.status === 'processing') {
       return badRequest('Cannot delete a voice clone that is still being processed')
     }
 
-    // TODO(inference): Notify Mac Studio inference API to release the model resources.
-    // TODO(storage): Delete the sample audio file from GCS/S3.
-
-    await convexClient.mutation(api.voiceClones.remove, { externalId: id })
+    await fetchMutation(api.voices.deleteVoiceClone, {
+      id:     id as Id<'voice_clones'>,
+      userId: session.userId,
+    })
 
     return noContent()
   } catch (err) {
