@@ -11,8 +11,11 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Check user tier limits (stub for now)
-  await prisma.user.findUnique({ where: { id: userId } });
+  // Check user exists before proceeding
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (user === null) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  }
   // Add tier check here...
 
   try {
