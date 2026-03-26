@@ -31,44 +31,35 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="flex flex-col gap-8">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.75rem' }}>Welcome back, {user?.firstName || 'Creator'}</h1>
-          <p style={{ margin: '0.25rem 0 0 0', color: '#666' }}>Here's what's happening with your content</p>
+          <h1 className="text-3xl font-bold text-slate-100 m-0">Welcome back, {user?.firstName || 'Creator'}</h1>
+          <p className="text-slate-400 mt-1 m-0">Here&apos;s what&apos;s happening with your content</p>
         </div>
-        <button 
+        <button
           onClick={() => router.push('/create')}
-          style={{ 
-            padding: '0.75rem 1.5rem', 
-            backgroundColor: '#8e44ad', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '8px', 
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            boxShadow: '0 4px 12px rgba(142,68,173,0.3)'
-          }}
+          className="px-6 py-3 rounded-lg font-semibold text-white bg-gradient-to-r from-purple-500 to-cyan-500 hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(139,92,246,0.3)] border-none cursor-pointer"
         >
           + Create New
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+      <div className="grid grid-cols-4 gap-6">
         {metrics.map(metric => (
           <MetricCard key={metric.label} {...metric} />
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div className="grid gap-8" style={{ gridTemplateColumns: '1fr 400px' }}>
+        <div className="flex flex-col gap-8">
           <section>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>What would you like to create today?</h2>
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <h2 className="text-xl font-semibold text-slate-100 mb-6">What would you like to create today?</h2>
+            <div className="flex gap-4">
               {quickActions.map(action => (
-                <QuickAction 
-                  key={action.title} 
-                  {...action} 
+                <QuickAction
+                  key={action.title}
+                  {...action}
                   onClick={() => router.push(`/create/${action.templateId}`)}
                 />
               ))}
@@ -76,67 +67,31 @@ export default function DashboardPage() {
           </section>
 
           <section>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Recent Activity</h2>
-            <div style={{ padding: '1rem', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #ddd' }}>
+            <h2 className="text-xl font-semibold text-slate-100 mb-6">Recent Activity</h2>
+            <div className="p-4 bg-slate-900/50 rounded-xl border border-white/[0.07]">
               {recentContent.map(content => (
                 <ContentCard key={content.title} {...content} />
               ))}
-              <button style={{ 
-                width: '100%', 
-                padding: '0.75rem', 
-                border: 'none', 
-                backgroundColor: 'transparent', 
-                color: '#8e44ad', 
-                fontWeight: 'bold', 
-                cursor: 'pointer',
-                marginTop: '1rem'
-              }}>
+              <button className="w-full py-3 border-none bg-transparent text-purple-400 hover:text-purple-300 font-semibold cursor-pointer mt-4 transition-colors">
                 View All Activity →
               </button>
             </div>
           </section>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="flex flex-col gap-8">
           <section>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Performance Chart</h2>
-            <div style={{ 
-              height: '300px', 
-              backgroundColor: 'white', 
-              borderRadius: '12px', 
-              border: '1px solid #ddd',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#999',
-              position: 'relative'
-            }}>
-              <div style={{ textAlign: 'center' }}>
-                <span style={{ fontSize: '2rem' }}>📊</span>
-                <div>Analytics Chart Stub</div>
-                <div style={{ fontSize: '0.75rem', marginTop: '0.5rem' }}>Available on Pro plan</div>
+            <h2 className="text-xl font-semibold text-slate-100 mb-6">Performance Chart</h2>
+            <div className="h-72 bg-slate-900/50 rounded-xl border border-white/[0.07] flex items-center justify-center text-slate-500 relative">
+              <div className="text-center">
+                <span className="text-4xl">📊</span>
+                <div className="mt-2 text-sm">Analytics Chart Stub</div>
+                <div className="text-xs mt-1 text-slate-600">Available on Pro plan</div>
               </div>
-              <div style={{ 
-                position: 'absolute', 
-                inset: 0, 
-                backgroundColor: 'rgba(255,255,255,0.7)', 
-                backdropFilter: 'blur(4px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <button 
+              <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center rounded-xl">
+                <button
                   onClick={() => router.push('/pricing')}
-                  style={{ 
-                    padding: '0.5rem 1rem', 
-                    backgroundColor: '#333', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold'
-                  }}
+                  className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-purple-500 to-cyan-500 hover:opacity-90 transition-opacity border-none cursor-pointer shadow-[0_0_16px_rgba(139,92,246,0.4)]"
                 >
                   UPGRADE TO SEE ANALYTICS
                 </button>
@@ -145,17 +100,10 @@ export default function DashboardPage() {
           </section>
 
           <section>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Scheduled Today</h2>
-            <div style={{ 
-              padding: '2rem', 
-              backgroundColor: 'white', 
-              borderRadius: '12px', 
-              border: '1px solid #ddd',
-              textAlign: 'center',
-              color: '#999'
-            }}>
-              <span style={{ fontSize: '1.5rem' }}>📅</span>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem' }}>No posts scheduled for today</p>
+            <h2 className="text-xl font-semibold text-slate-100 mb-6">Scheduled Today</h2>
+            <div className="p-8 bg-slate-900/50 rounded-xl border border-white/[0.07] text-center text-slate-500">
+              <span className="text-2xl">📅</span>
+              <p className="text-sm mt-2 m-0">No posts scheduled for today</p>
             </div>
           </section>
         </div>

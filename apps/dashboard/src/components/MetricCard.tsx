@@ -1,51 +1,26 @@
 export default function MetricCard({ label, value, growth, icon, isLocked }: any) {
   return (
-    <div style={{ 
-      padding: '1.5rem', 
-      backgroundColor: 'white', 
-      borderRadius: '12px', 
-      border: '1px solid #ddd',
-      position: 'relative',
-      overflow: 'hidden',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.5rem'
-    }}>
+    <div className="relative overflow-hidden p-6 bg-slate-900/50 rounded-xl border border-white/[0.07] flex flex-col gap-2">
       {isLocked && (
-        <div style={{ 
-          position: 'absolute', 
-          inset: 0, 
-          backgroundColor: 'rgba(255,255,255,0.7)', 
-          backdropFilter: 'blur(2px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <span style={{ fontSize: '1.5rem' }}>🔒</span>
-            <div style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#666' }}>UPGRADE TO PRO</div>
+        <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-10">
+          <div className="text-center">
+            <span className="text-2xl">🔒</span>
+            <div className="text-xs font-bold text-slate-400 mt-1">UPGRADE TO PRO</div>
           </div>
         </div>
       )}
-      
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '0.85rem', color: '#666' }}>{label}</span>
-        <span style={{ fontSize: '1.2rem' }}>{icon}</span>
+
+      <div className="flex justify-between items-center">
+        <span className="text-sm text-slate-400">{label}</span>
+        <span className="text-xl">{icon}</span>
       </div>
-      
-      <div style={{ fontSize: '1.75rem', fontWeight: 'bold' }}>{value}</div>
-      
+
+      <div className="text-3xl font-bold text-slate-100">{value}</div>
+
       {growth && (
-        <div style={{ 
-          fontSize: '0.8rem', 
-          color: growth.startsWith('+') ? '#27ae60' : '#e74c3c',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.25rem'
-        }}>
-          {growth.startsWith('+') ? '↑' : '↓'} {growth} 
-          <span style={{ color: '#999', marginLeft: '0.25rem' }}>this week</span>
+        <div className={`text-xs flex items-center gap-1 ${growth.startsWith('+') ? 'text-emerald-400' : 'text-red-400'}`}>
+          {growth.startsWith('+') ? '↑' : '↓'} {growth}
+          <span className="text-slate-500 ml-1">this week</span>
         </div>
       )}
     </div>

@@ -11,38 +11,22 @@ export default function DashboardLayout({ children }: any) {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
+    <div className="flex min-h-screen bg-slate-950 text-slate-100">
       <Sidebar userTier="FREE" usage={usage} />
-      
-      <div style={{ flexGrow: 1, marginLeft: '240px' }}>
-        <header style={{ 
-          height: '64px', 
-          backgroundColor: 'white', 
-          borderBottom: '1px solid #eee', 
-          display: 'flex', 
-          alignItems: 'center', 
-          padding: '0 2rem',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100
-        }}>
-          <div style={{ flexGrow: 1, fontWeight: 'bold', fontSize: '1.2rem' }}>Dashboard</div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ 
-              padding: '0.25rem 0.75rem', 
-              backgroundColor: '#eee', 
-              borderRadius: '20px', 
-              fontSize: '0.8rem',
-              fontWeight: 'bold'
-            }}>
+
+      <div className="flex-1 ml-60">
+        <header className="h-16 bg-slate-950/85 border-b border-white/[0.07] backdrop-blur-xl flex items-center px-8 sticky top-0 z-50">
+          <div className="flex-1 font-bold text-xl text-slate-100">Dashboard</div>
+
+          <div className="flex items-center gap-4">
+            <span className="px-3 py-1 bg-white/10 text-slate-300 rounded-full text-xs font-bold tracking-wide border border-white/[0.07]">
               FREE PLAN
             </span>
             <UserButton />
           </div>
         </header>
-        
-        <main style={{ padding: '2rem' }}>
+
+        <main className="p-8">
           {children}
         </main>
       </div>
