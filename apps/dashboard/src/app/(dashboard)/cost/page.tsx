@@ -23,19 +23,18 @@ export default function CostTrackingPage() {
   useEffect(() => {
     const fetchCpuUsage = async () => {
       setLoading(true);
+      setCpuUsage(null);
       setError(null);
       try {
         const result: PrometheusQueryResult = await queryPrometheus('sum(rate(node_cpu_seconds_total{mode!="idle"}[5m]))');
-        
-        if (result.status === 'success' && result.data.result.length > 0) {
-          const value = result.data.result[0].value[1];
-          setCpuUsage(parseFloat(value).toFixed(2) + '%');
-        } else {
-          setCpuUsage('N/A');
-        }
-      } catch (err: any) {
-        setError(err.message);
-        setCpuUsage('Error');
+        const sample =
+          result.status === 'success' && result.data.result.length > 0
+            ? result.data.result[0].value[1]
+            : null;
+        setCpuUsage(sample !== null ? `${parseFloat(sample).toFixed(2)}%` : 'N/A');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : String(err));
+        setCpuUsage('N/A');
       } finally {
         setLoading(false);
       }
@@ -54,7 +53,7 @@ export default function CostTrackingPage() {
       <MetricsPanel title="Overall System Metrics">
         {loading && <p>Loading CPU Usage...</p>}
         {error && <p className="text-red-500">Error: {error}</p>}
-        {cpuUsage && (
+        {!loading && cpuUsage && (
           <p>CPU Usage: <span className="font-semibold text-blue-600">{cpuUsage}</span></p>
         )}
       </MetricsPanel>

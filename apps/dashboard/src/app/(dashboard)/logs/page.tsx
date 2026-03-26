@@ -9,33 +9,36 @@ export default function AgentLogsPage() {
   const [logs, setLogs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [logQuery, setLogQuery] = useState('{job="director"}'); // Default Loki query
+  // Draft query updated on every keystroke — does NOT trigger polling
+  const [logQuery, setLogQuery] = useState('{job="director"}');
+  // Active query that drives polling — only updated on submit
+  const [activeLogQuery, setActiveLogQuery] = useState('{job="director"}');
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const result: LokiQueryResult = await queryLoki(logQuery, { limit: 100 });
+      const result: LokiQueryResult = await queryLoki(activeLogQuery, { limit: 100 });
 
       if (result.status === 'success' && result.data.resultType === 'streams') {
-        const fetchedLogs: string[] = result.data.result.flatMap((stream: any) =>
-          stream.values.map((value: string[]) => value[1])
+        const fetchedLogs: string[] = result.data.result.flatMap((stream: { values: string[][] }) =>
+          stream.values.map((value) => value[1])
         );
         setLogs(fetchedLogs);
       } else {
         setLogs(['No logs found or unexpected result type.']);
       }
-    } catch (err: any) {
-      setError(err.message);
-      setLogs([`Error fetching logs: ${err.message}`]);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(message);
+      setLogs([`Error fetching logs: ${message}`]);
     } finally {
       setLoading(false);
     }
-  }, [logQuery]);
+  }, [activeLogQuery]);
 
   useEffect(() => {
     fetchLogs();
-    // Refresh logs every 15 seconds
     const interval = setInterval(fetchLogs, 15000);
     return () => clearInterval(interval);
   }, [fetchLogs]);
@@ -59,7 +62,7 @@ export default function AgentLogsPage() {
             placeholder='e.g., {job="director"} |= "error"'
           />
           <button
-            onClick={fetchLogs}
+            onClick={() => setActiveLogQuery(logQuery)}
             disabled={loading}
             className="ml-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           >

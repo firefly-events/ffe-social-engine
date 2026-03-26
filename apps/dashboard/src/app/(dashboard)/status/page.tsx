@@ -3,12 +3,15 @@
 import { useDirectorWS } from '@/lib/hooks/useDirectorWS';
 import { useState } from 'react';
 
+type ControlCommand = 'triggerCycle' | 'pauseOrchestration' | 'resumeOrchestration';
+
 export default function LiveStatusPage() {
   const { isConnected, message } = useDirectorWS();
   const [controlResponse, setControlResponse] = useState<string | null>(null);
   const [loadingControl, setLoadingControl] = useState(false);
 
-  const sendControlCommand = async (command: string, payload?: any) => {
+  const sendControlCommand = async (command: ControlCommand) => {
+    if (!window.confirm(`Are you sure you want to send "${command}"?`)) return;
     setLoadingControl(true);
     setControlResponse(null);
     try {
@@ -17,16 +20,17 @@ export default function LiveStatusPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ command, payload }),
+        body: JSON.stringify({ command }),
       });
       const data = await response.json();
       if (response.ok) {
         setControlResponse(`Command '${command}' successful: ${JSON.stringify(data)}`);
       } else {
-        setControlResponse(`Command '${command}' failed: ${data.error || 'Unknown error'}`);
+        setControlResponse(`Command '${command}' failed: ${(data as { error?: string }).error ?? 'Unknown error'}`);
       }
-    } catch (error: any) {
-      setControlResponse(`Error sending command '${command}': ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      setControlResponse(`Error sending command '${command}': ${message}`);
     } finally {
       setLoadingControl(false);
     }
@@ -36,7 +40,7 @@ export default function LiveStatusPage() {
     <div>
       <h1 className="text-2xl font-bold mb-4">Live Status</h1>
       <p>Connection Status: {isConnected ? 'Connected' : 'Disconnected'}</p>
-      
+
       <div className="mt-6">
         <h2 className="text-xl font-semibold mb-3">Manual Controls</h2>
         <div className="flex gap-4">
@@ -61,7 +65,6 @@ export default function LiveStatusPage() {
           >
             {loadingControl ? 'Processing...' : 'Resume Orchestration'}
           </button>
-          {/* Add more controls as needed */}
         </div>
         {controlResponse && (
           <div className="mt-4 p-3 bg-gray-200 rounded text-sm">
