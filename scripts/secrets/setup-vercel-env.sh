@@ -1,114 +1,178 @@
 #!/usr/bin/env bash
 # =============================================================================
 # scripts/secrets/setup-vercel-env.sh — Social Engine
-# Wire all required env vars into the Vercel project from GCP Secret Manager
+# Sync secrets from GCP Secret Manager to Vercel environment variables.
 #
 # Usage:
-#   ./scripts/secrets/setup-vercel-env.sh [dev|prod|both]
+#   ./scripts/secrets/setup-vercel-env.sh [--env dev|prod|both] [--dry-run]
+#
+# In GHA: VERCEL_TOKEN env var is used automatically for --token auth.
+# Locally: vercel CLI must be authenticated (vercel login).
 #
 # Prerequisites:
-#   - vercel CLI installed and authenticated: vercel login
-#   - gcloud CLI authenticated and project set to ffe-cicd
-#   - VERCEL_PROJECT_ID set or run from apps/dashboard/
+#   - gcloud CLI authenticated (WIF in GHA, or `gcloud auth login` locally)
+#   - vercel CLI installed
+#   - VERCEL_TOKEN env var (GHA) or interactive vercel login (local)
 # =============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 GCP_PROJECT="ffe-cicd"
-VERCEL_ENV_TARGET="${1:-both}"
-DASHBOARD_DIR="$REPO_ROOT/apps/dashboard"
 
-# Vercel environment mappings: "vercel-env-name:gcp-env-suffix:vercel-target"
-# Format: VAR_NAME|gcp-secret-suffix|vercel-target(s)
+# Parse args
+SYNC_ENV="both"
+DRY_RUN=false
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --env)  SYNC_ENV="$2"; shift 2 ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    --help)
+      echo "Usage: $0 [--env dev|prod|both] [--dry-run]"
+      echo "  --env      Environment to sync (dev, prod, or both). Default: both"
+      echo "  --dry-run  Show what would be synced without writing to Vercel"
+      exit 0
+      ;;
+    *) echo "Unknown option: $1"; exit 1 ;;
+  esac
+done
+
+if [[ "$SYNC_ENV" != "dev" && "$SYNC_ENV" != "prod" && "$SYNC_ENV" != "both" ]]; then
+  echo "Error: --env must be dev, prod, or both"
+  exit 1
+fi
+
+# Build --token flag if VERCEL_TOKEN is set (GHA mode)
+VERCEL_TOKEN_FLAG=""
+if [[ -n "${VERCEL_TOKEN:-}" ]]; then
+  VERCEL_TOKEN_FLAG="--token=$VERCEL_TOKEN"
+fi
+
+# Vercel env mappings: VAR_NAME|gcp-secret-suffix|vercel-target(s)|env(dev/prod)
+# dev secrets go to preview,development; prod secrets go to production
 declare -a ENV_MAPPINGS=(
-  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY|clerk-publishable-key|preview,development"
-  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY|clerk-publishable-key-prod|production"
-  "CLERK_SECRET_KEY|clerk-secret-key|preview,development"
-  "CLERK_SECRET_KEY|clerk-secret-key-prod|production"
-  "CLERK_WEBHOOK_SECRET|clerk-webhook-secret|preview,development"
-  "CLERK_WEBHOOK_SECRET|clerk-webhook-secret-prod|production"
-  "NEXT_PUBLIC_CONVEX_URL|convex-url|preview,development"
-  "NEXT_PUBLIC_CONVEX_URL|convex-url-prod|production"
-  "CONVEX_DEPLOYMENT|convex-deployment|preview,development"
-  "CONVEX_DEPLOYMENT|convex-deployment-prod|production"
-  "ZERNIO_API_KEY|zernio-api-key|preview,development"
-  "ZERNIO_API_KEY|zernio-api-key-prod|production"
-  "GOOGLE_API_KEY|google-api-key|preview,development,production"
-  "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY|google-maps-api-key|preview,development,production"
-  "NEXT_PUBLIC_POSTHOG_KEY|posthog-key|preview,development,production"
-  "SENTRY_DSN|sentry-dsn|preview,development,production"
-  "STRIPE_SECRET_KEY|stripe-secret-key|preview,development"
-  "STRIPE_SECRET_KEY|stripe-secret-key-prod|production"
-  "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|stripe-publishable-key|preview,development"
-  "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY|stripe-publishable-key-prod|production"
-  "STRIPE_WEBHOOK_SECRET|stripe-webhook-secret|preview,development,production"
+  # Clerk
+  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY|clerk-publishable-key|preview,development|dev"
+  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY|clerk-publishable-key|production|prod"
+  "CLERK_SECRET_KEY|clerk-secret-key|preview,development|dev"
+  "CLERK_SECRET_KEY|clerk-secret-key|production|prod"
+  # Convex
+  "NEXT_PUBLIC_CONVEX_URL|convex-url|preview,development|dev"
+  "NEXT_PUBLIC_CONVEX_URL|convex-url|production|prod"
+  "CONVEX_DEPLOYMENT|convex-deployment|preview,development|dev"
+  "CONVEX_DEPLOYMENT|convex-deployment|production|prod"
+  "CONVEX_DEPLOY_KEY|convex-deploy-key|preview,development|dev"
+  "CONVEX_DEPLOY_KEY|convex-deploy-key|production|prod"
+  # API keys
+  "ZERNIO_API_KEY|zernio-api-key|preview,development|dev"
+  "ZERNIO_API_KEY|zernio-api-key|production|prod"
+  # Observability
+  "NEXT_PUBLIC_POSTHOG_KEY|posthog-key|preview,development,production|dev"
+  "NEXT_PUBLIC_SENTRY_DSN|sentry-dsn|preview,development,production|dev"
+  "SENTRY_DSN|sentry-dsn|preview,development,production|dev"
+  # OAuth
+  "OAUTH_TOKEN_ENCRYPTION_KEY|oauth-token-encryption-key|preview,development|dev"
+  "OAUTH_TOKEN_ENCRYPTION_KEY|oauth-token-encryption-key|production|prod"
 )
 
-# Static (non-secret) vars
+# Static (non-secret) vars — same for all environments
 declare -A STATIC_VARS=(
   ["NEXT_PUBLIC_CLERK_SIGN_IN_URL"]="/sign-in"
   ["NEXT_PUBLIC_CLERK_SIGN_UP_URL"]="/sign-up"
   ["NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL"]="/dashboard"
   ["NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL"]="/dashboard"
-  ["NEXT_PUBLIC_POSTHOG_HOST"]="https://app.posthog.com"
-  ["NEXT_PUBLIC_APP_URL"]="https://social-engine-five.vercel.app"
-  ["SENTRY_ORG"]="fireflyevents"
+  ["NEXT_PUBLIC_POSTHOG_HOST"]="https://us.posthog.com"
+  ["SENTRY_ORG"]="firefly-events-inc"
   ["SENTRY_PROJECT"]="social-engine"
-  ["NODE_ENV"]="production"
 )
 
 pull_secret() {
-  local secret_name="$1"
+  local suffix="$1"
+  local env="$2"
   gcloud secrets versions access latest \
-    --secret="social-engine-${secret_name}" \
+    --secret="social-engine-${env}-${suffix}" \
     --project="$GCP_PROJECT" 2>/dev/null || echo ""
 }
 
 set_vercel_env() {
   local var_name="$1"
   local value="$2"
-  local targets="$3"  # comma-separated: production,preview,development
+  local targets="$3"
 
   if [[ -z "$value" ]]; then
-    echo "  SKIP: $var_name (empty value)"
-    return
+    echo "  SKIP: $var_name (empty value — secret missing in GCP SM)"
+    return 1
   fi
 
-  # Remove existing var to avoid conflict
-  vercel env rm "$var_name" --yes 2>/dev/null || true
+  if [[ "$DRY_RUN" == true ]]; then
+    echo "  [dry-run] $var_name → $targets (${#value} chars)"
+    return 0
+  fi
 
-  # Add for each target
   IFS=',' read -ra target_list <<< "$targets"
   for target in "${target_list[@]}"; do
-    echo -n "$value" | vercel env add "$var_name" "$target" < /dev/stdin
+    target="${target// /}"
+    # Remove then add (idempotent)
+    vercel env rm "$var_name" "$target" --yes $VERCEL_TOKEN_FLAG 2>/dev/null || true
+    echo -n "$value" | vercel env add "$var_name" "$target" $VERCEL_TOKEN_FLAG 2>/dev/null
   done
   echo "  SET: $var_name → $targets"
 }
 
-echo "Setting up Vercel env vars for social-engine"
+SYNCED=0
+SKIPPED=0
+ERRORS=0
+
+echo "=== Social Engine → Vercel Env Sync ==="
 echo "GCP Project: $GCP_PROJECT"
-echo "Target: $VERCEL_ENV_TARGET"
+echo "Sync env:    $SYNC_ENV"
+echo "Dry run:     $DRY_RUN"
 echo ""
 
-cd "$DASHBOARD_DIR"
-
-echo "--- Static vars ---"
+# Static vars (always sync)
+echo "--- Static config vars ---"
 for var_name in "${!STATIC_VARS[@]}"; do
-  set_vercel_env "$var_name" "${STATIC_VARS[$var_name]}" "production,preview,development"
+  if set_vercel_env "$var_name" "${STATIC_VARS[$var_name]}" "production,preview,development"; then
+    ((SYNCED++))
+  else
+    ((ERRORS++))
+  fi
 done
 
+# GCP SM secrets
 echo ""
-echo "--- Secrets from GCP SM ---"
+echo "--- GCP Secret Manager secrets ---"
 for mapping in "${ENV_MAPPINGS[@]}"; do
-  IFS='|' read -r var_name secret_suffix targets <<< "$mapping"
-  value=$(pull_secret "$secret_suffix")
-  set_vercel_env "$var_name" "$value" "$targets"
+  IFS='|' read -r var_name secret_suffix targets secret_env <<< "$mapping"
+
+  # Skip if not matching the requested env
+  if [[ "$SYNC_ENV" != "both" && "$secret_env" != "$SYNC_ENV" ]]; then
+    continue
+  fi
+
+  value=$(pull_secret "$secret_suffix" "$secret_env")
+  if set_vercel_env "$var_name" "$value" "$targets"; then
+    ((SYNCED++))
+  else
+    ((SKIPPED++))
+  fi
 done
 
 echo ""
-echo "Done. Run 'vercel env ls' to verify."
-echo ""
-echo "IMPORTANT: Trigger a redeploy after setting env vars:"
-echo "  vercel --prod   (for production)"
-echo "  vercel          (for preview)"
+echo "=== Summary ==="
+echo "  Synced:  $SYNCED"
+echo "  Skipped: $SKIPPED"
+echo "  Errors:  $ERRORS"
+
+if [[ "$DRY_RUN" == true ]]; then
+  echo ""
+  echo "Dry run complete. Re-run without --dry-run to apply."
+elif [[ $ERRORS -gt 0 ]]; then
+  echo ""
+  echo "Completed with errors. Check output above."
+  exit 1
+else
+  echo ""
+  echo "Sync complete. Vercel will pick up new env vars on next deploy."
+fi
