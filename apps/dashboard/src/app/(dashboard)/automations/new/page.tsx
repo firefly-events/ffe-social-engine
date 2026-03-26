@@ -82,7 +82,6 @@ export default function NewAutomationPage() {
     setSubmitting(true)
     try {
       await createRule({
-        userId: user.id,
         name: name.trim(),
         triggerType,
         platforms,

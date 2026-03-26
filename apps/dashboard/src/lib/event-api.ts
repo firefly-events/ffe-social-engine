@@ -52,7 +52,10 @@ export async function getUpcomingEvents(
 }
 
 export async function getEvent(eventId: string): Promise<EventData | null> {
-  return await apiFetch<EventData>(`/events/${eventId}`);
+  if (!/^[\w-]+$/.test(eventId)) {
+    throw new Error('Invalid event ID format');
+  }
+  return await apiFetch<EventData>(`/events/${encodeURIComponent(eventId)}`);
 }
 
 export async function searchEvents(query: string): Promise<EventData[]> {

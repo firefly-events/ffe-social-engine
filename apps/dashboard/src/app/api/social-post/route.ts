@@ -51,6 +51,9 @@ export async function POST(req: Request) {
     if (typeof body.eventId !== "string" || body.eventId.length === 0 || body.eventId.length > 256) {
       return NextResponse.json({ error: "Invalid eventId" }, { status: 400 });
     }
+    if (!/^[\w-]+$/.test(body.eventId)) {
+      return NextResponse.json({ error: "Invalid eventId format" }, { status: 400 });
+    }
     if (typeof body.platform !== "string") {
       return NextResponse.json({ error: "Invalid platform" }, { status: 400 });
     }

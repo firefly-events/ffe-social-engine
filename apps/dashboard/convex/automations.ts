@@ -4,11 +4,14 @@ import { query, mutation, internalMutation } from "./_generated/server";
 // Queries
 
 export const listRules = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
     return await ctx.db
       .query("automationRules")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
   },
 });
@@ -16,23 +19,33 @@ export const listRules = query({
 export const getRule = query({
   args: { id: v.id("automationRules") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
+    const rule = await ctx.db.get(args.id);
+    if (rule && rule.userId !== userId) {
+      throw new Error("Rule not found or access denied");
+    }
+    return rule;
   },
 });
 
 export const listQueueItems = query({
-  args: { userId: v.string(), status: v.optional(v.string()) },
+  args: { status: v.optional(v.string()) },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
     if (args.status) {
       return await ctx.db
         .query("automationQueue")
-        .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
         .filter((q) => q.eq(q.field("status"), args.status))
         .collect();
     }
     return await ctx.db
       .query("automationQueue")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
   },
 });
@@ -41,7 +54,6 @@ export const listQueueItems = query({
 
 export const createRule = mutation({
   args: {
-    userId: v.string(),
     name: v.string(),
     triggerType: v.union(
       v.literal("event_created"),
@@ -60,12 +72,15 @@ export const createRule = mutation({
     config: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
     if (args.name.length > 255) {
       throw new Error("Rule name must be 255 characters or less");
     }
     const now = Date.now();
     return await ctx.db.insert("automationRules", {
-      userId: args.userId,
+      userId,
       name: args.name,
       triggerType: args.triggerType,
       platforms: args.platforms,
@@ -81,7 +96,6 @@ export const createRule = mutation({
 export const updateRule = mutation({
   args: {
     id: v.id("automationRules"),
-    userId: v.string(),
     updates: v.object({
       name: v.optional(v.string()),
       triggerType: v.optional(
@@ -107,11 +121,14 @@ export const updateRule = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
     if (args.updates.name !== undefined && args.updates.name.length > 255) {
       throw new Error("Rule name must be 255 characters or less");
     }
     const rule = await ctx.db.get(args.id);
-    if (!rule || rule.userId !== args.userId) {
+    if (!rule || rule.userId !== userId) {
       throw new Error("Rule not found or access denied");
     }
     await ctx.db.patch(args.id, {
@@ -124,11 +141,13 @@ export const updateRule = mutation({
 export const deleteRule = mutation({
   args: {
     id: v.id("automationRules"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
     const rule = await ctx.db.get(args.id);
-    if (!rule || rule.userId !== args.userId) {
+    if (!rule || rule.userId !== userId) {
       throw new Error("Rule not found or access denied");
     }
     await ctx.db.delete(args.id);
@@ -138,11 +157,13 @@ export const deleteRule = mutation({
 export const toggleRule = mutation({
   args: {
     id: v.id("automationRules"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+    const userId = identity.subject;
     const rule = await ctx.db.get(args.id);
-    if (!rule || rule.userId !== args.userId) {
+    if (!rule || rule.userId !== userId) {
       throw new Error("Rule not found or access denied");
     }
     await ctx.db.patch(args.id, {

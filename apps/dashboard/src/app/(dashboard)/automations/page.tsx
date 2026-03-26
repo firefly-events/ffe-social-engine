@@ -28,7 +28,7 @@ export default function AutomationsPage() {
 
   const rules = useQuery(
     api.automations.listRules,
-    userId ? { userId } : 'skip'
+    userId ? {} : 'skip'
   )
   const toggleRule = useMutation(api.automations.toggleRule)
   const deleteRule = useMutation(api.automations.deleteRule)
@@ -37,14 +37,14 @@ export default function AutomationsPage() {
 
   const handleToggle = async (id: Id<'automationRules'>) => {
     if (!userId) return
-    await toggleRule({ id, userId })
+    await toggleRule({ id })
   }
 
   const handleDelete = async (id: Id<'automationRules'>) => {
     if (!userId) return
     setDeletingId(id)
     try {
-      await deleteRule({ id, userId })
+      await deleteRule({ id })
     } finally {
       setDeletingId(null)
     }
