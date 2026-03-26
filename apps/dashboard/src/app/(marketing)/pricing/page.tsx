@@ -53,7 +53,7 @@ interface Tier {
   accentBorder: string
   popular?: boolean
   cta: string
-  ctaStyle: 'ghost' | 'outline' | 'primary' | 'enterprise'
+  ctaStyle: 'ghost' | 'outline' | 'primary'
   features: string[]
   limits: {
     captions: string
@@ -86,11 +86,32 @@ const TIERS: Tier[] = [
     limits: { captions: '5 / mo', videos: '1 / mo', posts: 'Export only', platforms: '—' },
   },
   {
+    id: 'starter',
+    name: 'Starter',
+    tagline: 'Get your feet wet',
+    monthlyPrice: 9.99,
+    annualPrice: 7.99,
+    color: 'text-cyan-400',
+    accentBg: 'bg-cyan-500/10',
+    accentBorder: 'border-cyan-500/20',
+    cta: 'Get Starter',
+    ctaStyle: 'outline',
+    features: [
+      '50 AI captions / month',
+      '5 AI videos / month',
+      '20 direct posts / month',
+      '2 platforms connected',
+      '1 voice clone',
+      'Priority email support',
+    ],
+    limits: { captions: '50 / mo', videos: '5 / mo', posts: '20 / mo', platforms: '2' },
+  },
+  {
     id: 'pro',
     name: 'Pro',
-    tagline: 'The obvious buy — replaces a $229/mo stack',
-    monthlyPrice: 29.99,
-    annualPrice: 23.99,
+    tagline: 'The obvious buy',
+    monthlyPrice: 14.99,
+    annualPrice: 11.99,
     color: 'text-purple-300',
     accentBg: 'bg-purple-500/12',
     accentBorder: 'border-purple-500/40',
@@ -98,13 +119,37 @@ const TIERS: Tier[] = [
     cta: 'Get Pro',
     ctaStyle: 'primary',
     features: [
+      '250 AI captions / month',
+      '15 AI videos / month',
+      '50 direct posts / month',
+      '3 platforms connected',
+      '3 voice clones',
+      'Automation workflows',
+      'Advanced analytics',
+      'Full API + webhooks',
+      'Priority email support',
+    ],
+    limits: { captions: '250 / mo', videos: '15 / mo', posts: '50 / mo', platforms: '3' },
+  },
+  {
+    id: 'influencer',
+    name: 'Influencer',
+    tagline: 'For content creators',
+    monthlyPrice: 29.99,
+    annualPrice: 23.99,
+    color: 'text-pink-400',
+    accentBg: 'bg-pink-500/10',
+    accentBorder: 'border-pink-500/25',
+    cta: 'Get Influencer',
+    ctaStyle: 'outline',
+    features: [
       '500 AI captions / month',
       '25 AI videos / month',
       '100 direct posts / month',
       '5 platforms connected',
       '5 voice clones',
-      'Automation workflows (visual DAG)',
-      'Advanced analytics & insights',
+      'Automation workflows',
+      'Advanced analytics',
       'Full API + webhooks',
       'Priority email support',
     ],
@@ -113,9 +158,9 @@ const TIERS: Tier[] = [
   {
     id: 'agency',
     name: 'Agency',
-    tagline: 'Multi-tenant, teams & white-label',
-    monthlyPrice: 99,
-    annualPrice: 82,
+    tagline: 'Teams & multi-tenant',
+    monthlyPrice: 299,
+    annualPrice: 249,
     color: 'text-violet-400',
     accentBg: 'bg-violet-500/8',
     accentBorder: 'border-violet-500/25',
@@ -134,31 +179,6 @@ const TIERS: Tier[] = [
       'Dedicated support + onboarding call',
     ],
     limits: { captions: 'Unlimited', videos: '250 / mo', posts: 'Unlimited', platforms: 'All 14+' },
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    tagline: 'Custom scale & SLA',
-    monthlyPrice: null,
-    annualPrice: null,
-    priceLabel: '$499+',
-    color: 'text-amber-400',
-    accentBg: 'bg-amber-500/8',
-    accentBorder: 'border-amber-500/20',
-    cta: 'Talk to Us',
-    ctaStyle: 'enterprise',
-    features: [
-      'Unlimited everything',
-      'All 14+ platforms',
-      'Unlimited voice clones',
-      'SSO / SAML integration',
-      'Full API + priority rate limits (10K req/min)',
-      'Custom AI model fine-tuning',
-      'Dedicated account manager',
-      'Custom SLA & uptime guarantee',
-      'SOC 2 compliance docs',
-    ],
-    limits: { captions: 'Unlimited', videos: 'Unlimited', posts: 'Unlimited', platforms: 'All + custom' },
   },
 ]
 
@@ -199,10 +219,6 @@ export default function PricingPage() {
   const isAnnual = billingInterval === 'annual'
 
   const handleSelectTier = (tierId: string) => {
-    if (tierId === 'enterprise') {
-      window.location.href = 'mailto:sales@socialengine.ai?subject=Enterprise%20Inquiry'
-      return
-    }
     if (!user) {
       router.push('/sign-up')
       return
@@ -212,7 +228,6 @@ export default function PricingPage() {
       return
     }
     // Clerk Billing: redirect to billing portal or upgrade flow
-    // Handles 'pro', 'agency', and any future paid tiers
     router.push('/settings?upgrade=' + tierId)
   }
 
@@ -242,10 +257,6 @@ export default function PricingPage() {
       'w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 ' +
       'bg-transparent text-slate-400 border border-white/[0.07] ' +
       'hover:bg-white/4 hover:text-slate-300 transition-all cursor-pointer',
-    enterprise:
-      'w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 ' +
-      'bg-amber-500/15 text-amber-300 border border-amber-500/30 ' +
-      'hover:bg-amber-500/20 hover:border-amber-500/50 hover:-translate-y-px transition-all cursor-pointer',
   }
 
   return (

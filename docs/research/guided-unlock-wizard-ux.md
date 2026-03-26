@@ -42,7 +42,7 @@
 
 ### Flow (for Social Engine)
 
-```
+```text
 User sees greyed "AI Voice" button with "Creator" badge
     ↓
 Click → Slide-out side panel explains feature + shows preview

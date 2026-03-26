@@ -12,4 +12,5 @@ __pycache__/
 .venv/
 .pytest_cache/
 .claude-flow/
+.swarm/events/
 # .gemini/settings.json is tracked (MCP config). Secrets use ${VAR} env refs.

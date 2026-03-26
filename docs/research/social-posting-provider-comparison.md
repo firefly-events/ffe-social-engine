@@ -8,9 +8,9 @@
 
 ## TL;DR
 
-**Winner: bundle.social** — $100/mo flat for unlimited profiles, 1K posts/mo. Full REST API + Node SDK + white-label OAuth.
+**Winner: Zernio** — $33/mo for 50 profiles, 99.97% uptime SLA, 1200 req/min. Jumps to $667/mo for unlimited.
 
-**Runner-up: Zernio** — $33/mo for 50 profiles, 99.97% uptime SLA, 1200 req/min. Jumps to $667/mo for unlimited.
+**Runner-up: bundle.social** — $100/mo flat for unlimited profiles, 1K posts/mo. Full REST API + Node SDK + white-label OAuth.
 
 **Ayrshare**: Technically excellent but economically unviable at $778/mo for 50 users, $2,624/mo for 500 users.
 
@@ -35,7 +35,7 @@
 
 ## Detailed Analysis: Top 3
 
-### 1. bundle.social (RECOMMENDED)
+### 1. bundle.social
 
 **Pricing:** $100/mo Pro (unlimited profiles, 1K posts) | $400/mo Business (100K posts)
 
