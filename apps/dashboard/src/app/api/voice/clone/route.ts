@@ -1,50 +1,30 @@
 /**
  * POST /api/voice/clone — upload an audio sample and create a voice clone.
  *
- * The route validates the request and stores a clone record with status
- * "processing". The actual cloning is intended to be handled by the Mac Studio
- * inference service (accessible over Tailscale). For now the status transitions
- * to "ready" immediately to unblock frontend development.
+ * Converts the base64 audio payload to a WAV blob, uploads it to the
+ * XTTSv2 voice-gen service (POST /voices), stores the resulting record
+ * in Convex, and returns the Convex _id as the clone identifier.
  *
- * TODO(inference): After storing the record, POST to the Mac Studio API:
- *   POST http://<tailscale-hostname>:<port>/api/v1/voice/clone
- *   { sampleUrl, cloneId, userId }
- * Handle the async callback (webhook or polling) to update the status.
- *
- * TODO(storage): Replace base64 inline storage with a GCS/S3 upload and store
- * only the resulting URL in the database.
+ * The voice-gen /voices endpoint is synchronous — it stores the WAV file
+ * and returns immediately, so we mark the clone "ready" right away.
  */
 
 import { auth } from '@clerk/nextjs/server'
 import type { NextRequest } from 'next/server'
+import { fetchMutation } from 'convex/nextjs'
+import { api } from '../../../../../convex/_generated/api'
 import {
   created,
   badRequest,
   unauthorized,
   serverError,
-  generateId,
 } from '@/lib/api-helpers'
-import { convexClient } from '@/lib/convex-client'
-import { api } from '../../../../../convex/_generated/api'
-import type { VoiceClone, VoiceCloneStatus, CreateVoiceCloneBody } from '@/lib/api-types'
+import type { CreateVoiceCloneBody } from '@/lib/api-types'
 
 const SUPPORTED_MIME_TYPES = ['audio/wav', 'audio/mp3', 'audio/mpeg', 'audio/ogg', 'audio/webm']
 const MAX_SAMPLE_SIZE_BYTES = 10 * 1024 * 1024  // 10 MB base64-encoded budget
 
-/** Map a Convex voice_clones document to the public VoiceClone shape. */
-function toVoiceClone(doc: Record<string, unknown>): VoiceClone {
-  return {
-    id:              doc.externalId as string,
-    userId:          doc.userId as string,
-    name:            doc.name as string,
-    sampleUrl:       doc.sampleUrl as string,
-    status:          doc.status as VoiceCloneStatus,
-    durationSeconds: doc.durationSeconds as number | undefined,
-    errorMessage:    doc.errorMessage as string | undefined,
-    createdAt:       new Date(doc.createdAt as number).toISOString(),
-    updatedAt:       new Date(doc.updatedAt as number).toISOString(),
-  }
-}
+const VOICE_GEN_URL = process.env.VOICE_GEN_URL ?? 'http://localhost:8002'
 
 export async function POST(request: NextRequest) {
   try {
@@ -71,40 +51,64 @@ export async function POST(request: NextRequest) {
       return badRequest('Audio sample exceeds the 10 MB size limit')
     }
 
-    const nowMs = Date.now()
-    const externalId = generateId('vc')
+    // Decode base64 audio to binary
+    const audioBuffer = Buffer.from(body.audioData, 'base64')
+    const audioBlob = new Blob([audioBuffer], { type: body.mimeType })
 
-    const doc = await convexClient.mutation(api.voiceClones.create, {
-      externalId,
+    // Generate a stable voice_id — used as the filename stem on the voice-gen service
+    const safeUserId = session.userId.replace(/[^a-z0-9]/gi, '_')
+    const voiceId = `${safeUserId}_${Date.now()}`
+    const fileName = `${voiceId}.wav`
+
+    // Upload to voice-gen service via multipart form
+    // POST /voices expects: file (UploadFile) + voice_id (Form field)
+    const form = new FormData()
+    form.append('file', audioBlob, fileName)
+    form.append('voice_id', voiceId)
+
+    let voiceGenResponse: Response
+    try {
+      voiceGenResponse = await fetch(`${VOICE_GEN_URL}/voices`, {
+        method: 'POST',
+        body: form,
+      })
+    } catch (fetchErr) {
+      console.error('[POST /api/voice/clone] voice-gen fetch error:', fetchErr)
+      return serverError('Voice generation service is unavailable')
+    }
+
+    if (!voiceGenResponse.ok) {
+      const detail = await voiceGenResponse.text().catch(() => '')
+      console.error('[POST /api/voice/clone] voice-gen error:', voiceGenResponse.status, detail)
+      return serverError('Voice generation service returned an error')
+    }
+
+    // Store in Convex — voice-gen is synchronous so we mark as "ready" immediately
+    const sampleUrl = `data:${body.mimeType};base64,${body.audioData}`
+    const nowMs = Date.now()
+    const cloneId = await fetchMutation(api.voiceClones.create, {
+      externalId: `vc_${voiceId}`,
       userId:    session.userId,
       name:      body.name.trim(),
-      // TODO(storage): Upload body.audioData to GCS/S3 and store the URL here.
-      sampleUrl: `data:${body.mimeType};base64,${body.audioData}`,
-      status:    'processing',
+      sampleUrl,
+      status:    'ready',
       createdAt: nowMs,
       updatedAt: nowMs,
     })
 
-    const clone = toVoiceClone(doc as Record<string, unknown>)
-
-    // TODO(inference): Dispatch async job to Mac Studio inference API over Tailscale.
-    // For now, immediately mark as ready so the UI can proceed during development.
-    void simulateProcessing(externalId)
-
-    return created(clone)
+    const now = new Date().toISOString()
+    return created({
+      id:        cloneId,
+      userId:    session.userId,
+      name:      body.name.trim(),
+      voiceId,
+      sampleUrl,
+      status:    'ready',
+      createdAt: now,
+      updatedAt: now,
+    })
   } catch (err) {
     console.error('[POST /api/voice/clone]', err)
     return serverError()
   }
 }
-
-/** Placeholder: simulate inference completing after a short delay. Remove when real inference is wired. */
-async function simulateProcessing(externalId: string): Promise<void> {
-  await new Promise((r) => setTimeout(r, 3000))
-  await convexClient.mutation(api.voiceClones.update, {
-    externalId,
-    status:    'ready',
-    updatedAt: Date.now(),
-  })
-}
-

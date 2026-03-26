@@ -50,7 +50,6 @@ export default defineSchema({
     fetchedAt: v.number(),
   }).index("by_postId", ["postId"]),
 
-<<<<<<< HEAD
   content: defineTable({
     userId: v.string(),
     externalId: v.string(),
@@ -85,9 +84,10 @@ export default defineSchema({
     .index("by_contentId", ["contentId"]),
 
   voice_clones: defineTable({
-    externalId: v.string(),
+    externalId: v.optional(v.string()),
     userId: v.string(),
     name: v.string(),
+    voiceId: v.optional(v.string()),
     sampleUrl: v.string(),
     status: v.string(),
     durationSeconds: v.optional(v.number()),

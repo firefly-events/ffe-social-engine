@@ -112,12 +112,14 @@ export interface UpdateScheduleBody {
 
 export type VoiceCloneStatus = 'processing' | 'ready' | 'failed'
 
-/** Voice clone record — maps to `voice_clones` collection. */
+/** Voice clone record — maps to `voice_clones` Convex table. */
 export interface VoiceClone {
   id: string
   userId: string
   name: string
-  /** Public URL of the uploaded audio sample. */
+  /** The voice ID used by the XTTSv2 voice-gen service (filename stem). */
+  voiceId: string
+  /** Public URL or data URI of the uploaded audio sample. */
   sampleUrl: string
   status: VoiceCloneStatus
   /** Duration of the sample in seconds. */
