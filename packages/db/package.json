@@ -5,8 +5,11 @@
   "private": true,
   "scripts": {
     "build": "echo 'No build step'",
-    "test": "echo 'No tests'",
+    "test": "jest",
     "lint": "eslint ."
+  },
+  "dependencies": {
+    "mongodb": "^6.0.0"
   },
   "peerDependencies": {
     "convex": "^1.0.0"
@@ -15,5 +18,8 @@
     "eslint": "^8.0.0",
     "jest": "^29.5.0",
     "jest-mock-extended": "^4.0.0"
+  },
+  "jest": {
+    "testEnvironment": "node"
   }
 }
