@@ -8,6 +8,7 @@
 
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { ConvexError } from "convex/server";
 
 /** List workflows for a user with optional status filter, newest-first by updatedAt. */
 export const list = query({
@@ -47,7 +48,7 @@ export const getByExternalId = query({
 export const create = mutation({
   args: {
     externalId: v.string(),
-    userId: v.string(),
+    userId: v.string(), // Clerk ID
     name: v.string(),
     description: v.optional(v.string()),
     status: v.string(),
@@ -56,11 +57,46 @@ export const create = mutation({
     config: v.any(),
     runCount: v.number(),
     lastRunAt: v.optional(v.number()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    const docId = await ctx.db.insert("workflows", args);
+    // 1. Fetch user by Clerk ID
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.userId))
+      .first();
+
+    if (!user) {
+      throw new ConvexError("User not found");
+    }
+
+    // 2. Count existing workflows
+    const existingWorkflows = await ctx.db
+      .query("workflows")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const count = existingWorkflows.length;
+
+    // 3. Enforce limits
+    const plan = (user.plan || "free").toLowerCase();
+    let limit = Infinity;
+
+    if (plan === "free" || plan === "starter") {
+      limit = 3;
+    } else if (plan === "pro") {
+      limit = 15;
+    }
+
+    if (count >= limit) {
+      throw new ConvexError(`Automation limit reached for ${plan} plan (max ${limit}). Upgrade for more.`);
+    }
+
+    const now = Date.now();
+    const docId = await ctx.db.insert("workflows", {
+      ...args,
+      createdAt: now,
+      updatedAt: now,
+    });
     return await ctx.db.get(docId);
   },
 });
@@ -77,7 +113,6 @@ export const update = mutation({
     config: v.optional(v.any()),
     runCount: v.optional(v.number()),
     lastRunAt: v.optional(v.number()),
-    updatedAt: v.number(),
   },
   handler: async (ctx, args) => {
     const { externalId, ...patch } = args;
@@ -90,7 +125,11 @@ export const update = mutation({
     const cleanPatch = Object.fromEntries(
       Object.entries(patch).filter(([, v]) => v !== undefined)
     );
-    await ctx.db.patch(existing._id, cleanPatch);
+    
+    await ctx.db.patch(existing._id, {
+      ...cleanPatch,
+      updatedAt: Date.now(),
+    });
     return await ctx.db.get(existing._id);
   },
 });

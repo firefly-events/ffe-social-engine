@@ -1,38 +1,6 @@
 import React from 'react';
-import Sidebar from '../../components/Sidebar';
-import { UserButton } from '@clerk/nextjs';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import ClientLayout from './ClientLayout';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  // We should ideally fetch the real user tier here, but for now we'll pass stubs
-  const usage = {
-    captions: 3,
-    captionLimit: 5,
-    videos: 0,
-    videoLimit: 1
-  };
-
-  return (
-    <div className="flex min-h-screen bg-muted/30">
-      <Sidebar userTier="FREE" usage={usage} />
-
-      <div className="flex-1 ml-60">
-        <header className="h-16 bg-background border-b border-border flex items-center px-8 sticky top-0 z-50">
-          <div className="flex-1 font-bold text-xl">Dashboard</div>
-
-          <div className="flex items-center gap-3">
-            <span className="px-3 py-1 bg-muted rounded-full text-xs font-bold text-muted-foreground">
-              FREE PLAN
-            </span>
-            <ThemeToggle />
-            <UserButton />
-          </div>
-        </header>
-
-        <main className="p-8">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
+  return <ClientLayout>{children}</ClientLayout>;
 }

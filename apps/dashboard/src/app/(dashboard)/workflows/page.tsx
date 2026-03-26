@@ -2,6 +2,8 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
+import { useQuery, useMutation } from 'convex/react'
+import { api } from '../../../../convex/_generated/api'
 import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 import type {
   Workflow,
@@ -12,7 +14,6 @@ import type {
   NodeCategory,
   NodePaletteItem,
 } from '@/lib/workflow-types'
-import { SAMPLE_WORKFLOW } from '@/lib/workflow-types'
 
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -232,36 +233,6 @@ const COLOR_CLASSES: Record<string, { bg: string; border: string; badge: string;
   pink:    { bg: 'bg-pink-900/40',    border: 'border-pink-500/50',    badge: 'bg-pink-500/20 text-pink-300',    dot: 'bg-pink-400'    },
   emerald: { bg: 'bg-emerald-900/40', border: 'border-emerald-500/50', badge: 'bg-emerald-500/20 text-emerald-300', dot: 'bg-emerald-400' },
 }
-
-// ── SAMPLE WORKFLOW LIST ──────────────────────────────────────────────────────
-
-const MOCK_WORKFLOWS: Workflow[] = [
-  SAMPLE_WORKFLOW,
-  {
-    ...SAMPLE_WORKFLOW,
-    id: 'wf-002',
-    name: 'Daily TikTok Clip',
-    description: 'Every day at 6pm, generate a 30s TikTok from top event photos.',
-    status: 'paused',
-    runCount: 5,
-    lastRun: '2026-03-15T18:00:00Z',
-    nextRun: undefined,
-    nodes: SAMPLE_WORKFLOW.nodes.slice(0, 3),
-    edges: SAMPLE_WORKFLOW.edges.slice(0, 2),
-  },
-  {
-    ...SAMPLE_WORKFLOW,
-    id: 'wf-003',
-    name: 'New Event Announcement',
-    description: 'Webhook fires when a new event is created. Posts to all platforms instantly.',
-    status: 'draft',
-    runCount: 0,
-    lastRun: undefined,
-    nextRun: undefined,
-    nodes: SAMPLE_WORKFLOW.nodes.slice(0, 2),
-    edges: [],
-  },
-]
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 
@@ -651,7 +622,7 @@ function ConfigPanel({
                 value={(node.config as { prompt?: string }).prompt ?? ''}
                 onChange={(e) => onUpdate({ config: { ...node.config, prompt: e.target.value } })}
                 placeholder="A vibrant concert photo, dramatic lighting..."
-                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white text-sm placeholder-slate-500 focus:outline-none focus:border-purple-500 resize-none"
+                className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 resize-none"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -1222,7 +1193,29 @@ function WorkflowCanvas({
 
 export default function WorkflowsPage() {
   const { user } = useUser()
-  const [workflows, setWorkflows]   = useState<Workflow[]>(MOCK_WORKFLOWS)
+  const userId = user?.id ?? ""
+  
+  // Convex queries and mutations
+  const workflowsData = useQuery(api.workflows.list, { userId })
+  const createWorkflow = useMutation(api.workflows.create)
+  const updateWorkflow = useMutation(api.workflows.update)
+  const removeWorkflow = useMutation(api.workflows.remove)
+
+  // Map Convex docs to Workflow interface
+  const workflows: Workflow[] = (workflowsData || []).map((w) => ({
+    id: w.externalId,
+    name: w.name,
+    description: w.description,
+    status: w.status as WorkflowStatus,
+    nodes: w.nodes,
+    edges: w.edges,
+    config: w.config,
+    runCount: w.runCount,
+    lastRun: w.lastRunAt ? new Date(w.lastRunAt).toISOString() : undefined,
+    createdAt: new Date(w.createdAt).toISOString(),
+    updatedAt: new Date(w.updatedAt).toISOString(),
+  }))
+
   const [activeWorkflow, setActive] = useState<Workflow | null>(null)
   const [showNew, setShowNew]       = useState(false)
   const [newName, setNewName]       = useState('')
@@ -1239,50 +1232,99 @@ export default function WorkflowsPage() {
     return () => window.removeEventListener('keydown', handler)
   }, [activeWorkflow])
 
-  const handleSave = (updated: Workflow) => {
-    setWorkflows((prev) => prev.map((w) => (w.id === updated.id ? updated : w)))
-    setActive(updated)
-    trackEvent(ANALYTICS_EVENTS.WORKFLOW_UPDATED, { 
-      workflow_id: updated.id,
-      node_count: updated.nodes.length,
-      user_id: user?.id
-    })
-  }
-
-  const handleToggle = (id: string) => {
-    setWorkflows((prev) =>
-      prev.map((w) =>
-        w.id === id
-          ? { ...w, status: w.status === 'active' ? 'paused' : ('active' as WorkflowStatus) }
-          : w,
-      ),
-    )
-  }
-
-  const handleCreate = () => {
-    if (!newName.trim()) return
-    const wf: Workflow = {
-      id:          makeId(),
-      name:        newName.trim(),
-      description: newDesc.trim() || 'New automation workflow',
-      status:      'draft',
-      nodes:       [],
-      edges:       [],
-      config:      {},
-      createdAt:   new Date().toISOString(),
-      updatedAt:   new Date().toISOString(),
-      runCount:    0,
+  const handleSave = async (updated: Workflow) => {
+    try {
+      await updateWorkflow({
+        externalId: updated.id,
+        name: updated.name,
+        description: updated.description,
+        status: updated.status,
+        nodes: updated.nodes,
+        edges: updated.edges,
+        config: updated.config,
+      })
+      
+      setActive(updated)
+      trackEvent(ANALYTICS_EVENTS.WORKFLOW_UPDATED, { 
+        workflow_id: updated.id,
+        node_count: updated.nodes.length,
+        user_id: user?.id
+      })
+    } catch (err) {
+      console.error('Failed to update workflow:', err)
+      alert('Failed to save workflow. Please try again.')
     }
-    setWorkflows((prev) => [wf, ...prev])
-    setNewName('')
-    setNewDesc('')
-    setShowNew(false)
-    setActive(wf)
-    trackEvent(ANALYTICS_EVENTS.WORKFLOW_CREATED, {
-      workflow_id: wf.id,
-      name: wf.name,
-      user_id: user?.id
-    })
+  }
+
+  const handleToggle = async (id: string) => {
+    const wf = workflows.find((w) => w.id === id)
+    if (!wf) return
+    
+    try {
+      await updateWorkflow({
+        externalId: id,
+        status: wf.status === 'active' ? 'paused' : 'active',
+      })
+    } catch (err) {
+      console.error('Failed to toggle workflow status:', err)
+    }
+  }
+
+  const handleCreate = async () => {
+    if (!newName.trim() || !user) return
+    const externalId = makeId()
+    
+    try {
+      const result = await createWorkflow({
+        externalId,
+        userId: user.id,
+        name: newName.trim(),
+        description: newDesc.trim() || 'New automation workflow',
+        status: 'draft',
+        nodes: [],
+        edges: [],
+        config: {},
+        runCount: 0,
+      })
+      
+      if (result) {
+        const wf: Workflow = {
+          id:          result.externalId,
+          name:        result.name,
+          description: result.description,
+          status:      result.status as WorkflowStatus,
+          nodes:       result.nodes,
+          edges:       result.edges,
+          config:      result.config,
+          createdAt:   new Date(result.createdAt).toISOString(),
+          updatedAt:   new Date(result.updatedAt).toISOString(),
+          runCount:    result.runCount,
+        }
+        setNewName('')
+        setNewDesc('')
+        setShowNew(false)
+        setActive(wf)
+        trackEvent(ANALYTICS_EVENTS.WORKFLOW_CREATED, {
+          workflow_id: wf.id,
+          name: wf.name,
+          user_id: user?.id
+        })
+      }
+    } catch (err: any) {
+      console.error('Failed to create workflow:', err)
+      const message = err.message || 'Failed to create workflow.'
+      alert(message)
+    }
+  }
+
+  const handleDelete = async (externalId: string) => {
+    if (!confirm('Are you sure you want to delete this workflow?')) return
+    try {
+      await removeWorkflow({ externalId })
+    } catch (err) {
+      console.error('Failed to delete workflow:', err)
+      alert('Failed to delete workflow.')
+    }
   }
 
   // Full-screen canvas mode
@@ -1384,7 +1426,7 @@ export default function WorkflowsPage() {
       </div>
 
       {/* Workflow grid */}
-      {workflows.length === 0 ? (
+      {workflows.length === 0 && workflowsData !== undefined ? (
         <div className="text-center py-20">
           <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1397,12 +1439,22 @@ export default function WorkflowsPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {workflows.map((wf) => (
-            <WorkflowCard
-              key={wf.id}
-              workflow={wf}
-              onOpen={() => setActive(wf)}
-              onToggle={() => handleToggle(wf.id)}
-            />
+            <div key={wf.id} className="group relative">
+              <WorkflowCard
+                workflow={wf}
+                onOpen={() => setActive(wf)}
+                onToggle={() => handleToggle(wf.id)}
+              />
+              <button
+                onClick={() => handleDelete(wf.id)}
+                className="absolute top-2 right-2 p-1.5 bg-slate-900/80 border border-slate-700 rounded-lg text-slate-500 hover:text-red-400 transition-all opacity-0 group-hover:opacity-100 shadow-xl"
+                title="Delete workflow"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
           ))}
         </div>
       )}
