@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { usePostHog } from 'posthog-js/react'
+import { useUser } from '@clerk/nextjs'
+import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -561,7 +562,7 @@ function Confetti() {
 
 export default function OnboardPage() {
   const router = useRouter()
-  const posthog = usePostHog()
+  const { user } = useUser()
   const [step, setStep] = useState(1)
   const [done, setDone] = useState(false)
   const [generating, setGenerating] = useState(false)
@@ -624,10 +625,18 @@ export default function OnboardPage() {
   }
 
   function handleNext() {
+    trackEvent(ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED, {
+      step,
+      label: STEPS.find(s => s.id === step)?.label,
+      user_id: user?.id
+    })
+
     if (step < 4) {
       setStep((s) => s + 1)
     } else {
-      posthog?.capture('signup_complete')
+      trackEvent(ANALYTICS_EVENTS.SIGNUP_COMPLETE, {
+        user_id: user?.id
+      })
       setDone(true)
       setTimeout(() => router.push('/dashboard'), 3500)
     }

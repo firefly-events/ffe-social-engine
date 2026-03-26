@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { usePostHog } from 'posthog-js/react'
+import { useUser } from '@clerk/nextjs'
+import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 import type {
   Workflow,
   WorkflowNode,
@@ -1225,7 +1226,7 @@ function WorkflowCanvas({
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 
 export default function WorkflowsPage() {
-  const posthog = usePostHog()
+  const { user } = useUser()
   const [workflows, setWorkflows]   = useState<Workflow[]>(MOCK_WORKFLOWS)
   const [activeWorkflow, setActive] = useState<Workflow | null>(null)
   const [showNew, setShowNew]       = useState(false)
@@ -1246,7 +1247,11 @@ export default function WorkflowsPage() {
   const handleSave = (updated: Workflow) => {
     setWorkflows((prev) => prev.map((w) => (w.id === updated.id ? updated : w)))
     setActive(updated)
-    posthog?.capture('workflow_created', { node_count: updated.nodes.length })
+    trackEvent(ANALYTICS_EVENTS.WORKFLOW_UPDATED, { 
+      workflow_id: updated.id,
+      node_count: updated.nodes.length,
+      user_id: user?.id
+    })
   }
 
   const handleToggle = (id: string) => {
@@ -1278,6 +1283,11 @@ export default function WorkflowsPage() {
     setNewDesc('')
     setShowNew(false)
     setActive(wf)
+    trackEvent(ANALYTICS_EVENTS.WORKFLOW_CREATED, {
+      workflow_id: wf.id,
+      name: wf.name,
+      user_id: user?.id
+    })
   }
 
   // Full-screen canvas mode

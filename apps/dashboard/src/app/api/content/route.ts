@@ -118,7 +118,13 @@ export async function POST(request: NextRequest) {
     const item = toContentItem(doc as Record<string, unknown>)
 
     const ph = getPostHogServer()
-    ph.capture({ distinctId: session.userId, event: 'api_call_made', properties: { endpoint: '/api/content', method: 'POST' } })
+    if (ph) {
+      ph.capture({ 
+        distinctId: session.userId, 
+        event: 'se_api_call_made', 
+        properties: { endpoint: '/api/content', method: 'POST' } 
+      })
+    }
 
     return created(item)
   } catch (err) {

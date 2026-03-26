@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { zernio } from '../../../../lib/zernio';
 import { fetchMutation, fetchQuery } from 'convex/nextjs';
 import { api } from '../../../../../convex/_generated/api';
-import { getPostHogServer } from '../../../../lib/posthog-server';
+import { getPostHogServer } from '@/lib/posthog-server';
 
 export async function POST(req: Request) {
   try {
@@ -25,7 +25,13 @@ export async function POST(req: Request) {
     }
 
     const ph = getPostHogServer()
-    ph.capture({ distinctId: userId, event: 'social_connected', properties: { platform: 'zernio' } })
+    if (ph) {
+      ph.capture({ 
+        distinctId: userId, 
+        event: 'se_social_connected', 
+        properties: { platform: 'zernio' } 
+      })
+    }
 
     return NextResponse.json(response);
   } catch (error: any) {
