@@ -1,0 +1,20 @@
+{
+  "cohorts": [
+    {
+      "name": "Active Social Engine Users",
+      "description": "Users who have connected at least one social account",
+      "filters": {
+        "properties": {
+          "type": "AND",
+          "values": [
+            {
+              "key": "se_social_connected",
+              "type": "behavioral",
+              "value": "performed_event"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

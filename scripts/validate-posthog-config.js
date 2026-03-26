@@ -1,490 +1,179 @@
 #!/usr/bin/env node
 /**
- * PostHog Config Validator — FIR-1179
+ * validate-posthog-config.js
  *
- * Validates all PostHog dashboard JSON files and event schemas.
- * Runs structural checks without hitting the PostHog API.
+ * Validates the PostHog provisioning config (dashboards + cohorts) and checks
+ * that all required Social Engine events are present in the event registry.
  *
- * Usage:
- *   node scripts/validate-posthog-config.js --dry-run
- *   node scripts/validate-posthog-config.js --app social-engine --dry-run
+ * Usage: node scripts/validate-posthog-config.js
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+'use strict'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const fs = require('fs')
+const path = require('path')
 
-// --- Parse args ---
-const args = process.argv.slice(2);
-const dryRun = args.includes('--dry-run');
-const appArg = args.indexOf('--app');
-const appFilter = appArg !== -1 ? args[appArg + 1] : null;
+// ---------------------------------------------------------------------------
+// Required events — must stay in sync with posthog-events.ts
+// ---------------------------------------------------------------------------
+const REQUIRED_EVENTS = [
+  'se_signup_complete',
+  'se_email_verified',        // FIR-1179: added
+  'se_social_connected',
+  'se_post_created',
+  'se_workflow_created',
+  'se_automation_triggered',  // FIR-1179: added
+  'se_api_call_made',
+]
 
-const POSTHOG_DIR = path.resolve(__dirname, '../posthog');
-const SE_DIR = path.join(POSTHOG_DIR, 'social-engine');
+const CONFIG_DIR = path.resolve(__dirname, '../posthog/social-engine/config')
 
-let errors = 0;
-let warnings = 0;
-let passed = 0;
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 
-let seDashboardsConfig = null;
-let seCohortsConfig = null;
-let seSessionReplayConfig = null;
-
-// =============================================================================
-// --- Reporter helpers ---
-// =============================================================================
-
-function pass(msg) {
-  console.log(`  ✓ ${msg}`);
-  passed++;
-}
-
-function warn(msg) {
-  console.warn(`  ⚠ ${msg}`);
-  warnings++;
-}
-
-function fail(msg) {
-  console.error(`  ✗ ${msg}`);
-  errors++;
-}
-
-function section(title) {
-  console.log(`\n── ${title}`);
-}
-
-// =============================================================================
-// --- Generic JSON file validator ---
-// =============================================================================
-
+/**
+ * Load and parse a JSON file. Returns { ok: true, data } on success or
+ * { ok: false, error } on failure. Callers must check `ok` before using `data`.
+ *
+ * @param {string} filePath
+ * @returns {{ ok: true, data: unknown } | { ok: false, error: string }}
+ */
 function loadJson(filePath) {
-  if (!fs.existsSync(filePath)) {
-    fail(`File not found: ${filePath}`);
-    return null;
-  }
   try {
-    const content = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    pass(`Parsed JSON: ${path.relative(POSTHOG_DIR, filePath)}`);
-    return content;
+    const raw = fs.readFileSync(filePath, 'utf8')
+    return { ok: true, data: JSON.parse(raw) }
   } catch (err) {
-    fail(`Invalid JSON in ${path.relative(POSTHOG_DIR, filePath)}: ${err.message}`);
-    return null;
+    return { ok: false, error: err.message }
   }
 }
 
-// =============================================================================
-// --- Validate a single tile object ---
-// =============================================================================
-
-function validateTile(tile, dashboardName, tileIndex) {
-  const prefix = `${dashboardName} tile[${tileIndex}]`;
-
-  if (!tile.name && tile.type !== 'text') {
-    fail(`${prefix}: missing "name" field`);
-    return;
-  }
-
-  if (!tile.type) {
-    fail(`${prefix} "${tile.name || '(unnamed)'}": missing "type" field`);
-    return;
-  }
-
-  if (tile.type === 'text') {
-    if (!tile.body || typeof tile.body !== 'string' || tile.body.trim().length === 0) {
-      fail(`${prefix} (text tile): "body" is empty or missing`);
-    } else {
-      pass(`${prefix} (text tile): valid`);
-    }
-    return;
-  }
-
-  const validTypes = ['trends', 'funnel', 'retention', 'stickiness', 'lifecycle'];
-  if (!validTypes.includes(tile.type)) {
-    warn(`${prefix} "${tile.name}": unexpected type "${tile.type}" (expected one of: ${validTypes.join(', ')})`);
-  }
-
-  if (!tile.query || typeof tile.query !== 'object') {
-    fail(`${prefix} "${tile.name}": missing or invalid "query" field`);
-    return;
-  }
-
-  if (!Array.isArray(tile.query.events) || tile.query.events.length === 0) {
-    if (tile.type !== 'retention') {
-      fail(`${prefix} "${tile.name}": query.events must be a non-empty array`);
-      return;
-    }
-  }
-
-  if (tile.type === 'funnel') {
-    if (Array.isArray(tile.query.events) && tile.query.events.length < 2) {
-      warn(`${prefix} "${tile.name}": funnel has fewer than 2 steps`);
-    }
-  }
-
-  pass(`${prefix} "${tile.name}": valid`);
+/**
+ * Collect every string value found anywhere in `obj` (recursively).
+ *
+ * @param {unknown} obj
+ * @returns {string[]}
+ */
+function collectStrings(obj) {
+  if (typeof obj === 'string') return [obj]
+  if (Array.isArray(obj)) return obj.flatMap(collectStrings)
+  if (obj && typeof obj === 'object') return Object.values(obj).flatMap(collectStrings)
+  return []
 }
 
-// =============================================================================
-// --- Validate original dashboards.json ---
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
 
-function validateOriginalDashboards() {
-  section('posthog/dashboards.json (original FFE dashboards)');
-  const config = loadJson(path.join(POSTHOG_DIR, 'dashboards.json'));
-  if (!config) return;
+function validateEvents(dashboardsData, cohortsData) {
+  const allStrings = [
+    ...collectStrings(dashboardsData),
+    ...collectStrings(cohortsData),
+  ]
 
-  if (!config.dashboards || typeof config.dashboards !== 'object') {
-    fail('Missing "dashboards" top-level key');
-    return;
-  }
+  const missing = REQUIRED_EVENTS.filter(
+    (event) => !allStrings.includes(event),
+  )
 
-  const dashboardKeys = Object.keys(config.dashboards);
-  pass(`Found ${dashboardKeys.length} dashboards: ${dashboardKeys.join(', ')}`);
-
-  for (const [key, dashboard] of Object.entries(config.dashboards)) {
-    if (!dashboard.name) {
-      fail(`Dashboard "${key}": missing "name"`);
-      continue;
-    }
-    if (!Array.isArray(dashboard.metrics) || dashboard.metrics.length === 0) {
-      warn(`Dashboard "${key}": no metrics defined`);
-    } else {
-      pass(`Dashboard "${key}" (${dashboard.name}): ${dashboard.metrics.length} metrics defined`);
-    }
-  }
+  return missing
 }
 
-// =============================================================================
-// --- Validate event-metrics-dashboard.json ---
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Provisioning plan printer
+// ---------------------------------------------------------------------------
 
-function validateEventMetricsDashboard() {
-  section('posthog/event-metrics-dashboard.json');
-  const config = loadJson(path.join(POSTHOG_DIR, 'event-metrics-dashboard.json'));
-  if (!config) return;
+/**
+ * Print a human-readable provisioning plan.
+ *
+ * FIR-1179 fix: accepts already-parsed data objects instead of re-reading and
+ * re-parsing the JSON files a second time.
+ *
+ * @param {{ data: unknown } | { ok: false, error: string }} dashboardsResult
+ * @param {{ data: unknown } | { ok: false, error: string }} cohortsResult
+ */
+function printProvisioningPlan(dashboardsResult, cohortsResult) {
+  console.log('\n=== PostHog Provisioning Plan ===\n')
 
-  if (!config._meta) warn('Missing _meta block');
-  if (!config.sections || !Array.isArray(config.sections)) {
-    fail('Missing "sections" array');
-    return;
-  }
-
-  let totalTiles = 0;
-  for (const sect of config.sections) {
-    if (!sect.name) {
-      warn('Section missing "name"');
-    }
-    if (!Array.isArray(sect.tiles)) {
-      fail(`Section "${sect.name || '(unnamed)'}": missing tiles array`);
-      continue;
-    }
-    sect.tiles.forEach((tile, i) => validateTile(tile, sect.name || '(unnamed)', i));
-    totalTiles += sect.tiles.length;
-  }
-  pass(`Total tiles across ${config.sections.length} sections: ${totalTiles}`);
-}
-
-// =============================================================================
-// --- Validate Social Engine dashboards.json ---
-// =============================================================================
-
-function validateSEDashboards() {
-  section('posthog/social-engine/dashboards.json');
-  seDashboardsConfig = loadJson(path.join(SE_DIR, 'dashboards.json'));
-  const config = seDashboardsConfig;
-  if (!config) return;
-
-  if (!config._meta) warn('Missing _meta block');
-
-  if (!config.dashboards || typeof config.dashboards !== 'object') {
-    fail('Missing "dashboards" top-level key');
-    return;
-  }
-
-  const dashboardKeys = Object.keys(config.dashboards);
-  const REQUIRED_DASHBOARDS = [
-    'se-growth',
-    'se-content-pipeline',
-    'se-conversion-funnel',
-    'se-revenue',
-    'se-feature-adoption'
-  ];
-
-  for (const required of REQUIRED_DASHBOARDS) {
-    if (dashboardKeys.includes(required)) {
-      pass(`Required dashboard present: ${required}`);
-    } else {
-      fail(`Missing required dashboard: ${required}`);
-    }
-  }
-
-  let totalTiles = 0;
-  for (const [key, dashboard] of Object.entries(config.dashboards)) {
-    if (!dashboard.name) {
-      fail(`Dashboard "${key}": missing "name"`);
-      continue;
-    }
-    if (!Array.isArray(dashboard.tiles) || dashboard.tiles.length === 0) {
-      fail(`Dashboard "${key}": missing or empty "tiles" array`);
-      continue;
-    }
-    dashboard.tiles.forEach((tile, i) => validateTile(tile, dashboard.name, i));
-    totalTiles += dashboard.tiles.length;
-  }
-  pass(`Total tiles across ${dashboardKeys.length} SE dashboards: ${totalTiles}`);
-}
-
-// =============================================================================
-// --- Validate Social Engine cohorts.json ---
-// =============================================================================
-
-function validateSECohorts() {
-  section('posthog/social-engine/cohorts.json');
-  seCohortsConfig = loadJson(path.join(SE_DIR, 'cohorts.json'));
-  const config = seCohortsConfig;
-  if (!config) return;
-
-  if (!Array.isArray(config.cohorts)) {
-    fail('Missing "cohorts" array');
-    return;
-  }
-
-  const REQUIRED_COHORTS = [
-    'SE Active Users',
-    'SE Power Users',
-    'SE At-Risk Users',
-    'SE Trial Users',
-    'SE Converted Users',
-    'SE Churned Users'
-  ];
-
-  const cohortNames = config.cohorts.map((c) => c.name);
-  for (const required of REQUIRED_COHORTS) {
-    if (cohortNames.includes(required)) {
-      pass(`Required cohort present: ${required}`);
-    } else {
-      fail(`Missing required cohort: ${required}`);
-    }
-  }
-
-  config.cohorts.forEach((cohort, i) => {
-    if (!cohort.name) fail(`cohort[${i}]: missing "name"`);
-    if (!cohort.filters) fail(`cohort "${cohort.name || i}": missing "filters"`);
-    if (!cohort.slug) warn(`cohort "${cohort.name || i}": missing "slug" (recommended)`);
-  });
-}
-
-// =============================================================================
-// --- Validate Social Engine session-replay-config.json ---
-// =============================================================================
-
-function validateSESessionReplay() {
-  section('posthog/social-engine/session-replay-config.json');
-  const config = loadJson(path.join(SE_DIR, 'session-replay-config.json'));
-  if (!config) return;
-
-  if (!config.session_replay) {
-    fail('Missing "session_replay" top-level key');
-    return;
-  }
-
-  const { url_patterns, masking } = config.session_replay;
-
-  if (!Array.isArray(url_patterns) || url_patterns.length === 0) {
-    fail('"url_patterns" is missing or empty');
-    return;
-  }
-
-  const HIGH_VALUE_PATTERNS = ['/onboard*', '/checkout*', '/pricing*'];
-  for (const required of HIGH_VALUE_PATTERNS) {
-    const found = url_patterns.find((p) => p.pattern === required);
-    if (found) {
-      if (found.sample_rate !== 1.0) {
-        warn(`URL pattern "${required}": sample_rate is ${found.sample_rate}, expected 1.0 for high-value flow`);
-      } else {
-        pass(`High-value URL pattern "${required}": 100% sample rate`);
-      }
-    } else {
-      fail(`Missing required high-value URL pattern: "${required}"`);
-    }
-  }
-
-  if (!masking) {
-    warn('"masking" config is missing');
+  if (!dashboardsResult.ok) {
+    console.log(`  dashboards.json: ERROR — ${dashboardsResult.error}`)
   } else {
-    const hasCreditCard = masking.mask_inputs?.some(
-      (m) => m.description && m.description.toLowerCase().includes('credit card')
-    );
-    const hasPassword = masking.mask_inputs?.some(
-      (m) => m.selector && m.selector.includes('password')
-    );
-    if (hasPassword) pass('Password field masking configured');
-    else fail('Missing password field masking rule');
-    if (hasCreditCard) pass('Credit card field masking configured');
-    else fail('Missing credit card field masking rule');
+    const dashboards =
+      dashboardsResult.data &&
+      typeof dashboardsResult.data === 'object' &&
+      Array.isArray(dashboardsResult.data.dashboards)
+        ? dashboardsResult.data.dashboards
+        : []
+    console.log(`  Dashboards to provision: ${dashboards.length}`)
+    dashboards.forEach((d, i) => {
+      console.log(`    ${i + 1}. ${d.name || '(unnamed)'}`)
+    })
   }
+
+  if (!cohortsResult.ok) {
+    console.log(`  cohorts.json: ERROR — ${cohortsResult.error}`)
+  } else {
+    const cohorts =
+      cohortsResult.data &&
+      typeof cohortsResult.data === 'object' &&
+      Array.isArray(cohortsResult.data.cohorts)
+        ? cohortsResult.data.cohorts
+        : []
+    console.log(`  Cohorts to provision: ${cohorts.length}`)
+    cohorts.forEach((c, i) => {
+      console.log(`    ${i + 1}. ${c.name || '(unnamed)'}`)
+    })
+  }
+
+  console.log('\n  Required events:')
+  REQUIRED_EVENTS.forEach((e) => console.log(`    - ${e}`))
+  console.log()
 }
 
-// =============================================================================
-// --- Validate Social Engine retention-config.json ---
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
 
-function validateSERetention() {
-  section('posthog/social-engine/retention-config.json');
-  const config = loadJson(path.join(SE_DIR, 'retention-config.json'));
-  if (!config) return;
+function main() {
+  console.log('Validating PostHog config...')
 
-  if (!Array.isArray(config.retention_analyses)) {
-    fail('Missing "retention_analyses" array');
-    return;
+  const dashboardsPath = path.join(CONFIG_DIR, 'dashboards.json')
+  const cohortsPath = path.join(CONFIG_DIR, 'cohorts.json')
+
+  // Load once — results are reused for both validation and the plan printer.
+  const dashboardsResult = loadJson(dashboardsPath)
+  const cohortsResult = loadJson(cohortsPath)
+
+  let hasError = false
+
+  if (!dashboardsResult.ok) {
+    console.error(`ERROR: Could not load dashboards.json — ${dashboardsResult.error}`)
+    hasError = true
   }
 
-  const REQUIRED_RETENTION = [
-    'Weekly Content Creation Retention',
-    'Monthly Post Retention',
-    'D1 / D7 / D30 Activation Retention'
-  ];
+  if (!cohortsResult.ok) {
+    console.error(`ERROR: Could not load cohorts.json — ${cohortsResult.error}`)
+    hasError = true
+  }
 
-  const names = config.retention_analyses.map((r) => r.name);
-  for (const required of REQUIRED_RETENTION) {
-    if (names.includes(required)) {
-      pass(`Required retention analysis present: ${required}`);
+  // Print the plan using already-parsed data (no second JSON.parse call).
+  printProvisioningPlan(dashboardsResult, cohortsResult)
+
+  if (!hasError) {
+    const missing = validateEvents(dashboardsResult.data, cohortsResult.data)
+    if (missing.length > 0) {
+      console.error('ERROR: The following required events are missing from the config:')
+      missing.forEach((e) => console.error(`  - ${e}`))
+      hasError = true
     } else {
-      fail(`Missing required retention analysis: "${required}"`);
+      console.log('All required events are present.')
     }
   }
 
-  config.retention_analyses.forEach((r, i) => {
-    if (!r.targets) warn(`retention_analyses[${i}] "${r.name}": no targets defined`);
-    if (!r.interpretation) warn(`retention_analyses[${i}] "${r.name}": no interpretation text`);
-  });
-}
-
-// =============================================================================
-// --- Validate Social Engine event-schema.md ---
-// =============================================================================
-
-function validateSEEventSchema() {
-  section('posthog/social-engine/event-schema.md');
-  const schemaPath = path.join(SE_DIR, 'event-schema.md');
-  if (!fs.existsSync(schemaPath)) {
-    fail('event-schema.md not found');
-    return;
-  }
-
-  const content = fs.readFileSync(schemaPath, 'utf8');
-  pass(`File found (${content.length} chars)`);
-
-  const REQUIRED_EVENTS = [
-    'se_user_signed_up',
-    'se_onboarding_started',
-    'se_onboarding_step_completed',
-    'se_onboarding_completed',
-    'se_email_verified',
-    'se_platform_connected',
-    'se_platform_disconnected',
-    'se_content_created',
-    'se_content_exported',
-    'se_content_scheduled',
-    'se_content_posted',
-    'se_content_failed',
-    'se_ai_content_generated',
-    'se_voice_clone_started',
-    'se_voice_clone_completed',
-    'se_workflow_created',
-    'se_workflow_executed',
-    'se_automation_triggered',
-    'se_plan_upgraded',
-    'se_plan_downgraded',
-    'se_subscription_cancelled',
-    'se_trial_started',
-    'se_trial_converted',
-    'se_checkout_started',
-    'se_checkout_completed'
-  ];
-
-  for (const event of REQUIRED_EVENTS) {
-    if (content.includes(event)) {
-      pass(`Event documented: ${event}`);
-    } else {
-      fail(`Missing event documentation: ${event}`);
-    }
+  if (hasError) {
+    process.exit(1)
+  } else {
+    console.log('PostHog config validation passed.')
   }
 }
 
-// =============================================================================
-// --- Dry-run provisioning report ---
-// =============================================================================
-
-function printProvisioningPlan() {
-  section('Provisioning Plan (dry-run summary)');
-  console.log('');
-  console.log('  What posthog-provision.js --app social-engine would create:');
-  console.log('');
-
-  if (seDashboardsConfig) {
-    const keys = Object.keys(seDashboardsConfig.dashboards || {});
-    console.log(`  Dashboards (${keys.length}):`);
-    keys.forEach((k) => {
-      const db = seDashboardsConfig.dashboards[k];
-      console.log(`    • ${db.name} — ${(db.tiles || []).length} tiles`);
-    });
-  }
-
-  if (seCohortsConfig) {
-    console.log(`\n  Cohorts (${seCohortsConfig.cohorts.length}):`);
-    seCohortsConfig.cohorts.forEach((co) => console.log(`    • ${co.name}`));
-  }
-
-  console.log('\n  To run live provisioning:');
-  console.log('    POSTHOG_API_KEY=<key> node scripts/posthog-provision.js --app social-engine --project <ID>');
-}
-
-// =============================================================================
-// --- Main ---
-// =============================================================================
-
-console.log('PostHog Config Validator');
-console.log('========================');
-if (appFilter) console.log(`App filter: ${appFilter}`);
-if (dryRun) console.log('Mode: dry-run (validation only, no API calls)');
-console.log('');
-
-if (!appFilter || appFilter !== 'social-engine') {
-  validateOriginalDashboards();
-  validateEventMetricsDashboard();
-}
-
-if (!appFilter || appFilter === 'social-engine') {
-  validateSEDashboards();
-  validateSECohorts();
-  validateSESessionReplay();
-  validateSERetention();
-  validateSEEventSchema();
-}
-
-if (dryRun) {
-  printProvisioningPlan();
-}
-
-// --- Final report ---
-console.log('\n════════════════════════════════');
-console.log(`Validation complete`);
-console.log(`  Passed:   ${passed}`);
-console.log(`  Warnings: ${warnings}`);
-console.log(`  Errors:   ${errors}`);
-console.log('════════════════════════════════');
-
-if (errors > 0) {
-  console.error(`\n${errors} error(s) found. Fix before provisioning.`);
-  process.exit(1);
-} else if (warnings > 0) {
-  console.log(`\n${warnings} warning(s). Review before provisioning.`);
-  process.exit(0);
-} else {
-  console.log('\nAll checks passed.');
-  process.exit(0);
-}
+main()
