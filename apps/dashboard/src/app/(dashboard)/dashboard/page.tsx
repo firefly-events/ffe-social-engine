@@ -5,6 +5,8 @@ import MetricCard from '../../../components/MetricCard';
 import QuickAction from '../../../components/QuickAction';
 import ContentCard from '../../../components/ContentCard';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -31,44 +33,35 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div className="flex flex-col gap-8">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 style={{ margin: 0, fontSize: '1.75rem' }}>Welcome back, {user?.firstName || 'Creator'}</h1>
-          <p style={{ margin: '0.25rem 0 0 0', color: '#666' }}>Here's what's happening with your content</p>
+          <h1 className="text-3xl font-bold">Welcome back, {user?.firstName || 'Creator'}</h1>
+          <p className="mt-1 text-muted-foreground">Here&apos;s what&apos;s happening with your content</p>
         </div>
-        <button 
+        <Button
           onClick={() => router.push('/create')}
-          style={{ 
-            padding: '0.75rem 1.5rem', 
-            backgroundColor: '#8e44ad', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '8px', 
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            boxShadow: '0 4px 12px rgba(142,68,173,0.3)'
-          }}
+          className="bg-purple-600 hover:bg-purple-700 text-white shadow-[0_4px_12px_rgba(142,68,173,0.3)]"
         >
           + Create New
-        </button>
+        </Button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem' }}>
+      <div className="grid grid-cols-4 gap-6">
         {metrics.map(metric => (
           <MetricCard key={metric.label} {...metric} />
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '2rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div className="grid grid-cols-[1fr_400px] gap-8">
+        <div className="flex flex-col gap-8">
           <section>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>What would you like to create today?</h2>
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <h2 className="text-xl font-semibold mb-6">What would you like to create today?</h2>
+            <div className="flex gap-4">
               {quickActions.map(action => (
-                <QuickAction 
-                  key={action.title} 
-                  {...action} 
+                <QuickAction
+                  key={action.title}
+                  {...action}
                   onClick={() => router.push(`/create/${action.templateId}`)}
                 />
               ))}
@@ -76,87 +69,49 @@ export default function DashboardPage() {
           </section>
 
           <section>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Recent Activity</h2>
-            <div style={{ padding: '1rem', backgroundColor: 'white', borderRadius: '12px', border: '1px solid #ddd' }}>
+            <h2 className="text-xl font-semibold mb-6">Recent Activity</h2>
+            <Card className="p-4">
               {recentContent.map(content => (
                 <ContentCard key={content.title} {...content} />
               ))}
-              <button style={{ 
-                width: '100%', 
-                padding: '0.75rem', 
-                border: 'none', 
-                backgroundColor: 'transparent', 
-                color: '#8e44ad', 
-                fontWeight: 'bold', 
-                cursor: 'pointer',
-                marginTop: '1rem'
-              }}>
+              <Button
+                variant="ghost"
+                className="w-full mt-4 text-purple-600 hover:text-purple-700 font-bold"
+                onClick={() => router.push('/content')}
+              >
                 View All Activity →
-              </button>
-            </div>
+              </Button>
+            </Card>
           </section>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="flex flex-col gap-8">
           <section>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Performance Chart</h2>
-            <div style={{ 
-              height: '300px', 
-              backgroundColor: 'white', 
-              borderRadius: '12px', 
-              border: '1px solid #ddd',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#999',
-              position: 'relative'
-            }}>
-              <div style={{ textAlign: 'center' }}>
-                <span style={{ fontSize: '2rem' }}>📊</span>
+            <h2 className="text-xl font-semibold mb-6">Performance Chart</h2>
+            <Card className="h-[300px] flex items-center justify-center text-muted-foreground relative">
+              <div className="text-center">
+                <span className="text-3xl">📊</span>
                 <div>Analytics Chart Stub</div>
-                <div style={{ fontSize: '0.75rem', marginTop: '0.5rem' }}>Available on Pro plan</div>
+                <div className="text-xs mt-2">Available on Pro plan</div>
               </div>
-              <div style={{ 
-                position: 'absolute', 
-                inset: 0, 
-                backgroundColor: 'rgba(255,255,255,0.7)', 
-                backdropFilter: 'blur(4px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <button 
+              <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center rounded-xl">
+                <Button
+                  size="sm"
                   onClick={() => router.push('/pricing')}
-                  style={{ 
-                    padding: '0.5rem 1rem', 
-                    backgroundColor: '#333', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    fontWeight: 'bold'
-                  }}
+                  className="bg-foreground text-background hover:bg-foreground/90 text-xs font-bold uppercase"
                 >
-                  UPGRADE TO SEE ANALYTICS
-                </button>
+                  Upgrade to see analytics
+                </Button>
               </div>
-            </div>
+            </Card>
           </section>
 
           <section>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '1.5rem' }}>Scheduled Today</h2>
-            <div style={{ 
-              padding: '2rem', 
-              backgroundColor: 'white', 
-              borderRadius: '12px', 
-              border: '1px solid #ddd',
-              textAlign: 'center',
-              color: '#999'
-            }}>
-              <span style={{ fontSize: '1.5rem' }}>📅</span>
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.85rem' }}>No posts scheduled for today</p>
-            </div>
+            <h2 className="text-xl font-semibold mb-6">Scheduled Today</h2>
+            <Card className="p-8 text-center text-muted-foreground">
+              <span className="text-2xl">📅</span>
+              <p className="mt-2 text-sm">No posts scheduled for today</p>
+            </Card>
           </section>
         </div>
       </div>

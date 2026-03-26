@@ -69,10 +69,10 @@ const PLATFORM_COMPARISON = [
 
 // Content type performance
 const CONTENT_TYPES = [
-  { type: 'Video', avg_er: 7.2, posts: 14, impressions: '48K', color: 'bg-purple-500', width: '92%' },
-  { type: 'Image', avg_er: 4.9, posts: 32, impressions: '82K', color: 'bg-blue-500', width: '63%' },
-  { type: 'Voice / Audio', avg_er: 4.1, posts: 8, impressions: '19K', color: 'bg-emerald-500', width: '53%' },
-  { type: 'Text Only', avg_er: 2.8, posts: 24, impressions: '55K', color: 'bg-amber-500', width: '36%' },
+  { type: 'Video', avg_er: 7.2, posts: 14, impressions: '48K', color: 'bg-purple-500', widthClass: 'w-[92%]' },
+  { type: 'Image', avg_er: 4.9, posts: 32, impressions: '82K', color: 'bg-blue-500', widthClass: 'w-[63%]' },
+  { type: 'Voice / Audio', avg_er: 4.1, posts: 8, impressions: '19K', color: 'bg-emerald-500', widthClass: 'w-[53%]' },
+  { type: 'Text Only', avg_er: 2.8, posts: 24, impressions: '55K', color: 'bg-amber-500', widthClass: 'w-[36%]' },
 ]
 
 // AI recommendations
@@ -469,7 +469,7 @@ export default function AnalyticsPage() {
               Impressions
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-4 h-px bg-emerald-500 border-dashed border-t border-emerald-500" style={{ borderTopStyle: 'dashed' }} />
+              <div className="w-4 h-px bg-emerald-500 border-dashed border-t border-emerald-500 [border-top-style:dashed]" />
               Engagements
             </div>
           </div>
@@ -520,7 +520,7 @@ export default function AnalyticsPage() {
           <div className="overflow-x-auto">
             <div className="min-w-[340px]">
               {/* Header row */}
-              <div className="grid gap-1.5 mb-1.5" style={{ gridTemplateColumns: '36px repeat(6, 1fr)' }}>
+              <div className="grid gap-1.5 mb-1.5" className="[grid-template-columns:36px_repeat(6,1fr)]">
                 <div />
                 {HOURS.map((h) => (
                   <div key={h} className="text-center text-xs text-gray-400 font-medium">{h}</div>
@@ -528,7 +528,7 @@ export default function AnalyticsPage() {
               </div>
               {/* Data rows */}
               {DAYS.map((day) => (
-                <div key={day} className="grid gap-1.5 mb-1.5" style={{ gridTemplateColumns: '36px repeat(6, 1fr)' }}>
+                <div key={day} className="grid gap-1.5 mb-1.5" className="[grid-template-columns:36px_repeat(6,1fr)]">
                   <div className="flex items-center text-xs text-gray-500 font-medium">{day}</div>
                   {HEATMAP_DATA[day].map((v, i) => (
                     <HeatmapCell key={i} value={v} />
@@ -568,10 +568,7 @@ export default function AnalyticsPage() {
                   <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${barPct}%`,
-                        backgroundColor: p.color === '#000000' ? '#374151' : p.color,
-                      }}
+                      style={{ width: `${barPct}%`, backgroundColor: p.color === '#000000' ? '#374151' : p.color }}
                     />
                   </div>
                 </div>
@@ -595,7 +592,7 @@ export default function AnalyticsPage() {
                 <span className="badge-green">{ct.avg_er}% ER</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full mb-3 overflow-hidden">
-                <div className={`h-full ${ct.color} rounded-full transition-all duration-500`} style={{ width: ct.width }} />
+                <div className={`h-full ${ct.color} ${ct.widthClass} rounded-full transition-all duration-500`} />
               </div>
               <div className="flex justify-between text-xs text-gray-500">
                 <span>{ct.posts} posts</span>

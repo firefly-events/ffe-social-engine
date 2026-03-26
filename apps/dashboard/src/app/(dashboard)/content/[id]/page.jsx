@@ -4,13 +4,13 @@ export default function ContentPreviewPage({ params }) {
   return (
     <div>
       <h1>Content Preview: {id}</h1>
-      <div style={{ background: 'black', width: '300px', height: '533px', margin: '1rem 0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+      <div className="bg-black w-[300px] h-[533px] my-4 flex items-center justify-center text-white">
         <p>Video Player Placeholder</p>
       </div>
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <button style={{ padding: '0.5rem 1rem', background: 'green', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Approve</button>
-        <button style={{ padding: '0.5rem 1rem', background: 'red', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Reject</button>
-        <a href={`/api/download/${id}`} download style={{ padding: '0.5rem 1rem', background: 'gray', color: 'white', textDecoration: 'none', borderRadius: '4px' }}>Download MP4</a>
+      <div className="flex gap-4">
+        <button className="px-4 py-2 bg-green-600 text-white border-none rounded cursor-pointer">Approve</button>
+        <button className="px-4 py-2 bg-red-600 text-white border-none rounded cursor-pointer">Reject</button>
+        <a href={`/api/download/${id}`} download className="px-4 py-2 bg-gray-500 text-white no-underline rounded">Download MP4</a>
       </div>
     </div>
   );

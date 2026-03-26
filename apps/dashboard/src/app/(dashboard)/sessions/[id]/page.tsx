@@ -229,7 +229,6 @@ function NodeCard({
         className={`w-full h-full bg-slate-800 border rounded-xl cursor-pointer transition-all duration-150 flex flex-col p-3 gap-1.5 select-none
           ${selected ? `border-purple-500 ring-2 ring-purple-500/40 shadow-lg shadow-purple-500/20` : comparing ? `border-sky-500 ring-2 ring-sky-500/40` : 'border-slate-700 hover:border-slate-500'}
         `}
-        style={{ userSelect: 'none' }}
       >
         {/* Top row */}
         <div className="flex items-center justify-between gap-1">
@@ -965,8 +964,7 @@ export default function SessionDetailPage({
         {/* Canvas */}
         <div
           ref={containerRef}
-          className="flex-1 overflow-auto"
-          style={{ cursor: 'default' }}
+          className="flex-1 overflow-auto cursor-default"
         >
           <div
             style={{

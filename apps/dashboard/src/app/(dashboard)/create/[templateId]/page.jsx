@@ -9,7 +9,7 @@ import PhonePreview from '@/components/PhonePreview';
 export default function CustomizePage() {
   const { templateId } = useParams();
   const router = useRouter();
-  
+
   const [topic, setTopic] = useState('');
   const [caption, setCaption] = useState('');
   const [hashtags, setHashtags] = useState([]);
@@ -22,7 +22,7 @@ export default function CustomizePage() {
       alert('Please enter a topic first');
       return;
     }
-    
+
     setIsGenerating(true);
     try {
       const response = await fetch('/api/ai/caption', {
@@ -30,7 +30,7 @@ export default function CustomizePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic, template: templateId, platform }),
       });
-      
+
       const data = await response.json();
       if (data.caption) {
         setCaption(data.caption);
@@ -53,60 +53,56 @@ export default function CustomizePage() {
   };
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-      <button 
+    <div className="max-w-[1200px] mx-auto p-8">
+      <button
         onClick={() => router.back()}
-        style={{ marginBottom: '2rem', background: 'none', border: 'none', cursor: 'pointer', color: '#666' }}
+        className="mb-8 bg-transparent border-none cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
       >
         ← Back to Templates
       </button>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '3rem' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+      <div className="grid grid-cols-[1fr_350px] gap-12">
+        <div className="flex flex-col gap-8">
           <section>
-            <h2>What's your post about?</h2>
-            <input 
-              type="text" 
+            <h2>What&apos;s your post about?</h2>
+            <input
+              type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="e.g., A quick product demo for our new feature..."
-              style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid #ccc', fontSize: '1rem' }}
+              className="w-full p-4 rounded-lg border border-input bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </section>
 
           <section>
-            <CaptionEditor 
-              caption={caption} 
-              onChange={setCaption} 
-              onGenerate={handleGenerate} 
-              isGenerating={isGenerating} 
+            <CaptionEditor
+              caption={caption}
+              onChange={setCaption}
+              onGenerate={handleGenerate}
+              isGenerating={isGenerating}
             />
           </section>
 
           <section>
-            <HashtagChips 
-              hashtags={hashtags} 
-              onAdd={(tag) => setHashtags([...hashtags, tag.replace('#', '')])} 
-              onRemove={(tag) => setHashtags(hashtags.filter(t => t !== tag))} 
+            <HashtagChips
+              hashtags={hashtags}
+              onAdd={(tag) => setHashtags([...hashtags, tag.replace('#', '')])}
+              onRemove={(tag) => setHashtags(hashtags.filter(t => t !== tag))}
             />
           </section>
 
           <section>
             <h2>Select Platform</h2>
-            <div style={{ display: 'flex', gap: '1rem' }}>
+            <div className="flex gap-4">
               {['tiktok', 'instagram', 'x'].map(p => (
-                <button 
+                <button
                   key={p}
                   onClick={() => setPlatform(p)}
-                  style={{ 
-                    padding: '0.5rem 1rem', 
-                    borderRadius: '6px', 
-                    border: '1px solid #ccc',
-                    backgroundColor: platform === p ? '#333' : 'white',
-                    color: platform === p ? 'white' : '#333',
-                    cursor: 'pointer',
-                    textTransform: 'capitalize'
-                  }}
+                  className={`px-4 py-2 rounded-md border border-input cursor-pointer capitalize transition-colors ${
+                    platform === p
+                      ? 'bg-foreground text-background'
+                      : 'bg-background text-foreground hover:bg-muted'
+                  }`}
                 >
                   {p}
                 </button>
@@ -114,23 +110,23 @@ export default function CustomizePage() {
             </div>
           </section>
 
-          <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
-            <button 
+          <div className="flex gap-4 mt-8">
+            <button
               onClick={handleSave}
-              style={{ padding: '1rem 2rem', borderRadius: '8px', border: '1px solid #333', cursor: 'pointer', fontWeight: 'bold' }}
+              className="px-8 py-4 rounded-lg border border-border cursor-pointer font-bold bg-background text-foreground hover:bg-muted transition-colors"
             >
               Save as Draft
             </button>
-            <button 
-              style={{ padding: '1rem 2rem', borderRadius: '8px', border: 'none', backgroundColor: '#8e44ad', color: 'white', cursor: 'pointer', fontWeight: 'bold', flexGrow: 1 }}
+            <button
+              className="flex-1 px-8 py-4 rounded-lg border-none bg-purple-600 text-white cursor-pointer font-bold hover:bg-purple-700 transition-colors"
             >
               Export / Publish
             </button>
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
-          <h3 style={{ margin: 0 }}>Preview</h3>
+        <div className="flex flex-col items-center gap-6">
+          <h3 className="m-0">Preview</h3>
           <PhonePreview platform={platform} caption={caption} hashtags={hashtags} mediaUrl={mediaUrl} />
         </div>
       </div>
