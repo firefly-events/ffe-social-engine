@@ -12,7 +12,7 @@ export async function POST(req) {
   }
 
   // Check user tier limits (stub for now)
-  const user = await prisma.user.findUnique({ where: { id: userId } });
+  await prisma.user.findUnique({ where: { id: userId } });
   // Add tier check here...
 
   try {
