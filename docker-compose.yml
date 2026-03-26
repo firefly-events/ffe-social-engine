@@ -85,6 +85,8 @@ services:
     restart: unless-stopped
     ports:
       - "8002:8000"
+    environment:
+      - LOAD_MODEL=true
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
