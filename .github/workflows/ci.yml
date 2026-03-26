@@ -31,18 +31,8 @@ jobs:
           pip install -r services/visual-gen/requirements.txt
           pip install -r services/voice-gen/requirements.txt
           
-      - name: Lint Node
+      - name: Lint (Recursive)
         run: pnpm run --recursive --if-present lint
         
-      - name: Test Node
+      - name: Test (Recursive)
         run: pnpm run --recursive --if-present test
-        
-      - name: Lint Python
-        run: |
-          cd services/visual-gen && ruff check .
-          cd ../voice-gen && ruff check .
-          
-      - name: Test Python
-        run: |
-          cd services/visual-gen && pytest
-          cd ../voice-gen && pytest
