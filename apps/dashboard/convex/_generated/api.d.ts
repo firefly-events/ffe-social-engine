@@ -8,8 +8,20 @@
  * @module
  */
 
-import type * as users from "../users.js";
+import type * as authHelpers from "../authHelpers.js";
+import type * as composedVideos from "../composedVideos.js";
+import type * as content from "../content.js";
+import type * as generations from "../generations.js";
+import type * as http from "../http.js";
+import type * as media from "../media.js";
+import type * as schedules from "../schedules.js";
+import type * as sessions from "../sessions.js";
 import type * as socialAccounts from "../socialAccounts.js";
+import type * as users from "../users.js";
+import type * as voiceClones from "../voiceClones.js";
+import type * as voices from "../voices.js";
+import type * as workflowRuns from "../workflowRuns.js";
+import type * as workflows from "../workflows.js";
 
 import type {
   ApiFromModules,
@@ -18,8 +30,20 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  users: typeof users;
+  authHelpers: typeof authHelpers;
+  composedVideos: typeof composedVideos;
+  content: typeof content;
+  generations: typeof generations;
+  http: typeof http;
+  media: typeof media;
+  schedules: typeof schedules;
+  sessions: typeof sessions;
   socialAccounts: typeof socialAccounts;
+  users: typeof users;
+  voiceClones: typeof voiceClones;
+  voices: typeof voices;
+  workflowRuns: typeof workflowRuns;
+  workflows: typeof workflows;
 }>;
 
 /**

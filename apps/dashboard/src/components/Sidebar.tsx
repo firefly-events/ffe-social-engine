@@ -1,4 +1,3 @@
-import TierBadge from './TierBadge';
 import UsageMeter from './UsageMeter';
 
 export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
@@ -55,7 +54,7 @@ export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
             >
               <span>{item.icon}</span>
               <span style={{ flexGrow: 1 }}>{item.label}</span>
-              {isLocked && <TierBadge tier={item.minTier} />}
+              {isLocked && <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{item.minTier}</span>}
             </a>
           );
         })}
