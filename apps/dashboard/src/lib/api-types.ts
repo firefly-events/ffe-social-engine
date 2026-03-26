@@ -286,3 +286,21 @@ export interface AnalyticsResponse {
   platformBreakdown: PlatformBreakdown[]
   topPosts: PostPerformance[]
 }
+
+// ── COMPOSE ───────────────────────────────────────────────────────────────────
+
+export type ComposeFormat = '16:9' | '1:1' | '9:16'
+
+export interface ComposeRequest {
+  videoUrl: string
+  platform: string
+  format: ComposeFormat
+  textOverlay?: string
+}
+
+export interface ComposeJob {
+  id: string
+  status: 'processing' | 'ready' | 'error'
+  resultUrl?: string
+  error?: string
+}
