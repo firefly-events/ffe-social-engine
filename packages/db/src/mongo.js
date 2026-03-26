@@ -1,7 +1,9 @@
 const { MongoClient } = require('mongodb');
 const crypto = require('crypto');
 
-const ENCRYPTION_KEY = process.env.MONGODB_ENCRYPTION_KEY; // Should be base64 encoded
+const isBuild = process.env.npm_lifecycle_event === 'build' || process.env.NEXT_PHASE !== undefined;
+const dummyKey = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='; // 32 bytes of zeros
+const ENCRYPTION_KEY = process.env.MONGODB_ENCRYPTION_KEY || (isBuild ? dummyKey : undefined);
 
 // Validate encryption key at module load time
 if (!ENCRYPTION_KEY) {
