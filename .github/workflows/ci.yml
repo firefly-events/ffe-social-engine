@@ -34,6 +34,15 @@ jobs:
       - name: Test Node
         run: pnpm run --recursive --if-present test
         
+      - name: Validate PostHog Config
+        run: node scripts/validate-posthog-config.js --app social-engine --dry-run
+
+      - name: Verify PostHog Library Consistency
+        run: |
+          diff posthog/social-engine/src-templates/posthog.ts apps/dashboard/src/lib/posthog.ts
+          diff posthog/social-engine/src-templates/posthog-server.ts apps/dashboard/src/lib/posthog-server.ts
+          diff posthog/social-engine/src-templates/posthog-events.ts apps/dashboard/src/lib/posthog-events.ts
+
       - name: Install Python dependencies
         run: |
           pip install -r services/visual-gen/requirements.txt

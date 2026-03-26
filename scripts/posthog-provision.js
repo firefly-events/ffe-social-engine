@@ -82,8 +82,8 @@ function buildTiles(tilesArray) {
       insight: {
         name: tile.name,
         filters: {
-          insight: (tile.query.insight || tile.type).toUpperCase(),
-          ...tile.query
+          ...tile.query,
+          insight: (tile.query.insight || tile.type).toUpperCase()
         }
       },
       layouts: {}
@@ -92,21 +92,24 @@ function buildTiles(tilesArray) {
 }
 
 // =============================================================================
-// --- Helper: POST to PostHog API ---
+// --- Helper: PostHog API Client ---
 // =============================================================================
 
-async function postToPostHog(endpoint, payload) {
+async function callPostHog(method, endpoint, payload = null) {
   const url = `${host}${endpoint}`;
   let response;
   try {
-    response = await fetch(url, {
-      method: 'POST',
+    const options = {
+      method,
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
+      }
+    };
+    if (payload) {
+      options.body = JSON.stringify(payload);
+    }
+    response = await fetch(url, options);
   } catch (err) {
     throw new Error(`Network request failed: ${err.message}`);
   }
@@ -121,6 +124,11 @@ async function postToPostHog(endpoint, payload) {
   } catch {
     return { raw: body };
   }
+}
+
+/** Legacy wrapper for FFE Event Metrics */
+async function postToPostHog(endpoint, payload) {
+  return callPostHog('POST', endpoint, payload);
 }
 
 // =============================================================================
@@ -264,8 +272,22 @@ async function provisionSocialEngine(pid) {
     return;
   }
 
-  // --- Create dashboards ---
-  console.log('Creating dashboards...');
+  // --- Fetch existing items for idempotency ---
+  console.log('Fetching existing dashboards and cohorts for idempotency...');
+  let existingDashboards = [];
+  let existingCohorts = [];
+  try {
+    const dashboardsRes = await callPostHog('GET', `/api/projects/${pid}/dashboards/`);
+    existingDashboards = dashboardsRes.results || [];
+    const cohortsRes = await callPostHog('GET', `/api/projects/${pid}/cohorts/`);
+    existingCohorts = cohortsRes.results || [];
+    console.log(`  Found ${existingDashboards.length} existing dashboards and ${existingCohorts.length} cohorts.`);
+  } catch (err) {
+    console.warn(`  ⚠ Warning: Could not fetch existing items: ${err.message}. Will default to POST.`);
+  }
+
+  // --- Create/Update dashboards ---
+  console.log('\nProcessing dashboards...');
   const createdDashboards = [];
   for (const [key, dashboard] of Object.entries(dashboards)) {
     const tiles = buildTiles(dashboard.tiles);
@@ -276,17 +298,24 @@ async function provisionSocialEngine(pid) {
       tiles
     };
 
+    const existing = existingDashboards.find((d) => d.name === dashboard.name);
     try {
-      const result = await postToPostHog(`/api/projects/${pid}/dashboards/`, payload);
-      console.log(`  ✓ ${dashboard.name} — ID: ${result.id}`);
+      let result;
+      if (existing) {
+        result = await callPostHog('PATCH', `/api/projects/${pid}/dashboards/${existing.id}/`, payload);
+        console.log(`  ✓ ${dashboard.name} — UPDATED (ID: ${result.id})`);
+      } else {
+        result = await callPostHog('POST', `/api/projects/${pid}/dashboards/`, payload);
+        console.log(`  ✓ ${dashboard.name} — CREATED (ID: ${result.id})`);
+      }
       createdDashboards.push({ key, name: dashboard.name, id: result.id });
     } catch (err) {
       console.error(`  ✗ ${dashboard.name} — FAILED: ${err.message}`);
     }
   }
 
-  // --- Create cohorts ---
-  console.log('\nCreating cohorts...');
+  // --- Create/Update cohorts ---
+  console.log('\nProcessing cohorts...');
   const createdCohorts = [];
   for (const cohort of cohorts) {
     const payload = {
@@ -295,9 +324,16 @@ async function provisionSocialEngine(pid) {
       filters: cohort.filters
     };
 
+    const existing = existingCohorts.find((c) => c.name === cohort.name);
     try {
-      const result = await postToPostHog(`/api/projects/${pid}/cohorts/`, payload);
-      console.log(`  ✓ ${cohort.name} — ID: ${result.id}`);
+      let result;
+      if (existing) {
+        result = await callPostHog('PATCH', `/api/projects/${pid}/cohorts/${existing.id}/`, payload);
+        console.log(`  ✓ ${cohort.name} — UPDATED (ID: ${result.id})`);
+      } else {
+        result = await callPostHog('POST', `/api/projects/${pid}/cohorts/`, payload);
+        console.log(`  ✓ ${cohort.name} — CREATED (ID: ${result.id})`);
+      }
       createdCohorts.push({ slug: cohort.slug, name: cohort.name, id: result.id });
     } catch (err) {
       console.error(`  ✗ ${cohort.name} — FAILED: ${err.message}`);

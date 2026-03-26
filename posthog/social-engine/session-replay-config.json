@@ -1,10 +1,10 @@
 {
   "_meta": {
-    "description": "Session replay configuration for FFE Social Engine. Defines URL patterns, masking rules, sample rates, and cohort targeting for PostHog session replay.",
+    "description": "Session replay configuration for FFE Social Engine. Defines URL patterns, sample rates, and cohort targeting for PostHog session replay.",
     "ticket": "FIR-1179",
     "created": "2026-03-25",
     "app": "ffe-social-engine",
-    "implementation_note": "Apply these settings via posthog-js initialization in apps/dashboard/src/lib/posthog.ts. Some settings (masking, sample rates) are SDK-side; URL filtering and cohort targeting are configured in PostHog project settings."
+    "implementation_note": "Apply these settings via posthog-js initialization in apps/dashboard/src/lib/posthog.ts. URL filtering and cohort targeting are configured in PostHog project settings."
   },
   "session_replay": {
     "enabled": true,
@@ -38,34 +38,6 @@
         "rationale": "20% general sampling for feature adoption and bug discovery"
       }
     ],
-    "masking": {
-      "mask_all_inputs": false,
-      "mask_inputs": [
-        {
-          "selector": "input[type='password']",
-          "description": "Password fields — always mask"
-        },
-        {
-          "selector": "input[name='cardNumber'], input[name='card-number'], input[data-testid='card-number']",
-          "description": "Credit card number fields"
-        },
-        {
-          "selector": "input[name='cvc'], input[name='cvv'], input[data-testid='card-cvc']",
-          "description": "Card security code fields"
-        },
-        {
-          "selector": "input[name='cardExpiry'], input[name='card-expiry']",
-          "description": "Card expiry fields"
-        },
-        {
-          "selector": "[data-ph-no-capture]",
-          "description": "Any element explicitly marked to not be captured"
-        }
-      ],
-      "block_selector": ".ph-no-capture",
-      "mask_text_selector": ".ph-mask",
-      "privacy_note": "Stripe Elements are rendered in iframes and are automatically excluded from replay. No raw card data is ever captured."
-    },
     "cohort_targeting": {
       "description": "Use PostHog feature flags linked to cohorts to control which users receive session replay",
       "rules": [
@@ -106,22 +78,6 @@
           "default": true
         }
       ]
-    }
-  },
-  "posthog_js_config": {
-    "description": "Configuration object to pass to posthog.init() in apps/dashboard/src/lib/posthog.ts",
-    "config": {
-      "session_recording": {
-        "maskAllInputs": false,
-        "maskInputFn": null,
-        "blockClass": "ph-no-capture",
-        "maskTextClass": "ph-mask",
-        "collectFonts": false,
-        "inlineStylesheet": true
-      },
-      "disable_session_recording": false,
-      "enable_recording_console_log": false,
-      "_note": "URL-based sample rates cannot be set directly in posthog.init. Implement via posthog.startSessionRecording() called conditionally based on current pathname."
     }
   }
 }

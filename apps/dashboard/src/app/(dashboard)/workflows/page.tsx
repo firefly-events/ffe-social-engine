@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useUser } from '@clerk/nextjs'
 import { track } from '@/lib/posthog'
 import { SE_EVENTS } from '@/lib/posthog-events'
 import type {
@@ -1226,6 +1227,7 @@ function WorkflowCanvas({
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 
 export default function WorkflowsPage() {
+  const { user } = useUser()
   const [workflows, setWorkflows]   = useState<Workflow[]>(MOCK_WORKFLOWS)
   const [activeWorkflow, setActive] = useState<Workflow | null>(null)
   const [showNew, setShowNew]       = useState(false)
@@ -1246,11 +1248,6 @@ export default function WorkflowsPage() {
   const handleSave = (updated: Workflow) => {
     setWorkflows((prev) => prev.map((w) => (w.id === updated.id ? updated : w)))
     setActive(updated)
-    track(SE_EVENTS.WORKFLOW_CREATED, { 
-      user_id: 'current_user', 
-      workflow_id: updated.id,
-      node_count: updated.nodes.length 
-    })
   }
 
   const handleToggle = (id: string) => {
@@ -1282,6 +1279,11 @@ export default function WorkflowsPage() {
     setNewDesc('')
     setShowNew(false)
     setActive(wf)
+    track(SE_EVENTS.WORKFLOW_CREATED, { 
+      user_id: user?.id ?? 'current_user', 
+      workflow_id: wf.id,
+      node_count: wf.nodes.length 
+    })
   }
 
   // Full-screen canvas mode

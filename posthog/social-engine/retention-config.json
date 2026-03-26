@@ -14,8 +14,8 @@
       "query": {
         "insight": "RETENTION",
         "target_entity": {
-          "id": "se_content_created",
-          "name": "se_content_created",
+          "id": "se_user_signed_up",
+          "name": "se_user_signed_up",
           "type": "events"
         },
         "returning_entity": {
@@ -33,7 +33,7 @@
         "week_4": "> 25%",
         "week_8": "> 15%"
       },
-      "interpretation": "Retained = user created at least one piece of content in week N+1 after they first created content. Strong signal of product-market fit when week 4 > 25%."
+      "interpretation": "Retained = user created at least one piece of content in week N+1 after they first signed up. Strong signal of product-market fit when week 4 > 25%."
     },
     {
       "name": "Monthly Post Retention",

@@ -54,6 +54,24 @@ application. All events are prefixed with `se_` to distinguish them from other F
 
 ---
 
+## Account & Integration Events
+
+| Event | Description | Required Props | Optional Props | Emitted By |
+|-------|-------------|----------------|----------------|------------|
+| `se_platform_connected` | User successfully linked a social platform | `user_id`, `platform` | - | dashboard client |
+| `se_platform_disconnected` | User unlinked a social platform | `user_id`, `platform` | - | dashboard client |
+
+### Property Reference — Account & Integration
+
+```json
+{
+  "user_id": "user_abc123",
+  "platform": "instagram | tiktok | twitter | linkedin | facebook | youtube"
+}
+```
+
+---
+
 ## Content Pipeline Events
 
 | Event | Description | Required Props | Optional Props | Emitted By |
@@ -192,6 +210,7 @@ application. All events are prefixed with `se_` to distinguish them from other F
 ```
 
 ### General Standards
+
 - **IDs:** string format (`"content_id": "cnt_abc123"`)
 - **Amounts:** USD cents (`"amount_cents": 2900` = $29.00)
 - **Timestamps:** ISO 8601 (`"scheduled_for": "2026-03-26T18:00:00Z"`)
@@ -203,6 +222,7 @@ application. All events are prefixed with `se_` to distinguish them from other F
 ## Implementation Checklist
 
 ### Per-App Setup
+
 - [ ] PostHog SDK initialized (posthog-js client-side, posthog-node server-side)
 - [ ] `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` in env
 - [ ] `$identify` called on Clerk `auth()` resolution with user traits
@@ -210,6 +230,7 @@ application. All events are prefixed with `se_` to distinguish them from other F
 - [ ] All `se_*` events implemented per this schema
 
 ### Dashboard Setup
+
 - [ ] Run `node scripts/posthog-provision.js --app social-engine --project <SE_PROJECT_ID>`
 - [ ] Verify cohorts created in PostHog UI
 - [ ] Configure test account filters in project settings

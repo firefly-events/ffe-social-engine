@@ -1,12 +1,4 @@
-/**
- * PostHog event constants and property types for FFE Social Engine.
- *
- * All social-engine events are prefixed with `se_`.
- *
- * Ticket: FIR-1179
- *
- * DEPLOY: Copy to apps/dashboard/src/lib/posthog-events.ts
- */
+/** SOURCE OF TRUTH: All social-engine events are defined here. Auto-synced to apps/dashboard/src/lib/ via provisioning. */
 
 // ── Event Name Constants ──────────────────────────────────────────────────────
 
@@ -17,6 +9,10 @@ export const SE_EVENTS = {
   ONBOARDING_STEP_COMPLETED: 'se_onboarding_step_completed',
   ONBOARDING_COMPLETED: 'se_onboarding_completed',
   EMAIL_VERIFIED: 'se_email_verified',
+
+  // Account & Integration
+  PLATFORM_CONNECTED: 'se_platform_connected',
+  PLATFORM_DISCONNECTED: 'se_platform_disconnected',
 
   // Content pipeline
   CONTENT_CREATED: 'se_content_created',
@@ -137,6 +133,16 @@ export interface SeEmailVerifiedProps {
   method?: 'link' | 'code'
 }
 
+export interface SePlatformConnectedProps {
+  user_id: string
+  platform: Platform
+}
+
+export interface SePlatformDisconnectedProps {
+  user_id: string
+  platform: Platform
+}
+
 export interface SeContentCreatedProps {
   user_id: string
   content_id: string
@@ -235,7 +241,7 @@ export interface SePlanUpgradedProps {
   from_plan: Plan
   to_plan: Plan
   mrr_delta_cents?: number
-  trigger?: CheckoutTrigger | 'trial_end'
+  trigger?: CheckoutTrigger
 }
 
 export interface SePlanDowngradedProps {
@@ -296,6 +302,8 @@ export interface SEEventPropertiesMap {
   se_onboarding_step_completed: SeOnboardingStepCompletedProps
   se_onboarding_completed: SeOnboardingCompletedProps
   se_email_verified: SeEmailVerifiedProps
+  se_platform_connected: SePlatformConnectedProps
+  se_platform_disconnected: SePlatformDisconnectedProps
   se_content_created: SeContentCreatedProps
   se_content_exported: SeContentExportedProps
   se_content_scheduled: SeContentScheduledProps

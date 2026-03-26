@@ -29,6 +29,10 @@ let errors = 0;
 let warnings = 0;
 let passed = 0;
 
+let seDashboardsConfig = null;
+let seCohortsConfig = null;
+let seSessionReplayConfig = null;
+
 // =============================================================================
 // --- Reporter helpers ---
 // =============================================================================
@@ -189,7 +193,8 @@ function validateEventMetricsDashboard() {
 
 function validateSEDashboards() {
   section('posthog/social-engine/dashboards.json');
-  const config = loadJson(path.join(SE_DIR, 'dashboards.json'));
+  seDashboardsConfig = loadJson(path.join(SE_DIR, 'dashboards.json'));
+  const config = seDashboardsConfig;
   if (!config) return;
 
   if (!config._meta) warn('Missing _meta block');
@@ -238,7 +243,8 @@ function validateSEDashboards() {
 
 function validateSECohorts() {
   section('posthog/social-engine/cohorts.json');
-  const config = loadJson(path.join(SE_DIR, 'cohorts.json'));
+  seCohortsConfig = loadJson(path.join(SE_DIR, 'cohorts.json'));
+  const config = seCohortsConfig;
   if (!config) return;
 
   if (!Array.isArray(config.cohorts)) {
@@ -377,6 +383,9 @@ function validateSEEventSchema() {
     'se_onboarding_started',
     'se_onboarding_step_completed',
     'se_onboarding_completed',
+    'se_email_verified',
+    'se_platform_connected',
+    'se_platform_disconnected',
     'se_content_created',
     'se_content_exported',
     'se_content_scheduled',
@@ -387,6 +396,7 @@ function validateSEEventSchema() {
     'se_voice_clone_completed',
     'se_workflow_created',
     'se_workflow_executed',
+    'se_automation_triggered',
     'se_plan_upgraded',
     'se_plan_downgraded',
     'se_subscription_cancelled',
@@ -415,23 +425,18 @@ function printProvisioningPlan() {
   console.log('  What posthog-provision.js --app social-engine would create:');
   console.log('');
 
-  const dashFile = path.join(SE_DIR, 'dashboards.json');
-  const cohortFile = path.join(SE_DIR, 'cohorts.json');
-
-  if (fs.existsSync(dashFile)) {
-    const d = JSON.parse(fs.readFileSync(dashFile, 'utf8'));
-    const keys = Object.keys(d.dashboards || {});
+  if (seDashboardsConfig) {
+    const keys = Object.keys(seDashboardsConfig.dashboards || {});
     console.log(`  Dashboards (${keys.length}):`);
     keys.forEach((k) => {
-      const db = d.dashboards[k];
+      const db = seDashboardsConfig.dashboards[k];
       console.log(`    • ${db.name} — ${(db.tiles || []).length} tiles`);
     });
   }
 
-  if (fs.existsSync(cohortFile)) {
-    const c = JSON.parse(fs.readFileSync(cohortFile, 'utf8'));
-    console.log(`\n  Cohorts (${c.cohorts.length}):`);
-    c.cohorts.forEach((co) => console.log(`    • ${co.name}`));
+  if (seCohortsConfig) {
+    console.log(`\n  Cohorts (${seCohortsConfig.cohorts.length}):`);
+    seCohortsConfig.cohorts.forEach((co) => console.log(`    • ${co.name}`));
   }
 
   console.log('\n  To run live provisioning:');

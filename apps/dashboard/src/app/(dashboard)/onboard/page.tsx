@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 import { track } from '@/lib/posthog'
 import { SE_EVENTS } from '@/lib/posthog-events'
 
@@ -562,9 +563,17 @@ function Confetti() {
 
 export default function OnboardPage() {
   const router = useRouter()
+  const { user } = useUser()
   const [step, setStep] = useState(1)
   const [done, setDone] = useState(false)
   const [generating, setGenerating] = useState(false)
+
+  const STEP_KEYS = {
+    1: 'connect_accounts',
+    2: 'brand_voice',
+    3: 'first_content',
+    4: 'first_schedule',
+  } as const;
 
   // Step 1 state
   const [connectedPlatforms, setConnectedPlatforms] = useState<Set<Platform>>(new Set())
@@ -625,18 +634,23 @@ export default function OnboardPage() {
 
   function handleNext() {
     if (step < 4) {
-      setStep((s) => s + 1)
       track(SE_EVENTS.ONBOARDING_STEP_COMPLETED, {
-        user_id: 'current_user',
-        step: STEPS[step-1].label.toLowerCase().replace(' ', '_') as any,
-        step_number: step as any,
+        user_id: user?.id ?? 'current_user',
+        step: STEP_KEYS[step as keyof typeof STEP_KEYS],
+        step_number: step as 1 | 2 | 3 | 4,
       })
+      setStep((s) => s + 1)
     } else {
+      track(SE_EVENTS.ONBOARDING_STEP_COMPLETED, {
+        user_id: user?.id ?? 'current_user',
+        step: STEP_KEYS[step as keyof typeof STEP_KEYS],
+        step_number: step as 1 | 2 | 3 | 4,
+      })
       track(SE_EVENTS.ONBOARDING_COMPLETED, {
-        user_id: 'current_user',
+        user_id: user?.id ?? 'current_user',
         platforms_count: connectedPlatforms.size,
-        tone: tone || 'professional',
-        frequency: frequency || '3',
+        tone: tone ?? 'professional',
+        frequency: frequency ?? '3',
       })
       setDone(true)
       setTimeout(() => router.push('/dashboard'), 3500)

@@ -5,13 +5,6 @@
  * initialization for the dashboard Next.js app.
  *
  * Ticket: FIR-1179
- *
- * DEPLOY: Copy to apps/dashboard/src/lib/posthog.ts
- *
- * SETUP:
- *   1. Add posthog-js and posthog-node to apps/dashboard/package.json
- *   2. Add NEXT_PUBLIC_POSTHOG_KEY and NEXT_PUBLIC_POSTHOG_HOST to .secrets/.env
- *   3. Import PostHogProvider and wrap your root layout (see bottom of file)
  */
 
 'use client'
@@ -34,9 +27,6 @@ let _initialized = false
 
 /**
  * Initialize the PostHog client-side SDK.
- *
- * Call this once, e.g. in a `<PostHogProvider>` component or in
- * `useEffect` at the root layout level.
  */
 export function initPostHog(): void {
   if (typeof window === 'undefined') return
@@ -59,7 +49,7 @@ export function initPostHog(): void {
     capture_pageleave: true,
     autocapture: true,
 
-    // Session replay — base config; URL-specific sampling applied below
+    // Session replay base config
     disable_session_recording: false,
     session_recording: {
       maskAllInputs: false,
@@ -67,41 +57,58 @@ export function initPostHog(): void {
       maskTextClass: 'ph-mask',
     },
 
-    // Reduce noise in development
     loaded: (ph) => {
       if (process.env.NODE_ENV === 'development') {
         ph.debug()
       }
 
-      // Enable 100% session replay for high-value flows; 20% elsewhere
-      const pathname = window.location.pathname
-      const isHighValue = HIGH_VALUE_URL_PATTERNS.some((p) =>
-        pathname.startsWith(p)
-      )
-      if (!isHighValue) {
-        // For non-high-value pages, only record 20% of sessions
-        if (Math.random() > 0.2) {
-          ph.stopSessionRecording()
-        }
-      }
+      // Initial evaluation of session recording
+      evaluateSessionRecording(window.location.pathname)
     },
   })
 
+  // Re-evaluate session recording on route changes
+  if (typeof window !== 'undefined') {
+    const originalPushState = window.history.pushState
+    window.history.pushState = function (...args) {
+      originalPushState.apply(window.history, args)
+      evaluateSessionRecording(window.location.pathname)
+    }
+
+    window.addEventListener('popstate', () => {
+      evaluateSessionRecording(window.location.pathname)
+    })
+  }
+
   _initialized = true
+}
+
+/**
+ * Internal helper to start/stop recording based on URL.
+ */
+function evaluateSessionRecording(pathname: string): void {
+  if (!posthog) return
+
+  const isHighValue = HIGH_VALUE_URL_PATTERNS.some((p) =>
+    pathname.startsWith(p)
+  )
+
+  if (isHighValue) {
+    posthog.startSessionRecording()
+  } else {
+    // Record 20% of other sessions
+    if (Math.random() > 0.2) {
+      posthog.stopSessionRecording()
+    } else {
+      posthog.startSessionRecording()
+    }
+  }
 }
 
 // ── Client-side tracking ─────────────────────────────────────────────────────
 
 /**
  * Track a typed Social Engine event.
- *
- * @example
- * track(SE_EVENTS.CONTENT_CREATED, {
- *   user_id: userId,
- *   content_id: item.id,
- *   platforms: item.platforms,
- *   status: item.status,
- * })
  */
 export function track<T extends SEEventName>(
   event: T,
@@ -115,9 +122,6 @@ export function track<T extends SEEventName>(
 
 /**
  * Identify the current user and set their traits.
- *
- * Call this after the user logs in (e.g. in a useEffect that watches
- * Clerk's `useUser()` hook).
  */
 export function identifyUser(userId: string, traits: SEUserTraits): void {
   if (typeof window === 'undefined') return
@@ -141,9 +145,6 @@ export function resetIdentity(): void {
 
 /**
  * Start session recording for the current page.
- *
- * Call this explicitly on high-value pages if you need to guarantee
- * recording regardless of the global sample rate.
  */
 export function startSessionRecording(): void {
   if (typeof window === 'undefined') return
@@ -151,51 +152,3 @@ export function startSessionRecording(): void {
 
   posthog.startSessionRecording()
 }
-
-// ── PostHog Provider (copy to a separate providers.tsx if preferred) ─────────
-
-/*
-  Add this provider to apps/dashboard/src/app/layout.tsx:
-
-  import { PostHogProvider } from './posthog-provider'
-
-  export default function RootLayout({ children }: { children: React.ReactNode }) {
-    return (
-      <ClerkProvider>
-        <PostHogProvider>
-          <html lang="en">
-            ...
-          </html>
-        </PostHogProvider>
-      </ClerkProvider>
-    )
-  }
-
-  ── posthog-provider.tsx ────────────────────────────────────────────────────
-
-  'use client'
-
-  import { useEffect } from 'react'
-  import { useUser } from '@clerk/nextjs'
-  import { initPostHog, identifyUser } from '@/lib/posthog'
-
-  export function PostHogProvider({ children }: { children: React.ReactNode }) {
-    useEffect(() => {
-      initPostHog()
-    }, [])
-
-    const { user, isLoaded } = useUser()
-
-    useEffect(() => {
-      if (!isLoaded || !user) return
-      identifyUser(user.id, {
-        email: user.primaryEmailAddress?.emailAddress,
-        name: user.fullName ?? undefined,
-        created_at: user.createdAt?.toISOString(),
-        app: 'social-engine',
-      })
-    }, [isLoaded, user])
-
-    return <>{children}</>
-  }
-*/

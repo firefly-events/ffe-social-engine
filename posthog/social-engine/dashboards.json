@@ -77,16 +77,18 @@
         },
         {
           "name": "Activation Rate (content created within 24h of signup)",
-          "type": "trends",
-          "description": "% of users who fire se_content_created within 24h of se_user_signed_up. Configure as Lifecycle or use funnel with conversion window 1 day.",
+          "type": "funnel",
+          "description": "% of users who fire se_content_created within 24h of se_user_signed_up. Funnel with conversion window 1 day.",
           "query": {
-            "insight": "LIFECYCLE",
-            "events": [{ "id": "se_content_created", "math": "total" }],
-            "interval": "week",
-            "date_from": "-8w",
-            "filter_test_accounts": true
-          },
-          "_notes": "For exact 24h activation rate, create a Funnel insight with conversion window set to 1 day: se_user_signed_up → se_content_created"
+            "insight": "FUNNELS",
+            "events": [
+              { "id": "se_user_signed_up", "name": "Signed Up" },
+              { "id": "se_content_created", "name": "Content Created" }
+            ],
+            "funnel_window_days": 1,
+            "filter_test_accounts": true,
+            "date_from": "-30d"
+          }
         },
         {
           "name": "Onboarding Completion Rate",
