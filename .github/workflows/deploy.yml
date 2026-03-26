@@ -54,6 +54,12 @@ jobs:
       # Install dependencies
       - run: pnpm install --frozen-lockfile
 
+      # Set Convex environment variables
+      - name: Set Convex Environment
+        env:
+          CONVEX_DEPLOY_KEY: ${{ steps.secrets.outputs.convex-deploy-key }}
+        run: cd apps/dashboard && npx convex env set CLERK_JWT_ISSUER_DOMAIN "https://pleasing-griffon-12.clerk.accounts.dev/" --force
+
       # Deploy Convex schema + functions before Vercel build
       - name: Deploy Convex
         env:
