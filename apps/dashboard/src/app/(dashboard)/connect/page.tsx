@@ -51,7 +51,7 @@ export default function ConnectPage() {
       setBanner({ type: 'success', message: `${platformName} connected successfully!` });
       router.replace('/connect');
     } else if (error) {
-      setBanner({ type: 'error', message: decodeURIComponent(error) });
+      setBanner({ type: 'error', message: error });
       router.replace('/connect');
     }
   }, [searchParams, router]);

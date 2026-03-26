@@ -34,8 +34,8 @@ export async function POST(
   }
 
   try {
+    // userId is derived from ctx.auth inside the mutation — no need to pass it
     await fetchMutation(api.socialAccounts.deleteSocialAccount, {
-      userId,
       platform: provider,
     });
 

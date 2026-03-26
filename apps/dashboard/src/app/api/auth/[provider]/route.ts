@@ -7,6 +7,7 @@
  * 1. Validate the provider name.
  * 2. Generate a cryptographically random state parameter and store it in a
  *    short-lived httpOnly cookie to guard against CSRF.
+ *    Cookie name is scoped per-provider to avoid collisions.
  * 3. For Twitter (PKCE): generate a code_verifier, derive code_challenge via
  *    SHA-256, and store the verifier in a separate httpOnly cookie.
  * 4. Build the provider's authorization URL and redirect the user there.
@@ -16,9 +17,17 @@ import { randomBytes, createHash } from "crypto";
 import { NextResponse } from "next/server";
 import { providers, isOAuthProvider } from "../../../../lib/oauth/providers";
 
-const STATE_COOKIE = "oauth_state";
-const PKCE_COOKIE = "oauth_pkce_verifier";
 const COOKIE_MAX_AGE = 600; // 10 minutes
+
+/** Returns a per-provider state cookie name (avoids collision between concurrent flows) */
+function stateCookieName(provider: string): string {
+  return `oauth_state_${provider}`;
+}
+
+/** Returns a per-provider PKCE verifier cookie name */
+function pkceCookieName(provider: string): string {
+  return `oauth_pkce_verifier_${provider}`;
+}
 
 export async function GET(
   _req: Request,
@@ -48,9 +57,11 @@ export async function GET(
   // --- State (CSRF protection) ---
   const state = randomBytes(32).toString("hex");
 
-  const cookieBase = `; HttpOnly; SameSite=Lax; Path=/; Max-Age=${COOKIE_MAX_AGE}`;
+  const isProduction = process.env.NODE_ENV === "production";
+  const securePart = isProduction ? "; Secure" : "";
+  const cookieBase = `; HttpOnly; SameSite=Lax; Path=/; Max-Age=${COOKIE_MAX_AGE}${securePart}`;
   const cookies: string[] = [
-    `${STATE_COOKIE}=${state}${cookieBase}`,
+    `${stateCookieName(provider)}=${state}${cookieBase}`,
   ];
 
   // --- Build authorization URL ---
@@ -75,7 +86,7 @@ export async function GET(
     authParams.set("code_challenge", codeChallenge);
     authParams.set("code_challenge_method", "S256");
 
-    cookies.push(`${PKCE_COOKIE}=${codeVerifier}${cookieBase}`);
+    cookies.push(`${pkceCookieName(provider)}=${codeVerifier}${cookieBase}`);
   }
 
   const authorizationUrl = `${config.authorizationUrl}?${authParams.toString()}`;

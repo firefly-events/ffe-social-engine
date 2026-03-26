@@ -5,10 +5,11 @@ import { v } from "convex/values";
  * Upsert a social account record by userId + platform.
  * Called from Next.js API routes after a successful OAuth callback.
  * Encryption is performed in the API route — this function receives already-encrypted tokens.
+ *
+ * userId is derived from ctx.auth.getUserIdentity() — callers must not supply it.
  */
 export const upsertSocialAccount = mutation({
   args: {
-    userId: v.string(),
     platform: v.string(),
     handle: v.string(),
     platformUserId: v.optional(v.string()),
@@ -19,10 +20,16 @@ export const upsertSocialAccount = mutation({
     zernioAccountId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthenticated: must be signed in to connect a social account");
+    }
+    const userId = identity.tokenIdentifier;
+
     const existing = await ctx.db
       .query("socialAccounts")
       .withIndex("by_userId_platform", (q) =>
-        q.eq("userId", args.userId).eq("platform", args.platform)
+        q.eq("userId", userId).eq("platform", args.platform)
       )
       .first();
 
@@ -43,7 +50,7 @@ export const upsertSocialAccount = mutation({
     }
 
     return await ctx.db.insert("socialAccounts", {
-      userId: args.userId,
+      userId,
       platform: args.platform,
       handle: args.handle,
       platformUserId: args.platformUserId,
@@ -59,8 +66,7 @@ export const upsertSocialAccount = mutation({
 
 /**
  * Get all social accounts for the currently authenticated user.
- * Uses ctx.auth so the caller doesn't need to pass a userId — the identity
- * is derived from the Clerk JWT token embedded in the Convex request.
+ * Only returns safe public fields — never returns encrypted tokens or sensitive data.
  */
 export const getSocialAccounts = query({
   args: {},
@@ -70,27 +76,40 @@ export const getSocialAccounts = query({
       return [];
     }
 
-    return await ctx.db
+    const accounts = await ctx.db
       .query("socialAccounts")
-      .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_userId", (q) => q.eq("userId", identity.tokenIdentifier))
       .collect();
+
+    // Project only safe fields — never expose encrypted tokens
+    return accounts.map((account) => ({
+      _id: account._id,
+      platform: account.platform,
+      handle: account.handle,
+      connectedAt: account.connectedAt,
+    }));
   },
 });
 
 /**
- * Delete a social account by userId + platform.
- * Called from the disconnect API route after verifying Clerk auth.
+ * Delete a social account for the currently authenticated user.
+ * userId is derived from ctx.auth — callers must not supply it.
  */
 export const deleteSocialAccount = mutation({
   args: {
-    userId: v.string(),
     platform: v.string(),
   },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Unauthenticated: must be signed in to disconnect a social account");
+    }
+    const userId = identity.tokenIdentifier;
+
     const existing = await ctx.db
       .query("socialAccounts")
       .withIndex("by_userId_platform", (q) =>
-        q.eq("userId", args.userId).eq("platform", args.platform)
+        q.eq("userId", userId).eq("platform", args.platform)
       )
       .first();
 

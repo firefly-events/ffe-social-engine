@@ -21,12 +21,40 @@ import { encrypt } from "../../../../../lib/crypto";
 import { providers, isOAuthProvider } from "../../../../../lib/oauth/providers";
 import { getPostHogServer } from "../../../../../lib/posthog-server";
 
-const STATE_COOKIE = "oauth_state";
-const PKCE_COOKIE = "oauth_pkce_verifier";
+const FETCH_TIMEOUT_MS = 10_000; // 10 seconds
+
+/** Returns the per-provider state cookie name (matches the initiation route) */
+function stateCookieName(provider: string): string {
+  return `oauth_state_${provider}`;
+}
+
+/** Returns the per-provider PKCE verifier cookie name (matches the initiation route) */
+function pkceCookieName(provider: string): string {
+  return `oauth_pkce_verifier_${provider}`;
+}
+
+const isProduction = process.env.NODE_ENV === "production";
+const securePart = isProduction ? "; Secure" : "";
 
 // Cookie clearing helper — expires immediately
 function clearCookie(name: string): string {
-  return `${name}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
+  return `${name}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0${securePart}`;
+}
+
+// ─── Fetch with timeout ───────────────────────────────────────────────────────
+
+async function fetchWithTimeout(
+  url: string | URL,
+  options: RequestInit = {},
+  timeoutMs = FETCH_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url.toString(), { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // ─── Token exchange ───────────────────────────────────────────────────────────
@@ -51,12 +79,19 @@ async function exchangeCodeForTokens(
     grant_type: "authorization_code",
     code,
     redirect_uri: redirectUri,
-    client_id: config.clientId,
   });
 
-  // Instagram sends client_secret in the body; others use Basic Auth
-  if (provider === "instagram" || provider === "tiktok") {
+  // TikTok requires client_key (not client_id) in the token exchange body
+  if (provider === "tiktok") {
+    body.set("client_key", config.clientId);
     body.set("client_secret", config.clientSecret);
+  } else if (provider === "instagram") {
+    // Instagram uses client_id + client_secret in the body
+    body.set("client_id", config.clientId);
+    body.set("client_secret", config.clientSecret);
+  } else {
+    // Standard: client_id in body (Basic Auth used for secret)
+    body.set("client_id", config.clientId);
   }
 
   if (codeVerifier) {
@@ -76,7 +111,7 @@ async function exchangeCodeForTokens(
     headers["Authorization"] = `Basic ${credentials}`;
   }
 
-  const res = await fetch(config.tokenUrl, {
+  const res = await fetchWithTimeout(config.tokenUrl, {
     method: "POST",
     headers,
     body: body.toString(),
@@ -98,7 +133,7 @@ interface UserProfile {
 }
 
 async function fetchLinkedInProfile(accessToken: string): Promise<UserProfile> {
-  const res = await fetch("https://api.linkedin.com/v2/userinfo", {
+  const res = await fetchWithTimeout("https://api.linkedin.com/v2/userinfo", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error(`LinkedIn userinfo failed: ${res.status}`);
@@ -110,7 +145,7 @@ async function fetchLinkedInProfile(accessToken: string): Promise<UserProfile> {
 }
 
 async function fetchTwitterProfile(accessToken: string): Promise<UserProfile> {
-  const res = await fetch("https://api.twitter.com/2/users/me", {
+  const res = await fetchWithTimeout("https://api.twitter.com/2/users/me", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error(`Twitter users/me failed: ${res.status}`);
@@ -126,7 +161,7 @@ async function fetchInstagramProfile(accessToken: string): Promise<UserProfile> 
   url.searchParams.set("fields", "id,username");
   url.searchParams.set("access_token", accessToken);
 
-  const res = await fetch(url.toString());
+  const res = await fetchWithTimeout(url);
   if (!res.ok) throw new Error(`Instagram /me failed: ${res.status}`);
   const data = (await res.json()) as { id: string; username: string };
   return {
@@ -139,7 +174,7 @@ async function fetchTikTokProfile(accessToken: string): Promise<UserProfile> {
   const url = new URL("https://open.tiktokapis.com/v2/user/info/");
   url.searchParams.set("fields", "open_id,display_name");
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithTimeout(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error(`TikTok user/info failed: ${res.status}`);
@@ -157,7 +192,7 @@ async function fetchYouTubeProfile(accessToken: string): Promise<UserProfile> {
   url.searchParams.set("part", "snippet");
   url.searchParams.set("mine", "true");
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithTimeout(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error(`YouTube channels failed: ${res.status}`);
@@ -238,8 +273,9 @@ export async function GET(
     return match ? decodeURIComponent(match[1]) : undefined;
   };
 
-  const stateCookie = parseCookie(STATE_COOKIE);
-  const pkceCookie = parseCookie(PKCE_COOKIE);
+  // Use per-provider cookie names (matching the initiation route)
+  const stateCookie = parseCookie(stateCookieName(provider));
+  const pkceCookie = parseCookie(pkceCookieName(provider));
 
   // CSRF validation
   if (!stateCookie || stateCookie !== stateParam) {
@@ -292,9 +328,8 @@ export async function GET(
       ? tokens.scope.split(/[\s,]+/).filter(Boolean)
       : providers[provider].scopes;
 
-    // 4. Upsert in Convex
+    // 4. Upsert in Convex — userId is derived from ctx.auth in the mutation
     await fetchMutation(api.socialAccounts.upsertSocialAccount, {
-      userId,
       platform: provider,
       handle: profile.handle,
       platformUserId: profile.platformUserId,
@@ -327,9 +362,9 @@ export async function GET(
     );
 
     // Clear the state and PKCE cookies
-    redirectResponse.headers.append("Set-Cookie", clearCookie(STATE_COOKIE));
+    redirectResponse.headers.append("Set-Cookie", clearCookie(stateCookieName(provider)));
     if (pkceCookie) {
-      redirectResponse.headers.append("Set-Cookie", clearCookie(PKCE_COOKIE));
+      redirectResponse.headers.append("Set-Cookie", clearCookie(pkceCookieName(provider)));
     }
 
     return redirectResponse;
@@ -344,8 +379,8 @@ export async function GET(
       ),
       302
     );
-    errorResponse.headers.append("Set-Cookie", clearCookie(STATE_COOKIE));
-    errorResponse.headers.append("Set-Cookie", clearCookie(PKCE_COOKIE));
+    errorResponse.headers.append("Set-Cookie", clearCookie(stateCookieName(provider)));
+    errorResponse.headers.append("Set-Cookie", clearCookie(pkceCookieName(provider)));
     return errorResponse;
   }
 }
