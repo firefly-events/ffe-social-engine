@@ -26,17 +26,17 @@ jobs:
       - name: Install Node dependencies
         run: pnpm install
         
+      - name: Install Python dependencies
+        run: |
+          pip install -r services/visual-gen/requirements.txt
+          pip install -r services/voice-gen/requirements.txt
+          
       - name: Lint Node
         run: pnpm run --recursive --if-present lint
         
       - name: Test Node
         run: pnpm run --recursive --if-present test
         
-      - name: Install Python dependencies
-        run: |
-          pip install -r services/visual-gen/requirements.txt
-          pip install -r services/voice-gen/requirements.txt
-          
       - name: Lint Python
         run: |
           cd services/visual-gen && ruff check .
