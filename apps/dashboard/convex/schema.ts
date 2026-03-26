@@ -29,10 +29,17 @@ export default defineSchema({
   socialAccounts: defineTable({
     userId: v.string(),
     platform: v.string(),
-    zernioAccountId: v.optional(v.string()),
     handle: v.string(),
+    platformUserId: v.optional(v.string()),
+    encryptedAccessToken: v.optional(v.string()),
+    encryptedRefreshToken: v.optional(v.string()),
+    tokenExpiresAt: v.optional(v.number()),
+    scopes: v.optional(v.array(v.string())),
+    zernioAccountId: v.optional(v.string()),
     connectedAt: v.number(),
-  }).index("by_userId", ["userId"]),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_userId_platform", ["userId", "platform"]),
 
   analytics: defineTable({
     postId: v.id("posts"),
