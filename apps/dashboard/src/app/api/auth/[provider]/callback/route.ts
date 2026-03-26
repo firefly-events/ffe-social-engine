@@ -287,7 +287,7 @@ export async function GET(
   }
 
   // Clerk auth — we need the userId to store the account
-  const { userId } = await auth();
+  const { userId, getToken } = await auth();
   if (!userId) {
     // User is not logged into our app; redirect to sign-in and come back
     return NextResponse.redirect(
@@ -329,6 +329,7 @@ export async function GET(
       : providers[provider].scopes;
 
     // 4. Upsert in Convex — userId is derived from ctx.auth in the mutation
+    const convexToken = await getToken({ template: "convex" });
     await fetchMutation(api.socialAccounts.upsertSocialAccount, {
       platform: provider,
       handle: profile.handle,
@@ -337,7 +338,7 @@ export async function GET(
       encryptedRefreshToken,
       tokenExpiresAt,
       scopes,
-    });
+    }, { token: convexToken ?? undefined });
 
     // 5. PostHog event
     try {

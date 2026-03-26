@@ -25,7 +25,7 @@ export async function POST(
     );
   }
 
-  const { userId } = await auth();
+  const { userId, getToken } = await auth();
   if (!userId) {
     return new NextResponse(
       JSON.stringify({ error: "Unauthorized" }),
@@ -34,10 +34,11 @@ export async function POST(
   }
 
   try {
-    // userId is derived from ctx.auth inside the mutation — no need to pass it
+    // userId is derived from ctx.auth inside the mutation — pass Clerk JWT so ctx.auth works
+    const convexToken = await getToken({ template: "convex" });
     await fetchMutation(api.socialAccounts.deleteSocialAccount, {
       platform: provider,
-    });
+    }, { token: convexToken ?? undefined });
 
     return NextResponse.json({ success: true });
   } catch (err) {
