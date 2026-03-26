@@ -89,7 +89,10 @@
 
 @layer components {
   .card {
-    @apply bg-white rounded-xl border border-gray-200 shadow-sm;
+    background-color: var(--card);
+    color: var(--card-foreground);
+    @apply rounded-xl border shadow-sm;
+    border-color: var(--border);
   }
 
   .badge {
@@ -124,9 +127,13 @@
   }
 
   .btn-secondary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-gray-50
-           text-gray-700 text-sm font-medium rounded-lg border border-gray-300
-           transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2;
+    background-color: var(--background);
+    color: var(--foreground);
+    border-color: var(--border);
+    @apply inline-flex items-center gap-2 px-4 py-2
+           text-sm font-medium rounded-lg border
+           transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+           hover:opacity-80;
   }
 
   .nav-item {
@@ -157,12 +164,16 @@
   }
 
   .section-header {
-    @apply text-lg font-semibold text-gray-900;
+    color: var(--foreground);
+    @apply text-lg font-semibold;
   }
 
   .input {
-    @apply w-full px-3 py-2 text-sm border border-gray-300 rounded-lg
-           bg-white text-gray-900 placeholder-gray-400
+    background-color: var(--input);
+    color: var(--foreground);
+    border-color: var(--border);
+    @apply w-full px-3 py-2 text-sm border rounded-lg
+           placeholder:text-[oklch(0.556_0_0)]
            focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent
            transition-colors;
   }

@@ -1,5 +1,6 @@
 import Sidebar from '../../components/Sidebar';
 import { UserButton } from '@clerk/nextjs';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function DashboardLayout({ children }: any) {
   // We should ideally fetch the real user tier here, but for now we'll pass stubs
@@ -22,6 +23,7 @@ export default function DashboardLayout({ children }: any) {
             <span className="px-3 py-1 bg-white/10 text-slate-300 rounded-full text-xs font-bold tracking-wide border border-white/[0.07]">
               FREE PLAN
             </span>
+            <ThemeToggle />
             <UserButton />
           </div>
         </header>

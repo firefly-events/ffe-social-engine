@@ -12,7 +12,7 @@ export default function MarketingLayout({
   const { isSignedIn } = useAuth()
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
+    <div className="dark min-h-screen flex flex-col bg-slate-950 text-slate-100">
       {/* ── NAV ── */}
       <nav className="sticky top-0 z-50 flex items-center gap-8 px-8 h-16 bg-slate-950/85 border-b border-white/[0.07] backdrop-blur-xl">
         <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 no-underline">
