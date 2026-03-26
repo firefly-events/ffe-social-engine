@@ -635,8 +635,7 @@ export default function OnboardPage() {
       setStep((s) => s + 1)
     } else {
       trackEvent(ANALYTICS_EVENTS.SIGNUP_COMPLETE, {
-        user_id: user?.id,
-        email: user?.primaryEmailAddress?.emailAddress
+        user_id: user?.id
       })
       setDone(true)
       setTimeout(() => router.push('/dashboard'), 3500)

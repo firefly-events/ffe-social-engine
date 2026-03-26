@@ -19,8 +19,7 @@ function initPostHog() {
       autocapture: true,
       capture_pageview: false, // We'll handle this manually on route changes
       session_recording: {
-        maskAllInputs: false,
-        maskTextSelector: undefined,
+        maskAllInputs: true,
       },
       enable_heatmaps: true,
       persistence: 'localStorage+cookie',
