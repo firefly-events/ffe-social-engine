@@ -1,33 +1,27 @@
 /**
  * POST /api/voice/generate — generate speech from a voice clone.
  *
- * Validates the clone exists and is ready, then delegates to the Mac Studio
- * inference API over Tailscale. Returns a URL to the generated audio file.
- *
- * TODO(inference): Replace the stub response with a real call to:
- *   POST http://<tailscale-hostname>:<port>/api/v1/voice/generate
- *   { cloneId, text, speed, format }
- * The inference service should return { audioUrl, durationSeconds }.
- *
- * TODO(storage): Store generated audio files in GCS/S3 and return a signed URL.
+ * Looks up the clone in Convex, validates ownership and "ready" status,
+ * then calls the XTTSv2 voice-gen service (POST /generate) and proxies
+ * the audio stream back to the client.
  */
 
 import { auth } from '@clerk/nextjs/server'
 import type { NextRequest } from 'next/server'
+import { fetchQuery } from 'convex/nextjs'
+import { api } from '../../../../../convex/_generated/api'
+import type { Id } from '../../../../../convex/_generated/dataModel'
 import {
-  ok,
   badRequest,
   unauthorized,
   forbidden,
   notFound,
   serverError,
-  assertOwner,
 } from '@/lib/api-helpers'
-import { convexClient } from '@/lib/convex-client'
-import { api } from '../../../../../convex/_generated/api'
-import type { GenerateVoiceBody, GenerateVoiceResult } from '@/lib/api-types'
+import type { GenerateVoiceBody } from '@/lib/api-types'
 
 const MAX_TEXT_LENGTH = 5000
+const VOICE_GEN_URL = process.env.VOICE_GEN_URL ?? 'http://localhost:8002'
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,35 +41,67 @@ export async function POST(request: NextRequest) {
       return badRequest(`text must not exceed ${MAX_TEXT_LENGTH} characters`)
     }
 
-    const format = body.format ?? 'mp3'
-    if (!['mp3', 'wav', 'ogg'].includes(format)) {
-      return badRequest('format must be one of: mp3, wav, ogg')
-    }
-
     const speed = body.speed ?? 1.0
     if (speed < 0.5 || speed > 2.0) {
       return badRequest('speed must be between 0.5 and 2.0')
     }
 
-    const doc = await convexClient.query(api.voiceClones.getByExternalId, { externalId: body.cloneId })
-    if (!doc) return notFound('Voice clone')
+    // Look up clone in Convex and validate ownership
+    let clone: Awaited<ReturnType<typeof fetchQuery<typeof api.voices.getVoiceCloneById>>>
+    try {
+      clone = await fetchQuery(api.voices.getVoiceCloneById, {
+        id:     body.cloneId as Id<'voice_clones'>,
+        userId: session.userId,
+      })
+    } catch {
+      return notFound('Voice clone')
+    }
 
-    const clone = doc as Record<string, unknown>
-    if (!assertOwner(clone.userId as string, session.userId)) return forbidden()
+    if (!clone) return notFound('Voice clone')
+
+    if (clone.userId !== session.userId) return forbidden()
 
     if (clone.status !== 'ready') {
       return badRequest(`Voice clone is not ready (current status: ${clone.status})`)
     }
 
-    // TODO(inference): Call Mac Studio inference API over Tailscale here.
-    // Stub response for frontend development:
-    const result: GenerateVoiceResult = {
-      audioUrl:        `/api/voice/generated/${body.cloneId}-${Date.now()}.${format}`,
-      durationSeconds: Math.ceil(body.text.split(' ').length / 2.5 / speed), // rough WPM estimate
-      format,
+    // Call voice-gen service — POST /generate returns an audio/wav stream
+    let voiceGenResponse: Response
+    try {
+      voiceGenResponse = await fetch(`${VOICE_GEN_URL}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          voice_id: clone.voiceId,
+          text:     body.text.trim(),
+          speed,
+          language: 'en',
+        }),
+      })
+    } catch (fetchErr) {
+      console.error('[POST /api/voice/generate] voice-gen fetch error:', fetchErr)
+      return serverError('Voice generation service is unavailable')
     }
 
-    return ok(result)
+    if (!voiceGenResponse.ok) {
+      const detail = await voiceGenResponse.text().catch(() => '')
+      console.error('[POST /api/voice/generate] voice-gen error:', voiceGenResponse.status, detail)
+      if (voiceGenResponse.status === 404) return notFound('Voice ID on generation service')
+      return serverError('Voice generation service returned an error')
+    }
+
+    // Proxy the audio stream back to the client
+    const audioBuffer = await voiceGenResponse.arrayBuffer()
+    const filename = `voice-${clone.voiceId}-${Date.now()}.wav`
+
+    return new Response(audioBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type':        'audio/wav',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Length':      String(audioBuffer.byteLength),
+      },
+    })
   } catch (err) {
     console.error('[POST /api/voice/generate]', err)
     return serverError()
