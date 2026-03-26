@@ -22,6 +22,8 @@ jobs:
           
       - name: Install pnpm
         uses: pnpm/action-setup@v4
+        with:
+          version: 9
           
       - name: Install Node dependencies
         run: pnpm install
@@ -44,5 +46,5 @@ jobs:
           
       - name: Test Python
         run: |
-          cd services/visual-gen && pytest --rootdir=.
-          cd ../voice-gen && pytest --rootdir=.
+          cd services/visual-gen && pytest
+          cd ../voice-gen && pytest
