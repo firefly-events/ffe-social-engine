@@ -17,83 +17,54 @@ export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
   const userTierIndex = tiers.indexOf(userTier);
 
   return (
-    <div style={{ 
-      width: '240px', 
-      height: '100vh', 
-      backgroundColor: '#1a1a1a', 
-      color: '#fff', 
-      padding: '1.5rem', 
-      display: 'flex', 
-      flexDirection: 'column',
-      position: 'fixed',
-      left: 0,
-      top: 0
-    }}>
-      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        🚀 SocialEngine
+    <div className="w-60 h-screen bg-slate-900 border-r border-white/[0.07] text-slate-100 p-6 flex flex-col fixed left-0 top-0">
+      <div className="text-xl font-bold mb-10 flex items-center gap-2">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-white font-bold text-base shadow-[0_0_16px_rgba(139,92,246,0.5)]">
+          S
+        </div>
+        <span className="text-slate-100 tracking-tight">SocialEngine</span>
       </div>
 
-      <nav style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <nav className="flex-1 flex flex-col gap-1">
         {navItems.map(item => {
           const isLocked = tiers.indexOf(item.minTier) > userTierIndex;
           return (
-            <a 
+            <a
               key={item.label}
               href={isLocked ? '#' : item.href}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.75rem', 
-                padding: '0.75rem', 
-                borderRadius: '8px', 
-                color: isLocked ? '#666' : '#ccc',
-                textDecoration: 'none',
-                backgroundColor: 'transparent',
-                cursor: isLocked ? 'not-allowed' : 'pointer'
-              }}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm no-underline transition-colors ${
+                isLocked
+                  ? 'text-slate-600 cursor-not-allowed'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 cursor-pointer'
+              }`}
             >
               <span>{item.icon}</span>
-              <span style={{ flexGrow: 1 }}>{item.label}</span>
+              <span className="flex-1">{item.label}</span>
               {isLocked && <TierBadge tier={item.minTier} />}
             </a>
           );
         })}
       </nav>
 
-      <div style={{ marginTop: 'auto', paddingTop: '2rem', borderTop: '1px solid #333' }}>
-        <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#888' }}>Usage</h4>
+      <div className="mt-auto pt-6 border-t border-white/[0.07]">
+        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Usage</h4>
         <UsageMeter label="AI Captions" used={usage.captions || 0} limit={usage.captionLimit || 5} />
         <UsageMeter label="Video Gen" used={usage.videos || 0} limit={usage.videoLimit || 1} />
-        
-        <div style={{ 
-          marginTop: '1.5rem', 
-          padding: '1rem', 
-          backgroundColor: '#333', 
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
+
+        <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/[0.07] text-center">
           {userTier === 'FREE' ? (
             <>
-              <p style={{ fontSize: '0.8rem', margin: '0 0 0.75rem 0' }}>Upgrade for more features</p>
-              <a 
+              <p className="text-xs text-slate-400 mb-3">Upgrade for more features</p>
+              <a
                 href="/pricing"
-                style={{ 
-                  display: 'block', 
-                  padding: '0.5rem', 
-                  backgroundColor: '#8e44ad', 
-                  color: 'white', 
-                  borderRadius: '4px', 
-                  textDecoration: 'none',
-                  fontSize: '0.85rem',
-                  fontWeight: 'bold'
-                }}
+                className="block py-2 px-4 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-cyan-500 hover:opacity-90 transition-opacity no-underline shadow-[0_0_20px_rgba(139,92,246,0.3)]"
               >
                 Upgrade Now
               </a>
             </>
           ) : (
-            <div style={{ fontSize: '0.85rem' }}>
-              <span style={{ color: '#888' }}>Plan:</span> <strong>{userTier}</strong>
+            <div className="text-sm text-slate-400">
+              Plan: <strong className="text-slate-100">{userTier}</strong>
             </div>
           )}
         </div>
