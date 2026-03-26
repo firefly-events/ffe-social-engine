@@ -64,7 +64,7 @@ export default function ChatModePage() {
             </div>
           </div>
         ))}
-        {isLoading && (
+        {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
           <div className="flex justify-start">
             <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 rounded-bl-none flex gap-2">
               <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />

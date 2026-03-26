@@ -26,13 +26,19 @@ export async function POST(req: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const { messages, model = 'gemini-flash' } = await req.json();
+  const { messages, model } = await req.json();
+  const validModels: Model[] = ['gemini-flash', 'claude-sonnet'];
+  const selectedModel: Model = validModels.includes(model) ? model : 'gemini-flash';
 
-  const result = streamText({
-    model: getModel(model as Model),
-    system: SYSTEM_PROMPT,
-    messages,
-  });
-
-  return result.toDataStreamResponse();
+  try {
+    const result = streamText({
+      model: getModel(selectedModel),
+      system: SYSTEM_PROMPT,
+      messages,
+    });
+    return result.toDataStreamResponse();
+  } catch (error) {
+    console.error('streamText error:', error);
+    return new Response('Internal Server Error', { status: 500 });
+  }
 }
