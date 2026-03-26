@@ -2,7 +2,6 @@
  * GET    /api/voice/[id] — fetch a single voice clone
  * DELETE /api/voice/[id] — remove a voice clone
  *
- * TODO(migration): Replace voiceCloneStore with Convex / MongoDB.
  * TODO(inference): On DELETE, also call Mac Studio API to free model resources.
  */
 
@@ -18,10 +17,27 @@ import {
   serverError,
   assertOwner,
 } from '@/lib/api-helpers'
-import { voiceCloneStore } from '@/lib/api-store'
+import { convexClient } from '@/lib/convex-client'
+import { api } from '../../../../../convex/_generated/api'
+import type { VoiceClone, VoiceCloneStatus } from '@/lib/api-types'
 
 interface RouteContext {
   params: Promise<{ id: string }>
+}
+
+/** Map a Convex voice_clones document to the public VoiceClone shape. */
+function toVoiceClone(doc: Record<string, unknown>): VoiceClone {
+  return {
+    id:              doc.externalId as string,
+    userId:          doc.userId as string,
+    name:            doc.name as string,
+    sampleUrl:       doc.sampleUrl as string,
+    status:          doc.status as VoiceCloneStatus,
+    durationSeconds: doc.durationSeconds as number | undefined,
+    errorMessage:    doc.errorMessage as string | undefined,
+    createdAt:       new Date(doc.createdAt as number).toISOString(),
+    updatedAt:       new Date(doc.updatedAt as number).toISOString(),
+  }
 }
 
 // ── GET ───────────────────────────────────────────────────────────────────────
@@ -32,10 +48,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (!session.userId) return unauthorized()
 
     const { id } = await context.params
-    // TODO(migration): → Convex query / MongoDB findOne
-    const clone = voiceCloneStore.get(id)
-    if (!clone) return notFound('Voice clone')
+    const doc = await convexClient.query(api.voiceClones.getByExternalId, { externalId: id })
+    if (!doc) return notFound('Voice clone')
 
+    const clone = toVoiceClone(doc as Record<string, unknown>)
     if (!assertOwner(clone.userId, session.userId)) return forbidden()
 
     return ok(clone)
@@ -53,10 +69,10 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     if (!session.userId) return unauthorized()
 
     const { id } = await context.params
-    // TODO(migration): → Convex / MongoDB findOne
-    const clone = voiceCloneStore.get(id)
-    if (!clone) return notFound('Voice clone')
+    const doc = await convexClient.query(api.voiceClones.getByExternalId, { externalId: id })
+    if (!doc) return notFound('Voice clone')
 
+    const clone = toVoiceClone(doc as Record<string, unknown>)
     if (!assertOwner(clone.userId, session.userId)) return forbidden()
 
     if (clone.status === 'processing') {
@@ -66,8 +82,7 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     // TODO(inference): Notify Mac Studio inference API to release the model resources.
     // TODO(storage): Delete the sample audio file from GCS/S3.
 
-    // TODO(migration): → Convex mutation / MongoDB deleteOne
-    voiceCloneStore.delete(id)
+    await convexClient.mutation(api.voiceClones.remove, { externalId: id })
 
     return noContent()
   } catch (err) {

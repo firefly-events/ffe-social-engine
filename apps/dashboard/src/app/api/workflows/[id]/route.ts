@@ -2,8 +2,6 @@
  * GET    /api/workflows/[id] — fetch a single workflow
  * PATCH  /api/workflows/[id] — update workflow definition or status
  * DELETE /api/workflows/[id] — delete a workflow
- *
- * TODO(migration): Replace workflowStore Map calls with Convex / MongoDB.
  */
 
 import { auth } from '@clerk/nextjs/server'
@@ -17,13 +15,31 @@ import {
   notFound,
   serverError,
   assertOwner,
-  nowISO,
 } from '@/lib/api-helpers'
-import { workflowStore } from '@/lib/api-store'
-import type { UpdateWorkflowBody } from '@/lib/api-types'
+import { convexClient } from '@/lib/convex-client'
+import { api } from '../../../../../convex/_generated/api'
+import type { WorkflowItem, WorkflowStatus, UpdateWorkflowBody } from '@/lib/api-types'
 
 interface RouteContext {
   params: Promise<{ id: string }>
+}
+
+/** Map a Convex workflow document to the public WorkflowItem shape. */
+function toWorkflowItem(doc: Record<string, unknown>): WorkflowItem {
+  return {
+    id:          doc.externalId as string,
+    userId:      doc.userId as string,
+    name:        doc.name as string,
+    description: doc.description as string | undefined,
+    status:      doc.status as WorkflowStatus,
+    nodes:       doc.nodes as WorkflowItem['nodes'],
+    edges:       doc.edges as WorkflowItem['edges'],
+    config:      doc.config as Record<string, unknown>,
+    runCount:    doc.runCount as number,
+    lastRunAt:   doc.lastRunAt != null ? new Date(doc.lastRunAt as number).toISOString() : undefined,
+    createdAt:   new Date(doc.createdAt as number).toISOString(),
+    updatedAt:   new Date(doc.updatedAt as number).toISOString(),
+  }
 }
 
 // ── GET ───────────────────────────────────────────────────────────────────────
@@ -34,10 +50,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (!session.userId) return unauthorized()
 
     const { id } = await context.params
-    // TODO(migration): → Convex query / MongoDB findOne
-    const workflow = workflowStore.get(id)
-    if (!workflow) return notFound('Workflow')
+    const doc = await convexClient.query(api.workflows.getByExternalId, { externalId: id })
+    if (!doc) return notFound('Workflow')
 
+    const workflow = toWorkflowItem(doc as Record<string, unknown>)
     if (!assertOwner(workflow.userId, session.userId)) return forbidden()
 
     return ok(workflow)
@@ -55,10 +71,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (!session.userId) return unauthorized()
 
     const { id } = await context.params
-    // TODO(migration): → Convex / MongoDB findOne
-    const workflow = workflowStore.get(id)
-    if (!workflow) return notFound('Workflow')
+    const existing = await convexClient.query(api.workflows.getByExternalId, { externalId: id })
+    if (!existing) return notFound('Workflow')
 
+    const workflow = toWorkflowItem(existing as Record<string, unknown>)
     if (!assertOwner(workflow.userId, session.userId)) return forbidden()
 
     if (workflow.status === 'archived') {
@@ -76,21 +92,20 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return badRequest('name must not be empty')
     }
 
-    const updated = {
-      ...workflow,
+    const updated = await convexClient.mutation(api.workflows.update, {
+      externalId: id,
       ...(body.name        !== undefined && { name:        body.name.trim() }),
       ...(body.description !== undefined && { description: body.description }),
       ...(body.status      !== undefined && { status:      body.status }),
       ...(body.nodes       !== undefined && { nodes:       body.nodes }),
       ...(body.edges       !== undefined && { edges:       body.edges }),
       ...(body.config      !== undefined && { config:      body.config }),
-      updatedAt: nowISO(),
-    }
+      updatedAt: Date.now(),
+    })
 
-    // TODO(migration): → Convex mutation / MongoDB updateOne
-    workflowStore.set(id, updated)
+    if (!updated) return notFound('Workflow')
 
-    return ok(updated)
+    return ok(toWorkflowItem(updated as Record<string, unknown>))
   } catch (err) {
     console.error('[PATCH /api/workflows/[id]]', err)
     return serverError()
@@ -105,18 +120,17 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     if (!session.userId) return unauthorized()
 
     const { id } = await context.params
-    // TODO(migration): → Convex / MongoDB findOne
-    const workflow = workflowStore.get(id)
-    if (!workflow) return notFound('Workflow')
+    const doc = await convexClient.query(api.workflows.getByExternalId, { externalId: id })
+    if (!doc) return notFound('Workflow')
 
+    const workflow = toWorkflowItem(doc as Record<string, unknown>)
     if (!assertOwner(workflow.userId, session.userId)) return forbidden()
 
     if (workflow.status === 'active') {
       return badRequest('Cannot delete an active workflow. Pause or archive it first.')
     }
 
-    // TODO(migration): → Convex mutation / MongoDB deleteOne
-    workflowStore.delete(id)
+    await convexClient.mutation(api.workflows.remove, { externalId: id })
 
     return noContent()
   } catch (err) {

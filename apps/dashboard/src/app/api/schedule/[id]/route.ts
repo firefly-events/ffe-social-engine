@@ -1,8 +1,6 @@
 /**
  * PATCH  /api/schedule/[id] — reschedule or update status
  * DELETE /api/schedule/[id] — cancel a scheduled post
- *
- * TODO(migration): Replace scheduleStore Map calls with Convex / MongoDB.
  */
 
 import { auth } from '@clerk/nextjs/server'
@@ -16,13 +14,30 @@ import {
   notFound,
   serverError,
   assertOwner,
-  nowISO,
 } from '@/lib/api-helpers'
-import { scheduleStore } from '@/lib/api-store'
-import type { UpdateScheduleBody } from '@/lib/api-types'
+import { convexClient } from '@/lib/convex-client'
+import { api } from '../../../../../convex/_generated/api'
+import type { ScheduleItem, ScheduleStatus, UpdateScheduleBody } from '@/lib/api-types'
+import type { Platform } from '@/types/export'
 
 interface RouteContext {
   params: Promise<{ id: string }>
+}
+
+/** Map a Convex schedule document to the public ScheduleItem shape. */
+function toScheduleItem(doc: Record<string, unknown>): ScheduleItem {
+  return {
+    id:           doc.externalId as string,
+    contentId:    doc.contentId as string,
+    userId:       doc.userId as string,
+    platform:     doc.platform as Platform,
+    scheduledAt:  new Date(doc.scheduledAt as number).toISOString(),
+    status:       doc.status as ScheduleStatus,
+    postedAt:     doc.postedAt != null ? new Date(doc.postedAt as number).toISOString() : undefined,
+    errorMessage: doc.errorMessage as string | undefined,
+    createdAt:    new Date(doc.createdAt as number).toISOString(),
+    updatedAt:    new Date(doc.updatedAt as number).toISOString(),
+  }
 }
 
 // ── PATCH ─────────────────────────────────────────────────────────────────────
@@ -33,10 +48,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (!session.userId) return unauthorized()
 
     const { id } = await context.params
-    // TODO(migration): → Convex / MongoDB findOne
-    const entry = scheduleStore.get(id)
-    if (!entry) return notFound('Schedule')
+    const doc = await convexClient.query(api.schedules.getByExternalId, { externalId: id })
+    if (!doc) return notFound('Schedule')
 
+    const entry = toScheduleItem(doc as Record<string, unknown>)
     if (!assertOwner(entry.userId, session.userId)) return forbidden()
 
     // Cannot modify an already-completed or cancelled entry
@@ -61,17 +76,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       }
     }
 
-    const updated = {
-      ...entry,
-      ...(body.scheduledAt !== undefined && { scheduledAt: body.scheduledAt }),
+    const updated = await convexClient.mutation(api.schedules.update, {
+      externalId:  id,
+      ...(body.scheduledAt !== undefined && { scheduledAt: new Date(body.scheduledAt).getTime() }),
       ...(body.status      !== undefined && { status:      body.status }),
-      updatedAt: nowISO(),
-    }
+      updatedAt: Date.now(),
+    })
 
-    // TODO(migration): → Convex mutation / MongoDB updateOne
-    scheduleStore.set(id, updated)
+    if (!updated) return notFound('Schedule')
 
-    return ok(updated)
+    return ok(toScheduleItem(updated as Record<string, unknown>))
   } catch (err) {
     console.error('[PATCH /api/schedule/[id]]', err)
     return serverError()
@@ -86,10 +100,10 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     if (!session.userId) return unauthorized()
 
     const { id } = await context.params
-    // TODO(migration): → Convex / MongoDB findOne
-    const entry = scheduleStore.get(id)
-    if (!entry) return notFound('Schedule')
+    const doc = await convexClient.query(api.schedules.getByExternalId, { externalId: id })
+    if (!doc) return notFound('Schedule')
 
+    const entry = toScheduleItem(doc as Record<string, unknown>)
     if (!assertOwner(entry.userId, session.userId)) return forbidden()
 
     if (entry.status === 'posted') {
@@ -97,14 +111,11 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     }
 
     // Soft-cancel: mark as cancelled rather than deleting the record
-    const cancelled = {
-      ...entry,
-      status:    'cancelled' as const,
-      updatedAt: nowISO(),
-    }
-
-    // TODO(migration): → Convex mutation / MongoDB updateOne
-    scheduleStore.set(id, cancelled)
+    await convexClient.mutation(api.schedules.update, {
+      externalId: id,
+      status:     'cancelled',
+      updatedAt:  Date.now(),
+    })
 
     return noContent()
   } catch (err) {

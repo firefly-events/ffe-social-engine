@@ -1,8 +1,5 @@
 /**
  * api-types.ts — Shared request/response types for all Social Engine API routes.
- *
- * TODO(migration): Replace in-memory Maps with Convex mutations/queries or MongoDB driver calls.
- * Each store is annotated with the intended collection/table name.
  */
 
 import type { Platform } from '@/types/export'

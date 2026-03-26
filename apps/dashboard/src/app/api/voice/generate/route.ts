@@ -10,8 +10,6 @@
  * The inference service should return { audioUrl, durationSeconds }.
  *
  * TODO(storage): Store generated audio files in GCS/S3 and return a signed URL.
- *
- * TODO(migration): Replace voiceCloneStore with Convex / MongoDB reads.
  */
 
 import { auth } from '@clerk/nextjs/server'
@@ -25,7 +23,8 @@ import {
   serverError,
   assertOwner,
 } from '@/lib/api-helpers'
-import { voiceCloneStore } from '@/lib/api-store'
+import { convexClient } from '@/lib/convex-client'
+import { api } from '../../../../../convex/_generated/api'
 import type { GenerateVoiceBody, GenerateVoiceResult } from '@/lib/api-types'
 
 const MAX_TEXT_LENGTH = 5000
@@ -42,7 +41,7 @@ export async function POST(request: NextRequest) {
       return badRequest('Invalid JSON body')
     }
 
-    if (!body.cloneId)     return badRequest('cloneId is required')
+    if (!body.cloneId)      return badRequest('cloneId is required')
     if (!body.text?.trim()) return badRequest('text is required')
     if (body.text.length > MAX_TEXT_LENGTH) {
       return badRequest(`text must not exceed ${MAX_TEXT_LENGTH} characters`)
@@ -58,11 +57,11 @@ export async function POST(request: NextRequest) {
       return badRequest('speed must be between 0.5 and 2.0')
     }
 
-    // TODO(migration): → Convex query / MongoDB findOne
-    const clone = voiceCloneStore.get(body.cloneId)
-    if (!clone) return notFound('Voice clone')
+    const doc = await convexClient.query(api.voiceClones.getByExternalId, { externalId: body.cloneId })
+    if (!doc) return notFound('Voice clone')
 
-    if (!assertOwner(clone.userId, session.userId)) return forbidden()
+    const clone = doc as Record<string, unknown>
+    if (!assertOwner(clone.userId as string, session.userId)) return forbidden()
 
     if (clone.status !== 'ready') {
       return badRequest(`Voice clone is not ready (current status: ${clone.status})`)
