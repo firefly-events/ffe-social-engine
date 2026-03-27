@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
+import { updateBrandVoice, completeOnboarding } from '@/app/actions/user'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -562,10 +563,16 @@ function Confetti() {
 
 export default function OnboardPage() {
   const router = useRouter()
-  const { user } = useUser()
+  const { user, isLoaded } = useUser()
   const [step, setStep] = useState(1)
   const [done, setDone] = useState(false)
   const [generating, setGenerating] = useState(false)
+
+  useEffect(() => {
+    if (isLoaded && user?.publicMetadata?.onboardingCompleted) {
+      router.replace('/dashboard')
+    }
+  }, [isLoaded, user, router])
 
   // Step 1 state
   const [connectedPlatforms, setConnectedPlatforms] = useState<Set<Platform>>(new Set())
@@ -624,16 +631,39 @@ export default function OnboardPage() {
     return false
   }
 
-  function handleNext() {
+  async function handleNext() {
     trackEvent(ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED, {
       step,
       label: STEPS.find(s => s.id === step)?.label,
       user_id: user?.id
     })
 
+    if (step === 2) {
+      try {
+        await updateBrandVoice({
+          name: brandName,
+          tone: tone as string,
+          avoid: '',
+          examples: '',
+          targetAudience: [...contentTypes].join(', '),
+          emojiUsage: 'moderate',
+          hashtagStyle: 'few',
+          updatedAt: new Date().toISOString(),
+        })
+      } catch (error) {
+        console.error('Failed to save brand voice:', error)
+      }
+    }
+
     if (step < 4) {
       setStep((s) => s + 1)
     } else {
+      try {
+        await completeOnboarding('completed')
+      } catch (error) {
+        console.error('Failed to complete onboarding:', error)
+      }
+      
       trackEvent(ANALYTICS_EVENTS.SIGNUP_COMPLETE, {
         user_id: user?.id
       })
