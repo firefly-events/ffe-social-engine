@@ -96,13 +96,14 @@ function renderField(field, value, onChange) {
         onChange={e => onChange(field.id, e.target.value)}
         placeholder={field.placeholder}
         rows={4}
+        required={field.required}
         style={{ ...baseStyle, resize: 'vertical' }}
       />
     );
   }
   if (field.type === 'select') {
     return (
-      <select key={field.id} value={value || ''} onChange={e => onChange(field.id, e.target.value)} style={baseStyle}>
+      <select key={field.id} value={value || ''} onChange={e => onChange(field.id, e.target.value)} required={field.required} style={baseStyle}>
         <option value="">Select...</option>
         {(field.options || []).map(opt => <option key={opt} value={opt}>{opt}</option>)}
       </select>
@@ -154,6 +155,12 @@ export default function TemplatePage() {
   const handleGenerate = async () => {
     const topic = buildTopic();
     if (!topic) { setError('Please fill in at least one field'); return; }
+    // Validate required fields before submitting
+    const missing = template.fields.filter(f => f.required && !fieldValues[f.id]);
+    if (missing.length > 0) {
+      setError(`Please fill in: ${missing.map(f => f.label).join(', ')}`);
+      return;
+    }
     setError('');
     setIsGenerating(true);
     setResult(null);
