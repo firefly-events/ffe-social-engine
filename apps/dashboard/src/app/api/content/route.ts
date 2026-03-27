@@ -32,7 +32,7 @@ function toContentItem(doc: Record<string, unknown>): ContentItem {
     imageUrl:  doc.imageUrl as string | undefined,
     audioUrl:  doc.audioUrl as string | undefined,
     videoUrl:  doc.videoUrl as string | undefined,
-    platforms: doc.platforms as string[],
+    platforms: doc.platforms as import('@/types/export').Platform[],
     status:    doc.status as ContentItem['status'],
     aiModel:   doc.aiModel as string | undefined,
     prompt:    doc.prompt as string | undefined,

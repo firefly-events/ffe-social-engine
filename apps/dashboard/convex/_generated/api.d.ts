@@ -11,6 +11,8 @@
 import type * as authHelpers from "../authHelpers.js";
 import type * as composedVideos from "../composedVideos.js";
 import type * as content from "../content.js";
+import type * as exportHistory from "../exportHistory.js";
+import type * as generationJobs from "../generationJobs.js";
 import type * as generations from "../generations.js";
 import type * as http from "../http.js";
 import type * as media from "../media.js";
@@ -33,6 +35,8 @@ declare const fullApi: ApiFromModules<{
   authHelpers: typeof authHelpers;
   composedVideos: typeof composedVideos;
   content: typeof content;
+  exportHistory: typeof exportHistory;
+  generationJobs: typeof generationJobs;
   generations: typeof generations;
   http: typeof http;
   media: typeof media;

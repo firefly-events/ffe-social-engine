@@ -13,6 +13,8 @@ import type {
   NodePaletteItem,
 } from '@/lib/workflow-types'
 import { SAMPLE_WORKFLOW } from '@/lib/workflow-types'
+import { getWorkflowLimit } from '@/lib/tier-limits'
+import type { Tier } from '@/lib/tier-limits'
 
 // ── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -1298,9 +1300,27 @@ export default function WorkflowsPage() {
     )
   }
 
+  // ── Tier usage (FIR-1305) — static Free tier display ─────────────────────
+  const TIER_LIMIT = getWorkflowLimit('free' as Tier)
+  const activeWorkflowCount = workflows.filter((w) => (w.status as string) !== 'archived').length
+  const atLimit = activeWorkflowCount >= TIER_LIMIT
+
   // List view
   return (
     <div className="space-y-6">
+      {/* Upgrade banner when at limit */}
+      {atLimit && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-900/40 border border-amber-700/60 text-amber-300 text-sm">
+          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <span>
+            You have reached your Free plan limit ({TIER_LIMIT}/{TIER_LIMIT} automations used).{' '}
+            <strong className="text-amber-200">Upgrade to Pro</strong> for up to 15 workflows.
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -1309,15 +1329,32 @@ export default function WorkflowsPage() {
             Visual automation pipelines — connect triggers, AI, transforms, and publishers.
           </p>
         </div>
-        <button
-          onClick={() => setShowNew(true)}
-          className="flex-shrink-0 flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-purple-600/20"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          New Workflow
-        </button>
+        <div className="flex flex-col items-end gap-2">
+          {/* Usage badge */}
+          <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
+            atLimit
+              ? 'bg-red-900/40 border-red-700 text-red-300'
+              : 'bg-slate-800 border-slate-700 text-slate-400'
+          }`}>
+            {activeWorkflowCount}/{TIER_LIMIT} automations used
+          </span>
+
+          <button
+            onClick={() => !atLimit && setShowNew(true)}
+            disabled={atLimit}
+            title={atLimit ? 'Upgrade to Pro to create more automations' : 'Create a new workflow'}
+            className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors shadow-lg ${
+              atLimit
+                ? 'bg-slate-700 text-slate-500 cursor-not-allowed shadow-none'
+                : 'bg-purple-600 hover:bg-purple-700 text-white shadow-purple-600/20'
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            New Workflow
+          </button>
+        </div>
       </div>
 
       {/* New workflow dialog */}

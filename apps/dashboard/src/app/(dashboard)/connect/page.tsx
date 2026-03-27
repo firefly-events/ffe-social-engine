@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from 'convex/react';
 import { api } from '@convex/_generated/api';
@@ -20,7 +20,7 @@ const PLATFORMS: PlatformMeta[] = [
   { id: 'youtube',   name: 'YouTube',     color: 'bg-red-600 text-white' },
 ];
 
-export default function ConnectPage() {
+function ConnectPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -197,5 +197,13 @@ export default function ConnectPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ConnectPage() {
+  return (
+    <Suspense fallback={<div className="py-8 text-center text-slate-400 text-sm">Loading...</div>}>
+      <ConnectPageInner />
+    </Suspense>
   );
 }

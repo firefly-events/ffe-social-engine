@@ -6,6 +6,7 @@
  * a forwarded auth token.
  */
 
+import { ConvexError } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -92,6 +93,57 @@ export const update = mutation({
     );
     await ctx.db.patch(existing._id, cleanPatch);
     return await ctx.db.get(existing._id);
+  },
+});
+
+/**
+ * Atomically check the tier limit and create a workflow in a single mutation,
+ * preventing the race condition inherent in a separate count + create pattern.
+ *
+ * Pass tierLimit: -1 for unlimited tiers (business/agency).
+ */
+export const createWithLimitCheck = mutation({
+  args: {
+    externalId: v.string(),
+    userId: v.string(),
+    name: v.string(),
+    description: v.optional(v.string()),
+    nodes: v.any(),
+    edges: v.any(),
+    config: v.any(),
+    tierLimit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("workflows")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const activeCount = existing.filter((w) => w.status !== "archived").length;
+
+    if (args.tierLimit !== -1 && activeCount >= args.tierLimit) {
+      throw new ConvexError({
+        code: "LIMIT_EXCEEDED",
+        used: activeCount,
+        limit: args.tierLimit,
+      });
+    }
+
+    const nowMs = Date.now();
+    const docId = await ctx.db.insert("workflows", {
+      externalId: args.externalId,
+      userId: args.userId,
+      name: args.name,
+      description: args.description,
+      status: "draft",
+      nodes: args.nodes,
+      edges: args.edges,
+      config: args.config,
+      runCount: 0,
+      createdAt: nowMs,
+      updatedAt: nowMs,
+    });
+    return await ctx.db.get(docId);
   },
 });
 
