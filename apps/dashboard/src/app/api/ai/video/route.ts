@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { randomUUID } from 'crypto';
-import { setVideoJob } from './_store';
+import { convexClient } from '@/lib/convex-client';
+import { api } from '@convex/_generated/api';
+import { generateId } from '@/lib/api-helpers';
 
 export async function POST(req: Request) {
   const { userId } = await auth();
@@ -11,11 +12,19 @@ export async function POST(req: Request) {
     const { prompt, duration = 6, aspectRatio = '9:16' } = await req.json();
     if (!prompt) return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
 
-    const jobId = randomUUID();
-    const createdAt = Date.now();
-    setVideoJob(jobId, { status: 'processing', userId, createdAt });
+    // Create a job in Convex
+    // We use the topic field as a unique jobId for polling (as per existing getByExternalId pattern)
+    const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    const job = await convexClient.mutation(api.generationJobs.create, {
+      userId,
+      type: 'video',
+      topic: jobId,
+      model: 'hailuo-video-01',
+      status: 'processing',
+    });
 
-    generateVideoAsync(jobId, userId, prompt, duration, aspectRatio, createdAt);
+    // Fire and forget generation (v0 scope)
+    generateVideoAsync(job._id, userId, prompt, duration, aspectRatio, jobId);
 
     return NextResponse.json({ jobId, status: 'processing' });
   } catch (error) {
@@ -24,10 +33,12 @@ export async function POST(req: Request) {
   }
 }
 
-async function generateVideoAsync(jobId: string, userId: string, prompt: string, duration: number, aspectRatio: string, createdAt: number) {
+async function generateVideoAsync(convexJobId: any, userId: string, prompt: string, duration: number, aspectRatio: string, jobId: string) {
   const HAILUO_API_KEY = process.env.HAILUO_API_KEY;
 
   try {
+    let videoUrl: string | undefined;
+
     if (HAILUO_API_KEY) {
       const response = await fetch('https://api.minimaxi.chat/v1/video_generation', {
         method: 'POST',
@@ -59,25 +70,51 @@ async function generateVideoAsync(jobId: string, userId: string, prompt: string,
             headers: { 'Authorization': `Bearer ${HAILUO_API_KEY}` },
           });
           const fileData = await fileRes.json();
-          setVideoJob(jobId, { status: 'ready', userId, videoUrl: fileData.file?.download_url, createdAt });
-          return;
+          videoUrl = fileData.file?.download_url;
+          break;
         } else if (statusData.status === 'Fail') {
           throw new Error('Hailuo generation failed');
         }
         attempts++;
       }
-      throw new Error('Timed out');
+      if (!videoUrl) throw new Error('Timed out');
     } else {
       // Demo fallback
       await new Promise(r => setTimeout(r, 8000));
-      setVideoJob(jobId, {
+      videoUrl = 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+    }
+
+    if (videoUrl) {
+      // Update the job in Convex
+      await convexClient.mutation(api.generationJobs.update, {
+        id: convexJobId,
         status: 'ready',
+        result: { videoUrl },
+        completedAt: Date.now(),
+      });
+
+      // Persist to content table (AC fulfillment)
+      const contentExternalId = generateId('cnt');
+      await convexClient.mutation(api.content.create, {
+        externalId: contentExternalId,
         userId,
-        videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-        createdAt,
+        text: `Generated Video: ${prompt}`,
+        videoUrl,
+        platforms: ['tiktok', 'instagram'], // default platforms for video
+        status: 'draft',
+        aiModel: 'hailuo-video-01',
+        prompt,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
       });
     }
   } catch (error) {
-    setVideoJob(jobId, { status: 'error', userId, error: String(error), createdAt });
+    console.error('generateVideoAsync error:', error);
+    await convexClient.mutation(api.generationJobs.update, {
+      id: convexJobId,
+      status: 'error',
+      error: String(error),
+      completedAt: Date.now(),
+    });
   }
 }

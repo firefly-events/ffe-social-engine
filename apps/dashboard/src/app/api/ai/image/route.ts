@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { convexClient } from '@/lib/convex-client';
+import { api } from '@convex/_generated/api';
+import { generateId } from '@/lib/api-helpers';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -37,6 +40,26 @@ export async function POST(req: Request) {
 
     if (!imageUrl) {
       return NextResponse.json({ error: 'No image generated' }, { status: 500 });
+    }
+
+    // Persist to content table
+    try {
+      const contentExternalId = generateId('cnt');
+      await convexClient.mutation(api.content.create, {
+        externalId: contentExternalId,
+        userId,
+        text: `Generated Image: ${prompt}`,
+        imageUrl,
+        platforms: ['instagram', 'x', 'facebook'],
+        status: 'draft',
+        aiModel: 'gemini-2.0-flash-exp',
+        prompt,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    } catch (dbError) {
+      // Log DB error but don't fail the request if generation succeeded
+      console.error('Failed to persist generated image to Convex:', dbError);
     }
 
     return NextResponse.json({ imageUrl, prompt });
