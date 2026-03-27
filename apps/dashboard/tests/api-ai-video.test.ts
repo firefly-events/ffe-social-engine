@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // Mock dependencies — must be defined before importing route handlers
 vi.mock("@clerk/nextjs/server", () => ({
@@ -38,6 +38,11 @@ import { convexClient } from "@/lib/convex-client";
 describe("Video AI API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    delete process.env.HAILUO_API_KEY;
+  });
+
+  afterEach(() => {
+    delete process.env.HAILUO_API_KEY;
   });
 
   describe("POST /api/ai/video", () => {
@@ -122,8 +127,6 @@ describe("Video AI API", () => {
 
       const res = await POST(req);
       const data = await res.json();
-
-      delete process.env.HAILUO_API_KEY;
 
       expect(res.status).toBe(200);
       expect(data.jobId).toBeDefined();

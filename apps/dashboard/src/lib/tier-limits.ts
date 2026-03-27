@@ -38,6 +38,7 @@ export function getStorageLimit(tier: Tier): number {
 }
 
 export function formatBytes(bytes: number): string {
+  if (bytes < 0) return '0 B'
   if (bytes === 0) return '0 B'
   if (bytes === Infinity) return 'Unlimited'
   const k = 1024
