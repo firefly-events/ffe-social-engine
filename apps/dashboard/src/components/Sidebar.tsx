@@ -1,7 +1,12 @@
 import UsageMeter from './UsageMeter';
 import Link from 'next/link';
 
-export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
+interface SidebarProps {
+  userTier?: string;
+  usage?: Record<string, number>;
+}
+
+export default function Sidebar({ userTier = 'FREE', usage = {} }: SidebarProps) {
   const navItems = [
     { label: 'Dashboard', href: '/dashboard', icon: '📊', minTier: 'FREE' },
     { label: 'Create', href: '/create', icon: '✨', minTier: 'FREE' },
@@ -29,6 +34,8 @@ export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
           return isLocked ? (
               <span
                 key={item.label}
+                aria-disabled="true"
+                tabIndex={-1}
                 className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm no-underline transition-colors text-muted-foreground cursor-not-allowed"
               >
                 <span>{item.icon}</span>
@@ -46,8 +53,7 @@ export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
                 <span>{item.icon}</span>
                 <span className="flex-1">{item.label}</span>
               </Link>
-            )
-          );
+            );
         })}
       </nav>
 

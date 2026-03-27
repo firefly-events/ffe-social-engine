@@ -1,4 +1,12 @@
-export default function ContentCard({ title, type, status, date, thumbnail }: any) {
+interface ContentCardProps {
+  title: string;
+  type: string;
+  status: string;
+  date: string;
+  thumbnail?: string;
+}
+
+export default function ContentCard({ title, type, status, date, thumbnail }: ContentCardProps) {
   const statusClasses: Record<string, string> = {
     'Draft': 'bg-muted text-muted-foreground',
     'Scheduled': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',

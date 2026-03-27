@@ -1,4 +1,13 @@
-export default function QuickAction({ title, icon, color = '#333', onClick }: any) {
+import type { ReactNode, MouseEventHandler } from 'react';
+
+interface QuickActionProps {
+  title: string;
+  icon: ReactNode;
+  color?: string;
+  onClick?: MouseEventHandler<HTMLDivElement>;
+}
+
+export default function QuickAction({ title, icon, color = '#333', onClick }: QuickActionProps) {
   return (
     <div
       onClick={onClick}

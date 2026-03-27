@@ -1,8 +1,18 @@
-export default function MetricCard({ label, value, growth, icon, isLocked }: any) {
+import type { ReactNode } from 'react';
+
+interface MetricCardProps {
+  label: string;
+  value: string | number;
+  growth?: string;
+  icon?: ReactNode;
+  isLocked?: boolean;
+}
+
+export default function MetricCard({ label, value, growth, icon, isLocked }: MetricCardProps) {
   return (
     <div className="p-6 bg-card border border-border rounded-xl relative overflow-hidden flex flex-col gap-2">
       {isLocked && (
-        <div className="absolute inset-0 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl" style={{ backgroundColor: 'oklch(var(--card) / 0.7)' }}>
+        <div className="absolute inset-0 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl bg-[oklch(1_0_0/0.7)] dark:bg-[oklch(0.205_0_0/0.7)]">
           <div className="text-center">
             <span className="text-2xl">🔒</span>
             <div className="text-xs font-bold text-muted-foreground mt-1">UPGRADE TO PRO</div>
