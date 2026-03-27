@@ -1,5 +1,7 @@
 # Image and Video Generation Provider Pricing Comparison — 2026-03-27
 
+> **Linear Ticket:** [FIR-1322](https://linear.app/firefly-events/issue/FIR-1322)
+
 This research compares current market rates for high-quality image and video generation providers to inform the pricing strategy for the Social Engine project.
 
 ---
@@ -86,4 +88,4 @@ Based on the 6-tier architecture defined in GEMINI.md, the following providers a
 
 ---
 
-*Note: Self-hosting FLUX.1 on RunPod A100 remains an option for high-volume internal processing, potentially lowering image costs to $0.0015-$0.0125 per generation depending on throughput (best case ~1000 imgs/hr on A100).*
+*Note: Self-hosting FLUX.1 on RunPod A100 is an internal platform option (not a customer-facing tier), with estimated costs of ~$0.0015-$0.0125 per generation depending on throughput. The $0.0015 figure is best-case at high utilization and requires additional DevOps/monitoring/infra overhead.*
