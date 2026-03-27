@@ -46,6 +46,14 @@ export const failJob = mutation({
   },
 });
 
+// Get a single job by ID
+export const getJob = query({
+  args: { id: v.id("generationJobs") },
+  handler: async (ctx, args) => {
+    return await ctx.db.get(args.id);
+  },
+});
+
 // List user's recent jobs
 export const listJobs = query({
   args: { userId: v.string(), limit: v.optional(v.number()) },

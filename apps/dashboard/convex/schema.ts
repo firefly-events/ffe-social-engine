@@ -202,4 +202,24 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_externalId", ["externalId"]),
+
+  reminders: defineTable({
+    externalId: v.string(),
+    userId: v.string(),
+    contentId: v.optional(v.string()),    // optional link to content record
+    platform: v.string(),                 // "nextdoor" | "yelp" | etc.
+    title: v.string(),
+    body: v.string(),                     // the content to post manually
+    scheduledFor: v.number(),             // Unix ms timestamp
+    reminderType: v.string(),             // "email" | "push" | "in-app"
+    status: v.string(),                   // "pending" | "sent" | "confirmed" | "cancelled"
+    confirmedAt: v.optional(v.number()),  // when user marked as posted
+    exportUrl: v.optional(v.string()),    // pre-signed download link for exported content
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_externalId", ["externalId"])
+    .index("by_userId_status", ["userId", "status"])
+    .index("by_scheduledFor", ["scheduledFor"]),
 });

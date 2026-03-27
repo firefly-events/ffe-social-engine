@@ -16,6 +16,7 @@ import type * as generationJobs from "../generationJobs.js";
 import type * as generations from "../generations.js";
 import type * as http from "../http.js";
 import type * as media from "../media.js";
+import type * as reminders from "../reminders.js";
 import type * as schedules from "../schedules.js";
 import type * as sessions from "../sessions.js";
 import type * as socialAccounts from "../socialAccounts.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   generations: typeof generations;
   http: typeof http;
   media: typeof media;
+  reminders: typeof reminders;
   schedules: typeof schedules;
   sessions: typeof sessions;
   socialAccounts: typeof socialAccounts;
