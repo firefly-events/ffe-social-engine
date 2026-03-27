@@ -249,6 +249,7 @@ test.describe('Theme toggle — persistence', () => {
     await page.evaluate(() => localStorage.setItem('theme', 'dark'));
     await page.reload();
     await page.waitForLoadState('networkidle');
+    await page.waitForFunction(() => document.documentElement.classList.contains('dark'));
     const htmlClass = await page.evaluate(() => document.documentElement.className);
     expect(htmlClass, 'html should have dark class').toContain('dark');
   });
@@ -258,6 +259,7 @@ test.describe('Theme toggle — persistence', () => {
     await page.evaluate(() => localStorage.setItem('theme', 'light'));
     await page.reload();
     await page.waitForLoadState('networkidle');
+    await page.waitForFunction(() => !document.documentElement.classList.contains('dark'));
     const htmlClass = await page.evaluate(() => document.documentElement.className);
     expect(htmlClass, 'html should not have dark class in light mode').not.toContain('dark');
   });

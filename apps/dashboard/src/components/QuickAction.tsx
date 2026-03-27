@@ -3,7 +3,6 @@ export default function QuickAction({ title, icon, color = '#333', onClick }: an
     <div
       onClick={onClick}
       className="flex-1 p-5 bg-card text-card-foreground rounded-xl border border-border cursor-pointer flex items-center gap-4 transition-transform hover:-translate-y-0.5"
-      style={{ '--hover-border-color': color } as React.CSSProperties}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = color;
       }}

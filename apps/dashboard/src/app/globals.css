@@ -126,7 +126,7 @@
   .btn-secondary {
     @apply inline-flex items-center gap-2 px-4 py-2 bg-background hover:bg-muted
            text-foreground text-sm font-medium rounded-lg border border-border
-           transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+           transition-colors focus:outline-none focus:ring-2 focus:ring-ring;
   }
 
   .nav-item {

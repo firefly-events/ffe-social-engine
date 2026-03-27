@@ -26,25 +26,27 @@ export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
       <nav className="flex-1 flex flex-col gap-1">
         {navItems.map(item => {
           const isLocked = tiers.indexOf(item.minTier) > userTierIndex;
-          return (
-            <Link
-              key={item.label}
-              href={isLocked ? '#' : item.href}
-              className={[
-                'flex items-center gap-3 px-3 py-3 rounded-lg text-sm no-underline transition-colors',
-                isLocked
-                  ? 'text-muted-foreground cursor-not-allowed'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer'
-              ].join(' ')}
-            >
-              <span>{item.icon}</span>
-              <span className="flex-1">{item.label}</span>
-              {isLocked && (
+          return isLocked ? (
+              <span
+                key={item.label}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm no-underline transition-colors text-muted-foreground cursor-not-allowed"
+              >
+                <span>{item.icon}</span>
+                <span className="flex-1">{item.label}</span>
                 <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                   {item.minTier}
                 </span>
-              )}
-            </Link>
+              </span>
+            ) : (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm no-underline transition-colors text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer"
+              >
+                <span>{item.icon}</span>
+                <span className="flex-1">{item.label}</span>
+              </Link>
+            )
           );
         })}
       </nav>
