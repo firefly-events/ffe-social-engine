@@ -1,7 +1,8 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { useState, useEffect } from 'react';
+import { useQuery } from 'convex/react';
+import { api } from '../../../../convex/_generated/api';
 import MetricCard from '../../../components/MetricCard';
 import QuickAction from '../../../components/QuickAction';
 import ContentCard from '../../../components/ContentCard';
@@ -9,33 +10,40 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
-interface RecentContentItem {
-  id: string;
-  title?: string;
-  text?: string;
-  type?: string;
-  status: string;
-  createdAt: string;
-}
-
 export default function DashboardPage() {
   const { user } = useUser();
   const router = useRouter();
-  const [recentContent, setRecentContent] = useState<RecentContentItem[]>([]);
 
-  useEffect(() => {
-    fetch('/api/content?limit=3')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data.items)) {
-          setRecentContent(data.items);
-        }
-      })
-      .catch(err => console.error('Failed to fetch recent content:', err));
-  }, []);
+  const clerkId = user?.id ?? '';
+
+  const currentUser = useQuery(api.users.getCurrentUser, {});
+  const dashboardMetrics = useQuery(
+    api.posts.getDashboardMetrics,
+    clerkId ? { userId: clerkId } : 'skip'
+  );
+  const recentPosts = useQuery(
+    api.posts.getRecentPosts,
+    clerkId ? { userId: clerkId } : 'skip'
+  );
+  const scheduledToday = useQuery(
+    api.posts.getScheduledToday,
+    clerkId ? { userId: clerkId } : 'skip'
+  );
+  const performanceData = useQuery(
+    api.posts.getPerformanceData,
+    clerkId ? { userId: clerkId } : 'skip'
+  );
+
+  const isPro =
+    currentUser?.plan === 'pro' ||
+    currentUser?.plan === 'business' ||
+    currentUser?.plan === 'agency';
+
+  const totalPosts =
+    dashboardMetrics === undefined ? 'Loading…' : String(dashboardMetrics.total);
 
   const metrics = [
-    { label: 'Total Posts', value: '12', growth: '+2', icon: '📝', isLocked: false },
+    { label: 'Total Posts', value: totalPosts, growth: null, icon: '📝', isLocked: false },
     { label: 'Avg Engagement', value: '4.2%', growth: '+0.5%', icon: '🔥', isLocked: true },
     { label: 'Top Platform', value: 'TikTok', growth: null, icon: '📱', isLocked: true },
     { label: 'New Followers', value: '124', growth: '+15%', icon: '👥', isLocked: true }
@@ -87,16 +95,18 @@ export default function DashboardPage() {
           <section>
             <h2 className="text-xl font-semibold mb-6">Recent Activity</h2>
             <Card className="p-4">
-              {recentContent.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center py-4">No recent content yet.</p>
+              {recentPosts === undefined ? (
+                <p className="text-muted-foreground text-sm text-center py-4">Loading…</p>
+              ) : recentPosts.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-4">No posts yet.</p>
               ) : (
-                recentContent.map(content => (
+                recentPosts.map(post => (
                   <ContentCard
-                    key={content.id}
-                    title={content.title || content.text?.slice(0, 50) || 'Untitled'}
-                    type={content.type || 'text'}
-                    status={content.status.charAt(0).toUpperCase() + content.status.slice(1)}
-                    date={new Date(content.createdAt).toLocaleDateString()}
+                    key={post._id}
+                    title={post.content.slice(0, 50) || 'Untitled'}
+                    type={post.platforms[0] ?? 'post'}
+                    status={post.status.charAt(0).toUpperCase() + post.status.slice(1)}
+                    date={new Date(post.createdAt).toLocaleDateString()}
                   />
                 ))
               )}
@@ -115,29 +125,71 @@ export default function DashboardPage() {
           <section>
             <h2 className="text-xl font-semibold mb-6">Performance Chart</h2>
             <Card className="h-[300px] flex items-center justify-center text-muted-foreground relative">
-              <div className="text-center">
-                <span className="text-3xl">📊</span>
-                <div>Analytics Chart Stub</div>
-                <div className="text-xs mt-2">Available on Pro plan</div>
-              </div>
-              <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center rounded-xl">
-                <Button
-                  size="sm"
-                  onClick={() => router.push('/pricing')}
-                  className="bg-foreground text-background hover:bg-foreground/90 text-xs font-bold uppercase"
-                >
-                  Upgrade to see analytics
-                </Button>
-              </div>
+              {isPro ? (
+                <div className="text-center w-full px-4">
+                  <span className="text-3xl">📊</span>
+                  <div className="mt-2 text-sm font-medium">
+                    {performanceData === undefined
+                      ? 'Loading…'
+                      : `${dashboardMetrics?.posted ?? 0} posts published`}
+                  </div>
+                  {performanceData && performanceData.byPlatform.length > 0 && (
+                    <div className="mt-3 space-y-1 text-xs text-left">
+                      {performanceData.byPlatform.map((p) => (
+                        <div key={p.platform} className="flex justify-between">
+                          <span className="capitalize">{p.platform}</span>
+                          <span>{p.impressions.toLocaleString()} impressions</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div className="text-center">
+                    <span className="text-3xl">📊</span>
+                    <div>Analytics Chart Stub</div>
+                    <div className="text-xs mt-2">Available on Pro plan</div>
+                  </div>
+                  <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center rounded-xl">
+                    <Button
+                      size="sm"
+                      onClick={() => router.push('/pricing')}
+                      className="bg-foreground text-background hover:bg-foreground/90 text-xs font-bold uppercase"
+                    >
+                      Upgrade to see analytics
+                    </Button>
+                  </div>
+                </>
+              )}
             </Card>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold mb-6">Scheduled Today</h2>
-            <Card className="p-8 text-center text-muted-foreground">
-              <span className="text-2xl">📅</span>
-              <p className="mt-2 text-sm">No posts scheduled for today</p>
-            </Card>
+            {scheduledToday === undefined ? (
+              <Card className="p-8 text-center text-muted-foreground">
+                <p className="text-sm">Loading…</p>
+              </Card>
+            ) : scheduledToday.length === 0 ? (
+              <Card className="p-8 text-center text-muted-foreground">
+                <span className="text-2xl">📅</span>
+                <p className="mt-2 text-sm">No posts scheduled for today</p>
+              </Card>
+            ) : (
+              <Card className="p-4 flex flex-col gap-2">
+                {scheduledToday.map((post) => (
+                  <div key={post._id} className="flex flex-col gap-1 border-b last:border-0 pb-2 last:pb-0">
+                    <p className="text-sm font-medium truncate">{post.content.slice(0, 60)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(post.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {' · '}
+                      {post.platforms.join(', ')}
+                    </p>
+                  </div>
+                ))}
+              </Card>
+            )}
           </section>
         </div>
       </div>
