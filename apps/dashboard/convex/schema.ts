@@ -169,6 +169,36 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_topic", ["topic"]),
 
+  savedVariants: defineTable({
+    userId: v.string(),
+    assetType: v.union(v.literal("text"), v.literal("image"), v.literal("video")),
+    generationJobId: v.optional(v.id("generationJobs")),
+    content: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    videoUrl: v.optional(v.string()),
+    prompt: v.optional(v.string()),
+    model: v.optional(v.string()),
+    metadata: v.optional(v.any()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_type", ["userId", "assetType"])
+    .index("by_job", ["generationJobId"]),
+
+  generationHistory: defineTable({
+    userId: v.string(),
+    assetType: v.union(v.literal("text"), v.literal("image"), v.literal("video")),
+    generationJobId: v.optional(v.id("generationJobs")),
+    action: v.union(v.literal("generate"), v.literal("regenerate"), v.literal("retry")),
+    prompt: v.optional(v.string()),
+    model: v.optional(v.string()),
+    result: v.optional(v.string()),
+    cost: v.optional(v.number()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_job", ["generationJobId"]),
+
   contentSessions: defineTable({
     userId: v.string(),
     name: v.string(),

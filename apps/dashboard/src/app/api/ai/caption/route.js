@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+import { generateText } from 'ai';
+import { vertex } from '@ai-sdk/google-vertex';
 
 export async function POST(req) {
   const { userId, has } = await auth();
@@ -17,14 +16,12 @@ export async function POST(req) {
   try {
     const { topic, template, tone = 'engaging', platform = 'tiktok' } = await req.json();
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-
     const prompt = `
       Create a social media caption and hashtags for a ${platform} post.
       Topic: ${topic}
       Template Type: ${template}
       Tone: ${tone}
-      
+
       Return the result as a JSON object with:
       {
         "caption": "...",
@@ -33,10 +30,11 @@ export async function POST(req) {
       }
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
+    const { text } = await generateText({
+      model: vertex('gemini-1.5-flash'),
+      prompt,
+    });
+
     // Extract JSON from response (Gemini sometimes wraps it in markdown blocks)
     const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const data = JSON.parse(jsonStr);

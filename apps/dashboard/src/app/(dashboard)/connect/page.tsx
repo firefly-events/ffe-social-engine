@@ -20,7 +20,15 @@ const PLATFORMS: PlatformMeta[] = [
   { id: 'youtube',   name: 'YouTube',     color: 'bg-red-600 text-white' },
 ];
 
-function ConnectPageInner() {
+export default function ConnectPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-zinc-400">Loading...</div>}>
+      <ConnectPageContent />
+    </Suspense>
+  );
+}
+
+function ConnectPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -200,10 +208,3 @@ function ConnectPageInner() {
   );
 }
 
-export default function ConnectPage() {
-  return (
-    <Suspense fallback={<div className="py-8 text-center text-slate-400 text-sm">Loading...</div>}>
-      <ConnectPageInner />
-    </Suspense>
-  );
-}

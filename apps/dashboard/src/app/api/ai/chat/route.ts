@@ -1,23 +1,23 @@
-import { streamText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { streamText, type LanguageModel } from 'ai';
+import { vertex } from '@ai-sdk/google-vertex';
 import { anthropic } from '@ai-sdk/anthropic';
 import { auth } from '@clerk/nextjs/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-function getModel(modelSpec: string) {
+function getModel(modelSpec: string): LanguageModel {
   switch (modelSpec) {
     case 'gemini-flash':
-      return google('gemini-1.5-flash');
+      return vertex('gemini-1.5-flash') as unknown as LanguageModel;
     case 'gemini-pro':
-      return google('gemini-1.5-pro');
+      return vertex('gemini-1.5-pro') as unknown as LanguageModel;
     case 'claude-haiku':
-      return anthropic('claude-haiku-4-5-20251001');
+      return anthropic('claude-haiku-4-5-20251001') as unknown as LanguageModel;
     case 'claude-sonnet':
-      return anthropic('claude-sonnet-4-6');
+      return anthropic('claude-sonnet-4-6') as unknown as LanguageModel;
     default:
-      return google('gemini-1.5-flash');
+      return vertex('gemini-1.5-flash') as unknown as LanguageModel;
   }
 }
 
