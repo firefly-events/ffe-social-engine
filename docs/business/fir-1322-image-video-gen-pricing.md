@@ -10,8 +10,8 @@ This research compares current market rates for high-quality image and video gen
 | :--- | :--- | :--- | :--- |
 | **Grok Imagine (xAI)** | Standard | $0.02 | OpenAI SDK compatible. |
 | | Pro | $0.07 | $25 signup credit, up to $150/mo credit for data sharing. |
-| **Gemini Imagen 3** | 3 Pro | $0.134 (per 1K) | Vertex AI Multimodal API. |
-| | 3.1 Flash | $0.067 (per 1K) | |
+| **Gemini Imagen 3** | Standard | $0.03 | Vertex AI Imagen 3 Standard. High-quality photorealism. |
+| | Fast | $0.03 | Vertex AI Imagen 3 Fast. Optimized for speed. |
 | **Replicate FLUX.1** | Schnell | $0.003 | Cheapest high-quality option. |
 | | Pro | $0.04 | |
 | | FLUX.2 Pro | $0.055 | |
@@ -45,28 +45,38 @@ This research compares current market rates for high-quality image and video gen
 
 ## Strategic Recommendations for Social Engine
 
-Based on the data above, the following providers are recommended for each tier of the Social Engine platform:
+Based on the 6-tier architecture defined in GEMINI.md, the following providers and constraints are recommended:
 
-### 1. Free Tier (Trial)
+### 1. Free Tier
+- **Constraint:** **Export-only (copy caption + download video, no direct posting).**
 - **Recommendation:** **Replicate FLUX.1 Schnell ($0.003/img)**
-- **Rationale:** Lowest cost per image that still maintains high output quality. Perfect for non-commercial or trial usage where margins are tight.
+- **Rationale:** Lowest cost per image that still maintains high output quality. Perfect for the "try-one-free" mechanic where margins are tight and users must manually export content.
 
-### 2. Pro Tier
-- **Recommendation:** **Grok Imagine Standard ($0.02/img)** or **FLUX.1 Pro ($0.04/img)**
-- **Rationale:** Grok offers excellent performance with OpenAI compatibility, while FLUX.1 Pro provides a balanced quality-to-price ratio for regular subscribers.
+### 2. Starter Tier ($9.99/mo)
+- **Recommendation:** **Replicate FLUX.1 Schnell ($0.003/img)** or **Grok Imagine Standard ($0.02/img)**
+- **Rationale:** Maintains low operational cost while enabling direct posting capabilities.
 
-### 3. Premium / Quality-First
-- **Recommendation:** **Ideogram Quality ($0.09/img)** or **Gemini 3 Pro ($0.134/1K)**
-- **Rationale:** Best-in-class aesthetics for enterprise users or high-end agency clients who prioritize realism and artistic control over unit cost.
+### 3. Pro Tier ($14.99/mo)
+- **Recommendation:** **Grok Imagine Standard ($0.02/img)** or **Gemini Imagen 3 Fast ($0.03/img)**
+- **Rationale:** Balanced quality and performance for regular users.
 
-### 4. Enterprise / "Bring Your Own Key" (BYO Key)
-- **Feature:** Allow users to input their own API keys for:
+### 4. Business Tier ($29.99/mo)
+- **Recommendation:** **DALL-E 3 Standard ($0.04/img)** or **Gemini Imagen 3 Standard ($0.03/img)**
+- **Rationale:** Higher quality outputs for professional social media management.
+
+### 5. Growth/Agency Tier ($299/mo)
+- **Recommendation:** **Ideogram Quality ($0.09/img)** or **FLUX.2 Pro ($0.055/img)**
+- **Rationale:** Premium aesthetics for high-end agency clients who prioritize realism and artistic control.
+
+### 6. Enterprise Tier
+- **Feature:** **Bring Your Own Key (BYO Key)**
+- **Providers:** Allow users to input their own API keys for:
   - OpenAI (DALL-E 3)
   - xAI (Grok)
-  - Google (Gemini/Imagen)
+  - Google (Gemini/Imagen 3)
   - Replicate (FLUX)
   - Stability AI
-- **Rationale:** Reduces platform risk and operational cost while giving power users flexibility.
+- **Rationale:** Reduces platform risk and operational cost while giving power users maximum flexibility.
 
 ---
 
