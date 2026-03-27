@@ -103,6 +103,13 @@ test.describe('Landing page content', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
+    // Wait for next-themes to hydrate before asserting styles
+    await page.waitForFunction(() => {
+      return document.documentElement.dataset.theme !== undefined ||
+             document.documentElement.classList.contains('light') ||
+             document.documentElement.classList.contains('dark');
+    });
+
     // Verify at least one stylesheet is loaded
     const stylesheets = await page.evaluate(() =>
       Array.from(document.querySelectorAll('link[rel="stylesheet"], style')).length
