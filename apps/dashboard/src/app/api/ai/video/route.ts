@@ -12,6 +12,16 @@ export async function POST(req: Request) {
     const { prompt, duration = 6, aspectRatio = '9:16' } = await req.json();
     if (!prompt) return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
 
+    const isDemoMode = !process.env.HAILUO_API_KEY;
+
+    // If using demo path, don't record as real generation
+    if (isDemoMode) {
+      const demoJobId = `demo_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      // Run demo async without recording a real Hailuo job
+      generateVideoAsync(null, userId, prompt, duration, aspectRatio, demoJobId, true);
+      return NextResponse.json({ jobId: demoJobId, status: 'processing', demo: true });
+    }
+
     // Create a job in Convex
     // We use the topic field as a unique jobId for polling (as per existing getByExternalId pattern)
     const jobId = `job_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -23,8 +33,8 @@ export async function POST(req: Request) {
       status: 'processing',
     });
 
-    // Fire and forget generation (v0 scope)
-    generateVideoAsync(job._id, userId, prompt, duration, aspectRatio, jobId);
+    // Run async without blocking the response (fire-and-forget is intentional for long-running video gen)
+    void generateVideoAsync(job._id, userId, prompt, duration, aspectRatio, jobId, false);
 
     return NextResponse.json({ jobId, status: 'processing' });
   } catch (error) {
@@ -33,13 +43,13 @@ export async function POST(req: Request) {
   }
 }
 
-async function generateVideoAsync(convexJobId: any, userId: string, prompt: string, duration: number, aspectRatio: string, jobId: string) {
+async function generateVideoAsync(convexJobId: any, userId: string, prompt: string, duration: number, aspectRatio: string, jobId: string, isDemo: boolean) {
   const HAILUO_API_KEY = process.env.HAILUO_API_KEY;
 
   try {
     let videoUrl: string | undefined;
 
-    if (HAILUO_API_KEY) {
+    if (!isDemo && HAILUO_API_KEY) {
       const response = await fetch('https://api.minimaxi.chat/v1/video_generation', {
         method: 'POST',
         headers: {
@@ -84,7 +94,7 @@ async function generateVideoAsync(convexJobId: any, userId: string, prompt: stri
       videoUrl = 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
     }
 
-    if (videoUrl) {
+    if (videoUrl && !isDemo && convexJobId) {
       // Update the job in Convex
       await convexClient.mutation(api.generationJobs.update, {
         id: convexJobId,
@@ -110,11 +120,13 @@ async function generateVideoAsync(convexJobId: any, userId: string, prompt: stri
     }
   } catch (error) {
     console.error('generateVideoAsync error:', error);
-    await convexClient.mutation(api.generationJobs.update, {
-      id: convexJobId,
-      status: 'error',
-      error: String(error),
-      completedAt: Date.now(),
-    });
+    if (!isDemo && convexJobId) {
+      await convexClient.mutation(api.generationJobs.update, {
+        id: convexJobId,
+        status: 'error',
+        error: String(error),
+        completedAt: Date.now(),
+      });
+    }
   }
 }

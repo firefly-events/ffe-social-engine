@@ -14,4 +14,4 @@ const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? '';
 // `next build` (which statically evaluates pages without real env vars) does
 // not crash. Routes that actually invoke convexClient at runtime will still
 // receive a proper runtime error if the env var is absent.
-export const convexClient = new ConvexHttpClient(convexUrl || 'https://placeholder.convex.cloud');
+export const convexClient = new ConvexHttpClient(convexUrl || 'https://placeholder.invalid');

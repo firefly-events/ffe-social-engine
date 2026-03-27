@@ -63,9 +63,8 @@ describe("Video AI API", () => {
       expect(data.error).toBe("prompt is required");
     });
 
-    it("should start a video generation job", async () => {
+    it("should start a video generation job in demo mode when HAILUO_API_KEY is absent", async () => {
       (auth as any).mockResolvedValue({ userId: "user_123" });
-      (convexClient.mutation as any).mockResolvedValue({ _id: "job_id_123" });
 
       const req = new Request("http://localhost/api/ai/video", {
         method: "POST",
@@ -78,6 +77,30 @@ describe("Video AI API", () => {
       expect(res.status).toBe(200);
       expect(data.jobId).toBeDefined();
       expect(data.status).toBe("processing");
+      expect(data.demo).toBe(true);
+      // Demo mode must NOT record a real Hailuo generation job in Convex
+      expect(convexClient.mutation).not.toHaveBeenCalledWith("generationJobs:create", expect.anything());
+    });
+
+    it("should start a real Hailuo generation job when HAILUO_API_KEY is set", async () => {
+      process.env.HAILUO_API_KEY = "test_key";
+      (auth as any).mockResolvedValue({ userId: "user_123" });
+      (convexClient.mutation as any).mockResolvedValue({ _id: "job_id_123" });
+
+      const req = new Request("http://localhost/api/ai/video", {
+        method: "POST",
+        body: JSON.stringify({ prompt: "a cute cat playing with yarn" }),
+      });
+
+      const res = await POST(req);
+      const data = await res.json();
+
+      delete process.env.HAILUO_API_KEY;
+
+      expect(res.status).toBe(200);
+      expect(data.jobId).toBeDefined();
+      expect(data.status).toBe("processing");
+      expect(data.demo).toBeUndefined();
       expect(convexClient.mutation).toHaveBeenCalledWith("generationJobs:create", expect.objectContaining({
         userId: "user_123",
         type: "video",
