@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { GuidedUnlockWizard } from "../../../components/GuidedUnlockWizard";
+import { trackEvent, ANALYTICS_EVENTS } from "@/lib/analytics";
 
 interface VoiceClone {
   id: string;
@@ -90,6 +91,11 @@ export default function VoicesPage() {
       setClones((prev) => [newClone, ...prev]);
       setCloneName("");
       if (fileInputRef.current) fileInputRef.current.value = "";
+      trackEvent(ANALYTICS_EVENTS.VOICE_CLONE_CREATED, {
+        clone_id: newClone.id,
+        clone_name: newClone.name,
+        source: 'voices_page',
+      });
     } catch (err) {
       console.error("Voice clone error:", err);
       alert(err instanceof Error ? err.message : "Failed to clone voice.");
@@ -125,6 +131,11 @@ export default function VoicesPage() {
 
       const data = await res.json();
       setAudioUrl(data.audioUrl);
+      trackEvent(ANALYTICS_EVENTS.VOICE_SPEECH_GENERATED, {
+        clone_id: selectedClone.id,
+        text_length: text.trim().length,
+        source: 'voices_page',
+      });
     } catch (err) {
       console.error("Generate error:", err);
       alert(err instanceof Error ? err.message : "Failed to generate speech.");
@@ -138,6 +149,11 @@ export default function VoicesPage() {
     try {
       const res = await fetch(`/api/voice/${clone.id}`, { method: "DELETE" });
       if (res.ok || res.status === 204) {
+        trackEvent(ANALYTICS_EVENTS.VOICE_CLONE_DELETED, {
+          clone_id: clone.id,
+          clone_name: clone.name,
+          source: 'voices_page',
+        });
         setClones((prev) => prev.filter((c) => c.id !== clone.id));
         if (selectedClone?.id === clone.id) {
           setSelectedClone(null);

@@ -1,8 +1,16 @@
 'use client'
 
+import { useEffect } from 'react'
 import { PricingTable } from '@clerk/nextjs'
+import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 
 export default function PricingPage() {
+  useEffect(() => {
+    trackEvent(ANALYTICS_EVENTS.PRICING_CTA_CLICK, {
+      source: 'pricing_page_view',
+    })
+  }, [])
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="mx-auto max-w-6xl px-4 py-24">

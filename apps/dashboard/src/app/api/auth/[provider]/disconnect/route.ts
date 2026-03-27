@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 import { fetchMutation } from "convex/nextjs";
 import { api } from "@convex/_generated/api";
 import { isOAuthProvider } from "../../../../../lib/oauth/providers";
+import { getPostHogServer } from "../../../../../lib/posthog-server";
 
 export async function POST(
   _req: Request,
@@ -39,6 +40,19 @@ export async function POST(
     await fetchMutation(api.socialAccounts.deleteSocialAccount, {
       platform: provider,
     }, { token: convexToken ?? undefined });
+
+    const ph = getPostHogServer()
+    if (ph) {
+      ph.capture({
+        distinctId: userId,
+        event: 'se_social_disconnected',
+        properties: {
+          platform: 'web',
+          platform_id: provider,
+          source: 'api',
+        }
+      })
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {
