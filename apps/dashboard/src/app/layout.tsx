@@ -20,7 +20,7 @@ export default function RootLayout({
         <title>FFE Social Engine Dashboard</title>
       </head>
       <body className="m-0 bg-background text-foreground antialiased">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange>
           <ClerkProvider>
             <PostHogProvider>
               <ConvexClientProvider>

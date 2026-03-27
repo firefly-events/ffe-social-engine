@@ -1,42 +1,23 @@
 export default function QuickAction({ title, icon, color = '#333', onClick }: any) {
   return (
-    <div 
+    <div
       onClick={onClick}
-      style={{ 
-        flex: 1,
-        padding: '1.25rem', 
-        backgroundColor: 'white', 
-        borderRadius: '12px', 
-        border: '1px solid #ddd',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '1rem',
-        transition: 'transform 0.1s, border-color 0.1s'
-      }}
+      className="flex-1 p-5 bg-card text-card-foreground rounded-xl border border-border cursor-pointer flex items-center gap-4 transition-transform hover:-translate-y-0.5"
+      style={{ '--hover-border-color': color } as React.CSSProperties}
       onMouseEnter={(e) => {
         e.currentTarget.style.borderColor = color;
-        e.currentTarget.style.transform = 'translateY(-2px)';
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = '#ddd';
-        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.borderColor = '';
       }}
     >
-      <div style={{ 
-        width: '40px', 
-        height: '40px', 
-        borderRadius: '8px', 
-        backgroundColor: `${color}15`, 
-        color: color,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '1.25rem'
-      }}>
+      <div
+        className="w-10 h-10 rounded-lg flex items-center justify-center text-xl flex-shrink-0"
+        style={{ backgroundColor: `${color}20`, color }}
+      >
         {icon}
       </div>
-      <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>{title}</div>
+      <div className="font-semibold text-sm text-foreground">{title}</div>
     </div>
   );
 }

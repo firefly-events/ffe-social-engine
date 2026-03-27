@@ -237,3 +237,28 @@ test.describe('API health', () => {
     expect(status, `Expected 200 or 404, got ${status}`).toBeOneOf([200, 404]);
   });
 });
+
+test.describe('Theme toggle — persistence', () => {
+  /**
+   * Verifies that next-themes applies the correct class to <html> based on localStorage.
+   * Skipped for protected dashboard routes since Clerk dev key blocks auth.
+   * Tested on the public landing page where ThemeProvider is still active.
+   */
+  test('dark theme class applied when localStorage theme=dark', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.setItem('theme', 'dark'));
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    const htmlClass = await page.evaluate(() => document.documentElement.className);
+    expect(htmlClass, 'html should have dark class').toContain('dark');
+  });
+
+  test('light theme: html element does not have dark class', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => localStorage.setItem('theme', 'light'));
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    const htmlClass = await page.evaluate(() => document.documentElement.className);
+    expect(htmlClass, 'html should not have dark class in light mode').not.toContain('dark');
+  });
+});

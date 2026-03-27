@@ -1,4 +1,5 @@
 import UsageMeter from './UsageMeter';
+import Link from 'next/link';
 
 export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
   const navItems = [
@@ -17,83 +18,57 @@ export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
   const userTierIndex = tiers.indexOf(userTier);
 
   return (
-    <div style={{ 
-      width: '240px', 
-      height: '100vh', 
-      backgroundColor: '#1a1a1a', 
-      color: '#fff', 
-      padding: '1.5rem', 
-      display: 'flex', 
-      flexDirection: 'column',
-      position: 'fixed',
-      left: 0,
-      top: 0
-    }}>
-      <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '2.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+    <div className="w-60 h-screen bg-card text-card-foreground flex flex-col p-6 fixed left-0 top-0 border-r border-border">
+      <div className="text-2xl font-bold mb-10 flex items-center gap-2">
         🚀 SocialEngine
       </div>
 
-      <nav style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <nav className="flex-1 flex flex-col gap-1">
         {navItems.map(item => {
           const isLocked = tiers.indexOf(item.minTier) > userTierIndex;
           return (
-            <a 
+            <Link
               key={item.label}
               href={isLocked ? '#' : item.href}
-              style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.75rem', 
-                padding: '0.75rem', 
-                borderRadius: '8px', 
-                color: isLocked ? '#666' : '#ccc',
-                textDecoration: 'none',
-                backgroundColor: 'transparent',
-                cursor: isLocked ? 'not-allowed' : 'pointer'
-              }}
+              className={[
+                'flex items-center gap-3 px-3 py-3 rounded-lg text-sm no-underline transition-colors',
+                isLocked
+                  ? 'text-muted-foreground cursor-not-allowed'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer'
+              ].join(' ')}
             >
               <span>{item.icon}</span>
-              <span style={{ flexGrow: 1 }}>{item.label}</span>
-              {isLocked && <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{item.minTier}</span>}
-            </a>
+              <span className="flex-1">{item.label}</span>
+              {isLocked && (
+                <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                  {item.minTier}
+                </span>
+              )}
+            </Link>
           );
         })}
       </nav>
 
-      <div style={{ marginTop: 'auto', paddingTop: '2rem', borderTop: '1px solid #333' }}>
-        <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#888' }}>Usage</h4>
+      <div className="mt-auto pt-8 border-t border-border">
+        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Usage</h4>
         <UsageMeter label="AI Captions" used={usage.captions || 0} limit={usage.captionLimit || 5} />
         <UsageMeter label="Video Gen" used={usage.videos || 0} limit={usage.videoLimit || 1} />
-        
-        <div style={{ 
-          marginTop: '1.5rem', 
-          padding: '1rem', 
-          backgroundColor: '#333', 
-          borderRadius: '8px',
-          textAlign: 'center'
-        }}>
+
+        <div className="mt-6 p-4 bg-muted rounded-lg text-center">
           {userTier === 'FREE' ? (
             <>
-              <p style={{ fontSize: '0.8rem', margin: '0 0 0.75rem 0' }}>Upgrade for more features</p>
-              <a 
+              <p className="text-xs text-muted-foreground mb-3">Upgrade for more features</p>
+              <Link
                 href="/pricing"
-                style={{ 
-                  display: 'block', 
-                  padding: '0.5rem', 
-                  backgroundColor: '#8e44ad', 
-                  color: 'white', 
-                  borderRadius: '4px', 
-                  textDecoration: 'none',
-                  fontSize: '0.85rem',
-                  fontWeight: 'bold'
-                }}
+                className="block py-2 px-3 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm font-bold no-underline transition-colors"
               >
                 Upgrade Now
-              </a>
+              </Link>
             </>
           ) : (
-            <div style={{ fontSize: '0.85rem' }}>
-              <span style={{ color: '#888' }}>Plan:</span> <strong>{userTier}</strong>
+            <div className="text-sm">
+              <span className="text-muted-foreground">Plan:</span>{' '}
+              <strong className="text-foreground">{userTier}</strong>
             </div>
           )}
         </div>

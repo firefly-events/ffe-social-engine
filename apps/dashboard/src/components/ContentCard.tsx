@@ -1,59 +1,40 @@
 export default function ContentCard({ title, type, status, date, thumbnail }: any) {
-  const statusColors = {
-    'Draft': { bg: '#eee', text: '#666' },
-    'Scheduled': { bg: '#fff7e6', text: '#fa8c16' },
-    'Posted': { bg: '#f6ffed', text: '#52c41a' },
-    'Failed': { bg: '#fff1f0', text: '#f5222d' }
+  const statusClasses: Record<string, string> = {
+    'Draft': 'bg-muted text-muted-foreground',
+    'Scheduled': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    'Posted': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    'Failed': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   };
 
-  const style = statusColors[status] || statusColors.Draft;
+  const statusClass = statusClasses[status] || statusClasses.Draft;
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '1rem', 
-      padding: '1rem', 
-      backgroundColor: 'white', 
-      borderRadius: '8px', 
-      border: '1px solid #eee',
-      marginBottom: '0.75rem'
-    }}>
-      <div style={{ 
-        width: '60px', 
-        height: '60px', 
-        borderRadius: '6px', 
-        backgroundColor: '#eee',
-        backgroundImage: thumbnail ? `url(${thumbnail})` : 'none',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        flexShrink: 0
-      }} />
-      
-      <div style={{ flexGrow: 1 }}>
-        <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{title}</div>
-        <div style={{ fontSize: '0.8rem', color: '#999' }}>{type} • {date}</div>
+    <div className="flex items-center gap-4 p-4 bg-card border border-border rounded-lg mb-3">
+      <div
+        className="w-15 h-15 rounded-md bg-muted flex-shrink-0"
+        style={{
+          width: '60px',
+          height: '60px',
+          backgroundImage: thumbnail ? `url(${thumbnail})` : 'none',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      />
+
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-foreground mb-1 truncate">{title}</div>
+        <div className="text-xs text-muted-foreground">{type} • {date}</div>
       </div>
-      
-      <div style={{ 
-        padding: '0.2rem 0.6rem', 
-        borderRadius: '4px', 
-        fontSize: '0.75rem', 
-        fontWeight: 'bold',
-        backgroundColor: style.bg,
-        color: style.text
-      }}>
+
+      <span className={`px-2 py-0.5 rounded text-xs font-bold ${statusClass}`}>
         {status}
-      </div>
-      
-      <button style={{ 
-        background: 'none', 
-        border: 'none', 
-        cursor: 'pointer', 
-        fontSize: '1.2rem', 
-        color: '#ccc',
-        padding: '0.5rem'
-      }}>
+      </span>
+
+      <button
+        type="button"
+        aria-label="More options"
+        className="text-muted-foreground hover:text-foreground p-2 bg-transparent border-none cursor-pointer text-lg"
+      >
         ⋮
       </button>
     </div>
