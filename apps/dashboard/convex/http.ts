@@ -72,6 +72,17 @@ http.route({
       await ctx.runMutation(api.users.softDeleteUser, {
         clerkId: data.id,
       });
+    } else if (type === 'subscription.created' || type === 'subscription.updated') {
+      const VALID_PLANS = ['free', 'starter', 'basic', 'pro', 'business', 'agency'] as const;
+      type ValidPlan = typeof VALID_PLANS[number];
+      const subData = data as unknown as { user_id?: string; plan?: string };
+      const planValue = subData.plan?.toLowerCase() as ValidPlan | undefined;
+      if (subData.user_id && planValue && (VALID_PLANS as readonly string[]).includes(planValue)) {
+        await ctx.runMutation(api.users.updatePlan, {
+          clerkId: subData.user_id,
+          plan: planValue,
+        });
+      }
     }
 
     return new Response(null, { status: 200 });

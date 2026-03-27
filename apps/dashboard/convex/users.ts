@@ -136,6 +136,35 @@ export const markFreeTrialUsed = mutation({
   },
 });
 
+const VALID_PLANS = ['free', 'starter', 'basic', 'pro', 'business', 'agency'] as const;
+type ValidPlan = typeof VALID_PLANS[number];
+
+/**
+ * Update the subscription plan for a user identified by Clerk ID.
+ * Called by the Clerk webhook when a subscription event fires.
+ */
+export const updatePlan = mutation({
+  args: {
+    clerkId: v.string(),
+    plan: v.union(
+      v.literal('free'),
+      v.literal('starter'),
+      v.literal('basic'),
+      v.literal('pro'),
+      v.literal('business'),
+      v.literal('agency'),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+    if (!user) throw new Error("User not found");
+    await ctx.db.patch(user._id, { plan: args.plan, updatedAt: Date.now() });
+  },
+});
+
 /**
  * Update the Zernio profile ID for a user identified by Clerk ID.
  */
