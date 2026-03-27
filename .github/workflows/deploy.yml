@@ -37,9 +37,41 @@ jobs:
           workload_identity_provider: ${{ env.WIF_PROVIDER }}
           service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
 
+      # Pull secrets from GCP Secret Manager
+      - id: secrets
+        uses: google-github-actions/get-secretmanager-secrets@v2
+        with:
+          secrets: |-
+            clerk-publishable-key:ffe-cicd/social-engine-dev-clerk-publishable-key
+            clerk-secret-key:ffe-cicd/social-engine-dev-clerk-secret-key
+            clerk-webhook-secret:ffe-cicd/social-engine-dev-clerk-webhook-secret
+            clerk-jwt-issuer-domain:ffe-cicd/social-engine-dev-clerk-jwt-issuer-domain
+            convex-url:ffe-cicd/social-engine-${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}-convex-url
+            convex-deployment:ffe-cicd/social-engine-${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}-convex-deployment
+            convex-deploy-key:ffe-cicd/social-engine-${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}-convex-deploy-key
+            zernio-api-key:ffe-cicd/social-engine-dev-zernio-api-key
+            sentry-dsn:ffe-cicd/social-engine-dev-sentry-dsn
+            posthog-key:ffe-cicd/social-engine-dev-posthog-key
+            vertex-ai-sa-key:ffe-cicd/social-engine-${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}-vertex-ai-sa-key
+            google-cloud-project:ffe-cicd/social-engine-${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}-google-cloud-project
+            google-maps-api-key:ffe-cicd/social-engine-${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}-google-maps-key
+
       - name: Sync Env to Vercel
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          SYNC_CLERK_PUBLISHABLE_KEY: ${{ steps.secrets.outputs.clerk-publishable-key }}
+          SYNC_CLERK_SECRET_KEY: ${{ steps.secrets.outputs.clerk-secret-key }}
+          SYNC_CLERK_WEBHOOK_SECRET: ${{ steps.secrets.outputs.clerk-webhook-secret }}
+          SYNC_CLERK_JWT_ISSUER_DOMAIN: ${{ steps.secrets.outputs.clerk-jwt-issuer-domain }}
+          SYNC_CONVEX_URL: ${{ steps.secrets.outputs.convex-url }}
+          SYNC_CONVEX_DEPLOYMENT: ${{ steps.secrets.outputs.convex-deployment }}
+          SYNC_CONVEX_DEPLOY_KEY: ${{ steps.secrets.outputs.convex-deploy-key }}
+          SYNC_ZERNIO_API_KEY: ${{ steps.secrets.outputs.zernio-api-key }}
+          SYNC_SENTRY_DSN: ${{ steps.secrets.outputs.sentry-dsn }}
+          SYNC_POSTHOG_KEY: ${{ steps.secrets.outputs.posthog-key }}
+          SYNC_VERTEX_AI_SA_KEY: ${{ steps.secrets.outputs.vertex-ai-sa-key }}
+          SYNC_GOOGLE_CLOUD_PROJECT: ${{ steps.secrets.outputs.google-cloud-project }}
+          SYNC_GOOGLE_MAPS_API_KEY: ${{ steps.secrets.outputs.google-maps-api-key }}
         run: |
           ./scripts/sync-vercel.sh ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
 

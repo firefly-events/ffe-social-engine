@@ -43,41 +43,47 @@ sync_env() {
   for target in ${TARGETS}; do
     local attempt=0
     local max_attempts=3
+    local synced=0
     # Retry loop handles transient Vercel API errors (429, 5xx, network blips)
     while (( attempt < max_attempts )); do
       attempt=$(( attempt + 1 ))
       # Remove existing value first to ensure clean update
       npx vercel env rm "${name}" "${target}" ${VERCEL_FLAGS} --yes 2>/dev/null || true
       if printf '%s' "${value}" | npx vercel env add "${name}" "${target}" ${VERCEL_FLAGS} 2>/dev/null; then
+        synced=1
         break
       fi
       echo "  Attempt ${attempt}/${max_attempts} failed for ${name} (${target}), retrying..."
       sleep 2
     done
+    if (( ! synced )); then
+      echo "ERROR: failed to sync ${name} to ${target} after ${max_attempts} attempts" >&2
+      return 1
+    fi
   done
 }
 
 # --- Auth/Identity ---
-sync_env "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" "${SYNC_CLERK_PUBLISHABLE_KEY:-}"
-sync_env "CLERK_SECRET_KEY"                  "${SYNC_CLERK_SECRET_KEY:-}"
-sync_env "CLERK_WEBHOOK_SECRET"              "${SYNC_CLERK_WEBHOOK_SECRET:-}"
-sync_env "CLERK_JWT_ISSUER_DOMAIN"           "https://regular-ant-26.clerk.accounts.dev"
+sync_env "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" "${SYNC_CLERK_PUBLISHABLE_KEY:-${CLERK_PUBLISHABLE_KEY:-}}"
+sync_env "CLERK_SECRET_KEY"                  "${SYNC_CLERK_SECRET_KEY:-${CLERK_SECRET_KEY:-}}"
+sync_env "CLERK_WEBHOOK_SECRET"              "${SYNC_CLERK_WEBHOOK_SECRET:-${CLERK_WEBHOOK_SECRET:-}}"
+sync_env "CLERK_JWT_ISSUER_DOMAIN"           "${SYNC_CLERK_JWT_ISSUER_DOMAIN:-${CLERK_JWT_ISSUER_DOMAIN:-}}"
 
 # --- Convex ---
-sync_env "NEXT_PUBLIC_CONVEX_URL"            "${SYNC_CONVEX_URL:-}"
-sync_env "CONVEX_DEPLOYMENT"                 "${SYNC_CONVEX_DEPLOYMENT:-}"
-sync_env "CONVEX_DEPLOY_KEY"                 "${SYNC_CONVEX_DEPLOY_KEY:-}"
+sync_env "NEXT_PUBLIC_CONVEX_URL"            "${SYNC_CONVEX_URL:-${CONVEX_URL:-}}"
+sync_env "CONVEX_DEPLOYMENT"                 "${SYNC_CONVEX_DEPLOYMENT:-${CONVEX_DEPLOYMENT:-}}"
+sync_env "CONVEX_DEPLOY_KEY"                 "${SYNC_CONVEX_DEPLOY_KEY:-${CONVEX_DEPLOY_KEY:-}}"
 
 # --- Integrations ---
-sync_env "ZERNIO_API_KEY"                    "${SYNC_ZERNIO_API_KEY:-}"
-sync_env "NEXT_PUBLIC_SENTRY_DSN"            "${SYNC_SENTRY_DSN:-}"
-sync_env "SENTRY_DSN"                        "${SYNC_SENTRY_DSN:-}"
-sync_env "NEXT_PUBLIC_POSTHOG_KEY"           "${SYNC_POSTHOG_KEY:-}"
+sync_env "ZERNIO_API_KEY"                    "${SYNC_ZERNIO_API_KEY:-${ZERNIO_API_KEY:-}}"
+sync_env "NEXT_PUBLIC_SENTRY_DSN"            "${SYNC_SENTRY_DSN:-${SENTRY_DSN:-}}"
+sync_env "SENTRY_DSN"                        "${SYNC_SENTRY_DSN:-${SENTRY_DSN:-}}"
+sync_env "NEXT_PUBLIC_POSTHOG_KEY"           "${SYNC_POSTHOG_KEY:-${POSTHOG_KEY:-}}"
 
 # --- Google / Vertex AI ---
-sync_env "GOOGLE_SERVICE_ACCOUNT_KEY"        "${SYNC_VERTEX_AI_SA_KEY:-}"
-sync_env "GOOGLE_CLOUD_PROJECT"              "${SYNC_GOOGLE_CLOUD_PROJECT:-}"
-sync_env "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"   "${SYNC_GOOGLE_MAPS_API_KEY:-}"
+sync_env "GOOGLE_SERVICE_ACCOUNT_KEY"        "${SYNC_VERTEX_AI_SA_KEY:-${VERTEX_AI_SA_KEY:-}}"
+sync_env "GOOGLE_CLOUD_PROJECT"              "${SYNC_GOOGLE_CLOUD_PROJECT:-${GOOGLE_CLOUD_PROJECT:-}}"
+sync_env "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"   "${SYNC_GOOGLE_MAPS_API_KEY:-${GOOGLE_MAPS_API_KEY:-}}"
 
 # --- Hardcoded values ---
 sync_env "NEXT_PUBLIC_POSTHOG_HOST"             "https://us.posthog.com"
@@ -92,7 +98,8 @@ sync_env "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL"  "/dashboard"
 if [[ "${SYNC_ENV}" == "production" ]]; then
   sync_env "NEXT_PUBLIC_APP_URL" "https://social-engine-five.vercel.app"
 else
-  sync_env "NEXT_PUBLIC_APP_URL" "https://social-engine-five-git-${GITHUB_HEAD_REF:-preview}.vercel.app"
+  BRANCH_SAFE="$(printf '%s' "${GITHUB_HEAD_REF:-preview}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]+/-/g; s/^-+//; s/-+$//')"
+  sync_env "NEXT_PUBLIC_APP_URL" "https://social-engine-five-git-${BRANCH_SAFE:-preview}.vercel.app"
 fi
 
 echo "All Vercel env vars synced for: ${TARGETS}"
