@@ -24,6 +24,28 @@ export function isWithinWorkflowLimit(tier: Tier, currentCount: number): boolean
   return currentCount < limit
 }
 
+// Storage quota limits in bytes per tier (FIR-1344)
+export const STORAGE_LIMITS_BYTES: Record<Tier, number> = {
+  free: 100 * 1024 * 1024,          // 100 MB
+  starter: 1 * 1024 * 1024 * 1024,  // 1 GB
+  pro: 10 * 1024 * 1024 * 1024,     // 10 GB
+  business: 50 * 1024 * 1024 * 1024, // 50 GB
+  agency: Infinity,
+}
+
+export function getStorageLimit(tier: Tier): number {
+  return STORAGE_LIMITS_BYTES[tier] ?? STORAGE_LIMITS_BYTES.free
+}
+
+export function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  if (bytes === Infinity) return 'Unlimited'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
+}
+
 /** Map a Convex user plan string to a Tier. Falls back to 'free'. */
 export function planToTier(plan: string | undefined | null): Tier {
   const normalized = (plan ?? '').toLowerCase()

@@ -97,6 +97,20 @@ export const getCurrentUser = query({
 
 /**
  * Query a user by their Clerk ID. Useful for server-side lookups.
+ * Alias used by upload/quota API routes (FIR-1344).
+ */
+export const getByClerkId = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+  },
+});
+
+/**
+ * Query a user by their Clerk ID. Useful for server-side lookups.
  */
 export const getUser = query({
   args: { clerkId: v.string() },
