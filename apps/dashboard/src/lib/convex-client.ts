@@ -10,6 +10,6 @@ import { ConvexHttpClient } from "convex/browser";
 
 // Use a placeholder URL during build time; the real URL is required at runtime.
 // Throwing at module load time breaks Next.js static page data collection.
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? "https://placeholder.convex.cloud";
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? "https://placeholder.invalid";
 
 export const convexClient = new ConvexHttpClient(convexUrl);
