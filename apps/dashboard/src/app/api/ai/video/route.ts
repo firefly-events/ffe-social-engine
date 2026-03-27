@@ -9,8 +9,22 @@ export async function POST(req: Request) {
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const { prompt, duration = 6, aspectRatio = '9:16' } = await req.json();
-    if (!prompt) return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
+    const body = await req.json();
+    const { prompt, duration = 6, aspectRatio = '9:16' } = body;
+
+    if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
+      return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
+    }
+
+    const VALID_ASPECT_RATIOS = ['9:16', '16:9', '1:1'];
+    if (!VALID_ASPECT_RATIOS.includes(aspectRatio)) {
+      return NextResponse.json({ error: `aspectRatio must be one of: ${VALID_ASPECT_RATIOS.join(', ')}` }, { status: 400 });
+    }
+
+    const numDuration = Number(duration);
+    if (isNaN(numDuration) || numDuration < 1 || numDuration > 60) {
+      return NextResponse.json({ error: 'duration must be between 1 and 60 seconds' }, { status: 400 });
+    }
 
     const isDemoMode = !process.env.HAILUO_API_KEY;
 

@@ -5,9 +5,11 @@ import { convexClient } from '@/lib/convex-client';
 import { api } from '@convex/_generated/api';
 import { generateId } from '@/lib/api-helpers';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
 export async function POST(req: Request) {
+  if (!process.env.GEMINI_API_KEY) {
+    return NextResponse.json({ error: 'GEMINI_API_KEY is not configured' }, { status: 500 });
+  }
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

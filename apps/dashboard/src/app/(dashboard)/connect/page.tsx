@@ -29,7 +29,7 @@ const PLATFORMS: PlatformMeta[] = [
 
 export default function ConnectPage() {
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <ConnectPageInner />
     </Suspense>
   );

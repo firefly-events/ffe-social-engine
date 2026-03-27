@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { POST } from "../src/app/api/ai/video/route";
-import { GET } from "../src/app/api/ai/video/[jobId]/route";
-import { auth } from "@clerk/nextjs/server";
-import { convexClient } from "@/lib/convex-client";
 
-// Mock dependencies
+// Mock dependencies — must be defined before importing route handlers
 vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(),
 }));
@@ -32,6 +28,12 @@ vi.mock("@convex/_generated/api", () => ({
 vi.mock("@/lib/api-helpers", () => ({
   generateId: vi.fn(() => "cnt_456"),
 }));
+
+// Import route handlers AFTER mocks are defined
+import { POST } from "../src/app/api/ai/video/route";
+import { GET } from "../src/app/api/ai/video/[jobId]/route";
+import { auth } from "@clerk/nextjs/server";
+import { convexClient } from "@/lib/convex-client";
 
 describe("Video AI API", () => {
   beforeEach(() => {
@@ -61,6 +63,32 @@ describe("Video AI API", () => {
       expect(res.status).toBe(400);
       const data = await res.json();
       expect(data.error).toBe("prompt is required");
+    });
+
+    it("should return 400 for invalid aspectRatio", async () => {
+      (auth as any).mockResolvedValue({ userId: "user_123" });
+      const req = new Request("http://localhost/api/ai/video", {
+        method: "POST",
+        body: JSON.stringify({ prompt: "test", aspectRatio: "4:3" }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toContain("aspectRatio");
+    });
+
+    it("should return 400 for invalid duration", async () => {
+      (auth as any).mockResolvedValue({ userId: "user_123" });
+      const req = new Request("http://localhost/api/ai/video", {
+        method: "POST",
+        body: JSON.stringify({ prompt: "test", duration: 999 }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toContain("duration");
     });
 
     it("should start a video generation job in demo mode when HAILUO_API_KEY is absent", async () => {
@@ -120,10 +148,10 @@ describe("Video AI API", () => {
     it("should return 404 if job not found", async () => {
       (auth as any).mockResolvedValue({ userId: "user_123" });
       (convexClient.query as any).mockResolvedValue(null);
-      
+
       const params = Promise.resolve({ jobId: "job_not_found" });
       const res = await GET(new Request("http://localhost/api/ai/video/job_not_found"), { params });
-      
+
       expect(res.status).toBe(404);
       const data = await res.json();
       expect(data.error).toBe("Job not found");
@@ -132,10 +160,10 @@ describe("Video AI API", () => {
     it("should return 403 if job belongs to another user", async () => {
       (auth as any).mockResolvedValue({ userId: "user_123" });
       (convexClient.query as any).mockResolvedValue({ userId: "other_user" });
-      
+
       const params = Promise.resolve({ jobId: "job_123" });
       const res = await GET(new Request("http://localhost/api/ai/video/job_123"), { params });
-      
+
       expect(res.status).toBe(403);
       const data = await res.json();
       expect(data.error).toBe("Forbidden");
@@ -148,10 +176,10 @@ describe("Video AI API", () => {
         status: "ready",
         result: { videoUrl: "https://test.com/video.mp4" },
       });
-      
+
       const params = Promise.resolve({ jobId: "job_123" });
       const res = await GET(new Request("http://localhost/api/ai/video/job_123"), { params });
-      
+
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.status).toBe("ready");
@@ -164,10 +192,10 @@ describe("Video AI API", () => {
         userId: "user_123",
         status: "processing",
       });
-      
+
       const params = Promise.resolve({ jobId: "job_123" });
       const res = await GET(new Request("http://localhost/api/ai/video/job_123"), { params });
-      
+
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.status).toBe("processing");
@@ -180,10 +208,10 @@ describe("Video AI API", () => {
         status: "error",
         error: "Generation failed",
       });
-      
+
       const params = Promise.resolve({ jobId: "job_123" });
       const res = await GET(new Request("http://localhost/api/ai/video/job_123"), { params });
-      
+
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.status).toBe("error");
