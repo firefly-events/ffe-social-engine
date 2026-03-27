@@ -8,11 +8,8 @@
 
 import { ConvexHttpClient } from "convex/browser";
 
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-if (!convexUrl) {
-  throw new Error(
-    "NEXT_PUBLIC_CONVEX_URL is not set. Add it to your .secrets/.env file."
-  );
-}
+// Use a placeholder URL during build time; the real URL is required at runtime.
+// Throwing at module load time breaks Next.js static page data collection.
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? "https://placeholder.convex.cloud";
 
 export const convexClient = new ConvexHttpClient(convexUrl);
