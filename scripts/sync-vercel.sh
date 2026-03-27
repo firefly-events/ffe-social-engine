@@ -1,90 +1,85 @@
 #!/usr/bin/env bash
+# =============================================================================
+# scripts/sync-vercel.sh — Social Engine
+# Syncs secrets from GCP SM (exported as env vars by GHA) into Vercel env vars.
+#
+# Usage (from GHA):
+#   VERCEL_TOKEN=... VERCEL_ORG_ID=... VERCEL_PROJECT_ID=... \
+#   SYNC_CLERK_PUBLISHABLE_KEY=... \
+#   bash scripts/sync-vercel.sh [production|preview|development]
+# =============================================================================
 set -euo pipefail
 
-# sync-vercel.sh — Sync secrets from GCP Secret Manager (via SYNC_* env vars)
-# to Vercel project environment variables.
-#
-# Usage: ./scripts/sync-vercel.sh [production|preview]
-#
-# Required env vars: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
-# Secret env vars:   SYNC_CLERK_PUBLISHABLE_KEY, SYNC_CLERK_SECRET_KEY, etc.
-
 ENVIRONMENT="${1:-preview}"
+VERCEL_TOKEN="${VERCEL_TOKEN:?VERCEL_TOKEN is required}"
+export VERCEL_ORG_ID="${VERCEL_ORG_ID:?VERCEL_ORG_ID is required}"
+export VERCEL_PROJECT_ID="${VERCEL_PROJECT_ID:?VERCEL_PROJECT_ID is required}"
 
-if [[ -z "${VERCEL_TOKEN:-}" ]]; then
-  echo "ERROR: VERCEL_TOKEN is required" >&2
-  exit 1
+# Determine Vercel targets based on environment
+if [[ "$ENVIRONMENT" == "production" ]]; then
+  TARGETS="production"
+else
+  TARGETS="preview,development"
 fi
 
-VERCEL_FLAGS="--token=${VERCEL_TOKEN}"
-
-# vercel_set: remove then add env var with retry. Fails script if all retries exhausted.
-vercel_set() {
-  local name="$1"
+set_vercel_env() {
+  local var="$1"
   local value="$2"
-  local target="${3:-production preview development}"
+  local targets="${3:-$TARGETS}"
 
-  if [[ -z "${value}" ]]; then
-    echo "SKIP (empty): ${name}"
-    return 0
+  if [[ -z "$value" ]]; then
+    echo "  SKIP: $var (empty value)"
+    return
   fi
 
-  echo "Syncing: ${name} → [${target}]"
+  # Remove existing (ignore errors — var might not exist yet)
+  vercel env rm "$var" --yes --token="$VERCEL_TOKEN" 2>/dev/null || true
 
-  # Remove existing value (ignore errors if it doesn't exist)
-  for t in ${target}; do
-    npx vercel env rm "${name}" "${t}" ${VERCEL_FLAGS} --yes 2>/dev/null || true
-  done
-
-  # Add with retry
-  local attempts=0
-  local max_attempts=3
-  while (( attempts < max_attempts )); do
-    if printf '%s' "${value}" | npx vercel env add "${name}" ${target} ${VERCEL_FLAGS} 2>/dev/null; then
-      return 0
+  # Add per target with retry
+  IFS=',' read -ra target_list <<< "$targets"
+  for target in "${target_list[@]}"; do
+    local ok=false
+    for attempt in 1 2 3; do
+      if echo -n "$value" | vercel env add "$var" "$target" --token="$VERCEL_TOKEN"; then
+        ok=true
+        break
+      fi
+      [[ $attempt -lt 3 ]] && sleep 2
+    done
+    if [[ "$ok" == "false" ]]; then
+      echo "ERROR: Failed to set $var for target=$target after 3 retries" >&2
+      exit 1
     fi
-    attempts=$((attempts + 1))
-    echo "  Retry ${attempts}/${max_attempts} for ${name}..."
-    sleep 2
   done
-
-  echo "ERROR: Failed to set ${name} after ${max_attempts} attempts" >&2
-  exit 1
+  echo "  SET: $var → $targets"
 }
 
-# --- Secrets from GCP SM (passed via SYNC_* env vars) ---
-vercel_set "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" "${SYNC_CLERK_PUBLISHABLE_KEY:-}"
-vercel_set "CLERK_SECRET_KEY"                  "${SYNC_CLERK_SECRET_KEY:-}"
-vercel_set "CLERK_WEBHOOK_SECRET"              "${SYNC_CLERK_WEBHOOK_SECRET:-}"
-vercel_set "CLERK_JWT_ISSUER_DOMAIN"           "${SYNC_CLERK_JWT_ISSUER_DOMAIN:-}"
-vercel_set "NEXT_PUBLIC_CONVEX_URL"            "${SYNC_CONVEX_URL:-}"
-vercel_set "CONVEX_DEPLOYMENT"                 "${SYNC_CONVEX_DEPLOYMENT:-}"
-vercel_set "CONVEX_DEPLOY_KEY"                 "${SYNC_CONVEX_DEPLOY_KEY:-}"
-vercel_set "ZERNIO_API_KEY"                    "${SYNC_ZERNIO_API_KEY:-}"
-vercel_set "NEXT_PUBLIC_SENTRY_DSN"            "${SYNC_SENTRY_DSN:-}"
-vercel_set "SENTRY_DSN"                        "${SYNC_SENTRY_DSN:-}"
-vercel_set "NEXT_PUBLIC_POSTHOG_KEY"           "${SYNC_POSTHOG_KEY:-}"
-vercel_set "GOOGLE_SERVICE_ACCOUNT_KEY"        "${SYNC_VERTEX_AI_SA_KEY:-}"
-vercel_set "GOOGLE_CLOUD_PROJECT"              "${SYNC_GOOGLE_CLOUD_PROJECT:-}"
-vercel_set "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"   "${SYNC_GOOGLE_MAPS_API_KEY:-}"
+echo "=== Syncing Vercel env vars (environment: $ENVIRONMENT) ==="
 
-# --- Static config values ---
-vercel_set "NEXT_PUBLIC_POSTHOG_HOST"              "https://us.posthog.com"
-vercel_set "SENTRY_ORG"                            "firefly-events-inc"
-vercel_set "SENTRY_PROJECT"                        "social-engine"
-vercel_set "NEXT_PUBLIC_CLERK_SIGN_IN_URL"         "/sign-in"
-vercel_set "NEXT_PUBLIC_CLERK_SIGN_UP_URL"         "/sign-up"
-vercel_set "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL"   "/dashboard"
-vercel_set "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL"   "/dashboard"
+# --- Secrets (pulled from GCP SM by GHA, passed as SYNC_* env vars) ---
+set_vercel_env "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" "${SYNC_CLERK_PUBLISHABLE_KEY:-}"
+set_vercel_env "CLERK_SECRET_KEY"                  "${SYNC_CLERK_SECRET_KEY:-}"
+set_vercel_env "CLERK_WEBHOOK_SECRET"              "${SYNC_CLERK_WEBHOOK_SECRET:-}"
+set_vercel_env "NEXT_PUBLIC_CONVEX_URL"            "${SYNC_CONVEX_URL:-}"
+set_vercel_env "CONVEX_DEPLOYMENT"                 "${SYNC_CONVEX_DEPLOYMENT:-}"
+set_vercel_env "CONVEX_DEPLOY_KEY"                 "${SYNC_CONVEX_DEPLOY_KEY:-}"
+set_vercel_env "ZERNIO_API_KEY"                    "${SYNC_ZERNIO_API_KEY:-}"
+set_vercel_env "GOOGLE_API_KEY"                    "${SYNC_GOOGLE_API_KEY:-}" "production,preview,development"
+set_vercel_env "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"   "${SYNC_GOOGLE_MAPS_API_KEY:-}" "production,preview,development"
+set_vercel_env "NEXT_PUBLIC_POSTHOG_KEY"           "${SYNC_POSTHOG_KEY:-}" "production,preview,development"
+set_vercel_env "NEXT_PUBLIC_SENTRY_DSN"            "${SYNC_SENTRY_DSN:-}" "production,preview,development"
+set_vercel_env "SENTRY_DSN"                        "${SYNC_SENTRY_DSN:-}" "production,preview,development"
+set_vercel_env "REPLICATE_API_TOKEN"               "${SYNC_REPLICATE_API_TOKEN:-}" "production,preview,development"
 
-# --- Environment-specific app URL ---
-if [[ "${ENVIRONMENT}" == "production" ]]; then
-  vercel_set "NEXT_PUBLIC_APP_URL" "https://social-engine-five.vercel.app" "production"
-else
-  # Sanitize branch name for preview hostname (replace / with -)
-  BRANCH="${GITHUB_HEAD_REF:-preview}"
-  SAFE_BRANCH="$(echo "${BRANCH}" | sed 's|/|-|g' | head -c 50)"
-  vercel_set "NEXT_PUBLIC_APP_URL" "https://social-engine-five-git-${SAFE_BRANCH}.vercel.app" "preview development"
-fi
+# --- Static / non-secret vars (always production,preview,development) ---
+set_vercel_env "NEXT_PUBLIC_CLERK_SIGN_IN_URL"         "/sign-in"                              "production,preview,development"
+set_vercel_env "NEXT_PUBLIC_CLERK_SIGN_UP_URL"         "/sign-up"                              "production,preview,development"
+set_vercel_env "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL"   "/dashboard"                            "production,preview,development"
+set_vercel_env "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL"   "/dashboard"                            "production,preview,development"
+set_vercel_env "NEXT_PUBLIC_POSTHOG_HOST"              "https://us.posthog.com"                "production,preview,development"
+set_vercel_env "NEXT_PUBLIC_APP_URL"                   "https://social-engine-five.vercel.app" "production"
+set_vercel_env "SENTRY_ORG"                            "firefly-events-inc"                    "production,preview,development"
+set_vercel_env "SENTRY_PROJECT"                        "social-engine"                         "production,preview,development"
 
-echo "All Vercel env vars synced for environment: ${ENVIRONMENT}"
+echo ""
+echo "=== Sync complete. Run 'vercel env ls' to verify. ==="

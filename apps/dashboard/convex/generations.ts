@@ -1,9 +1,7 @@
 import { mutation, query } from "./_generated/server";
-import { v, ConvexError } from "convex/values";
+import { v } from "convex/values";
 
-// Create a new generation job.
-// Called from server-side API routes (ConvexHttpClient) that authenticate via Clerk.
-// userId is passed as an arg because the HTTP client has no auth context.
+// Create a new generation job
 export const createJob = mutation({
   args: {
     userId: v.string(),
@@ -22,7 +20,7 @@ export const createJob = mutation({
   },
 });
 
-// Update job with result (server-side only — called from API routes)
+// Update job with result
 export const completeJob = mutation({
   args: {
     id: v.id("generationJobs"),
@@ -37,7 +35,7 @@ export const completeJob = mutation({
   },
 });
 
-// Mark job as failed (server-side only — called from API routes)
+// Mark job as failed
 export const failJob = mutation({
   args: {
     id: v.id("generationJobs"),
@@ -48,20 +46,23 @@ export const failJob = mutation({
   },
 });
 
-// List authenticated user's recent jobs
+// List user's recent jobs
 export const listJobs = query({
-  args: { limit: v.optional(v.number()) },
-  handler: async (ctx, { limit }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new ConvexError("Unauthorized");
-    const userId = identity.subject;
-
-    const safeLimit = Math.min(100, Math.max(1, limit ?? 20));
+  args: { userId: v.string(), limit: v.optional(v.number()) },
+  handler: async (ctx, { userId, limit }) => {
     const jobs = await ctx.db
       .query("generationJobs")
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .order("desc")
-      .take(safeLimit);
+      .take(limit ?? 20);
     return jobs;
   },
 });
+
+// Get a single generation job by its Convex document ID
+export const getJob = query({
+  args: { id: v.id('generationJobs') },
+  handler: async (ctx, { id }) => {
+    return await ctx.db.get(id)
+  },
+})
