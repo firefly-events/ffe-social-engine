@@ -35,7 +35,7 @@ gcp_secret() {
   gcloud secrets versions access latest --secret="$secret_name" --project=ffe-cicd 2>/dev/null || echo ""
 }
 
-# Helper: set a Vercel env var (force-overwrites if already set)
+# Helper: set a Vercel env var (surgically removes then adds for the specific target)
 vercel_set() {
   local var_name="$1"
   local var_value="$2"
@@ -46,13 +46,11 @@ vercel_set() {
     return
   fi
 
-  printf '%s' "$var_value" | npx vercel env add "$var_name" "$env_target" \
-    --token="$VERCEL_TOKEN" \
-    --yes \
-    --force 2>/dev/null || \
-  printf '%s' "$var_value" | npx vercel env add "$var_name" "$env_target" \
-    --token="$VERCEL_TOKEN" \
-    --yes
+  # Remove existing for this target (ignore errors if it doesn't exist)
+  npx vercel env rm "$var_name" "$env_target" --token="$VERCEL_TOKEN" --yes 2>/dev/null || true
+  
+  # Add new value
+  printf '%s' "$var_value" | npx vercel env add "$var_name" "$env_target" --token="$VERCEL_TOKEN" --yes
   echo "  Set $var_name ($env_target)"
 }
 
