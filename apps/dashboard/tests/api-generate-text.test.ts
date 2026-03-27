@@ -8,6 +8,12 @@ import { NextResponse } from "next/server";
 // Mock dependencies
 vi.mock("@clerk/nextjs/server", () => ({
   auth: vi.fn(),
+  currentUser: vi.fn().mockResolvedValue({ publicMetadata: {} }),
+}));
+
+vi.mock("@ffe/core/templates", () => ({
+  getTemplate: vi.fn().mockReturnValue(null),
+  injectBrandVoice: vi.fn((prompt: string) => prompt),
 }));
 
 vi.mock("ai", () => ({
