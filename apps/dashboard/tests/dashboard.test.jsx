@@ -5,7 +5,7 @@ import DashboardPage from '../src/app/(dashboard)/dashboard/page';
 // Mock Clerk useUser hook
 vi.mock('@clerk/nextjs', () => ({
   useUser: () => ({
-    user: { firstName: 'Test' }
+    user: { firstName: 'Test', id: 'user_test123' }
   }),
   UserButton: () => <div>UserButton</div>
 }));
@@ -15,6 +15,24 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn()
   })
+}));
+
+// Mock Convex react hooks — DashboardPage uses useQuery which requires ConvexProvider
+vi.mock('convex/react', () => ({
+  useQuery: vi.fn(() => undefined)
+}));
+
+// Mock Convex generated API
+vi.mock('../convex/_generated/api', () => ({
+  api: {
+    users: { getCurrentUser: 'users:getCurrentUser' },
+    posts: {
+      getDashboardMetrics: 'posts:getDashboardMetrics',
+      getRecentPosts: 'posts:getRecentPosts',
+      getScheduledToday: 'posts:getScheduledToday',
+      getPerformanceData: 'posts:getPerformanceData'
+    }
+  }
 }));
 
 describe('DashboardPage', () => {
