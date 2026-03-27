@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from 'convex/react';
 import { useUser } from '@clerk/nextjs';
@@ -26,6 +26,14 @@ const PLATFORMS: PlatformMeta[] = [
   { id: 'tiktok',    name: 'TikTok',      color: 'bg-gray-900 text-white' },
   { id: 'youtube',   name: 'YouTube',     color: 'bg-red-600 text-white' },
 ];
+
+export default function ConnectPage() {
+  return (
+    <Suspense>
+      <ConnectPageInner />
+    </Suspense>
+  );
+}
 
 function ConnectPageInner() {
   const searchParams = useSearchParams();
@@ -238,13 +246,5 @@ function ConnectPageInner() {
         </div>
       )}
     </div>
-  );
-}
-
-export default function ConnectPage() {
-  return (
-    <Suspense fallback={<div className="py-8 text-center text-slate-400 text-sm">Loading...</div>}>
-      <ConnectPageInner />
-    </Suspense>
   );
 }
