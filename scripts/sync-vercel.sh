@@ -1,100 +1,98 @@
 #!/usr/bin/env bash
-# sync-vercel.sh — Sync secrets from GCP Secret Manager to Vercel env vars
-#
-# Usage: bash scripts/sync-vercel.sh <environment>
-#   environment: "production" (main branch) or "preview" (PRs)
-#
-# Required env vars:
-#   VERCEL_TOKEN       — Vercel API token
-#   VERCEL_ORG_ID      — Vercel org/team ID
-#   VERCEL_PROJECT_ID  — Vercel project ID
-#
-# GCP credentials must already be configured before calling this script.
-
 set -euo pipefail
 
-ENVIRONMENT="${1:?Usage: $0 <production|preview>}"
+# sync-vercel.sh — Sync secrets from GCP Secret Manager (via SYNC_* env vars)
+# to Vercel project environment variables.
+#
+# Required env vars: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, SYNC_ENV
+# Secret env vars:   SYNC_CLERK_PUBLISHABLE_KEY, SYNC_CLERK_SECRET_KEY, etc.
 
-if [[ "$ENVIRONMENT" != "production" && "$ENVIRONMENT" != "preview" ]]; then
-  echo "Error: environment must be 'production' or 'preview', got: $ENVIRONMENT" >&2
-  exit 1
-fi
+: "${VERCEL_TOKEN:?ERROR: VERCEL_TOKEN is required}"
+: "${VERCEL_ORG_ID:?ERROR: VERCEL_ORG_ID is required}"
+: "${VERCEL_PROJECT_ID:?ERROR: VERCEL_PROJECT_ID is required}"
 
-# Map deploy environment to GCP secret suffix
-if [[ "$ENVIRONMENT" == "production" ]]; then
-  ENV="prod"
-else
-  ENV="dev"
-fi
+# Accept SYNC_ENV from positional arg $1 or env var (env var takes precedence)
+# This allows calling as: ./scripts/sync-vercel.sh production
+# or with env var:        SYNC_ENV=production ./scripts/sync-vercel.sh
+SYNC_ENV="${SYNC_ENV:-${1:-preview}}"
 
-echo "Syncing secrets for environment: $ENVIRONMENT (GCP suffix: $ENV)"
+# Map sync env to Vercel target(s)
+case "${SYNC_ENV}" in
+  production)  TARGETS="production" ;;
+  preview)     TARGETS="preview development" ;;
+  *)           TARGETS="preview development" ;;
+esac
 
-# Helper: read a secret from GCP Secret Manager
-gcp_secret() {
-  local secret_name="$1"
-  gcloud secrets versions access latest --secret="$secret_name" --project=ffe-cicd 2>/dev/null || echo ""
-}
+VERCEL_FLAGS="--token=${VERCEL_TOKEN}"
 
-# Helper: set a Vercel env var (surgically removes then adds for the specific target)
-vercel_set() {
-  local var_name="$1"
-  local var_value="$2"
-  local env_target="$3"   # production | preview | development
-  
-  if [[ -z "$var_value" ]]; then
-    echo "  SKIP: $var_name (empty value)"
-    return
+echo "Syncing env vars for targets: ${TARGETS}"
+
+# Sync a single env var to all targets
+# Retries up to 3 times on transient failures (rate limits, network blips)
+sync_env() {
+  local name="$1"
+  local value="$2"
+
+  # Skip if value is empty
+  if [[ -z "${value}" ]]; then
+    echo "SKIP (empty): ${name}"
+    return 0
   fi
 
-  # Remove existing for this target (ignore errors if it doesn't exist)
-  npx vercel env rm "$var_name" "$env_target" --token="$VERCEL_TOKEN" --yes 2>/dev/null || true
-  
-  # Add new value
-  printf '%s' "$var_value" | npx vercel env add "$var_name" "$env_target" --token="$VERCEL_TOKEN" --yes
-  echo "  Set $var_name ($env_target)"
+  echo "Syncing: ${name}"
+  for target in ${TARGETS}; do
+    local attempt=0
+    local max_attempts=3
+    # Retry loop handles transient Vercel API errors (429, 5xx, network blips)
+    while (( attempt < max_attempts )); do
+      attempt=$(( attempt + 1 ))
+      # Remove existing value first to ensure clean update
+      npx vercel env rm "${name}" "${target}" ${VERCEL_FLAGS} --yes 2>/dev/null || true
+      if printf '%s' "${value}" | npx vercel env add "${name}" "${target}" ${VERCEL_FLAGS} 2>/dev/null; then
+        break
+      fi
+      echo "  Attempt ${attempt}/${max_attempts} failed for ${name} (${target}), retrying..."
+      sleep 2
+    done
+  done
 }
 
-echo "--- Syncing GCP secrets ---"
+# --- Auth/Identity ---
+sync_env "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" "${SYNC_CLERK_PUBLISHABLE_KEY:-}"
+sync_env "CLERK_SECRET_KEY"                  "${SYNC_CLERK_SECRET_KEY:-}"
+sync_env "CLERK_WEBHOOK_SECRET"              "${SYNC_CLERK_WEBHOOK_SECRET:-}"
+sync_env "CLERK_JWT_ISSUER_DOMAIN"           "https://regular-ant-26.clerk.accounts.dev"
 
-CLERK_PUB_KEY=$(gcp_secret "social-engine-dev-clerk-publishable-key")
-CLERK_SEC_KEY=$(gcp_secret "social-engine-dev-clerk-secret-key")
-CLERK_WEBHOOK_SECRET=$(gcp_secret "social-engine-dev-clerk-webhook-secret")
-CONVEX_URL=$(gcp_secret "social-engine-${ENV}-convex-url")
-CONVEX_DEPLOYMENT=$(gcp_secret "social-engine-${ENV}-convex-deployment")
-CONVEX_DEPLOY_KEY=$(gcp_secret "social-engine-${ENV}-convex-deploy-key")
-ZERNIO_API_KEY=$(gcp_secret "social-engine-dev-zernio-api-key")
-VERTEX_AI_KEY=$(gcp_secret "social-engine-${ENV}-vertex-ai-sa-key")
-GOOGLE_MAPS_KEY=$(gcp_secret "social-engine-dev-google-maps-key")
-SENTRY_DSN=$(gcp_secret "social-engine-dev-sentry-dsn")
-POSTHOG_KEY=$(gcp_secret "social-engine-dev-posthog-key")
+# --- Convex ---
+sync_env "NEXT_PUBLIC_CONVEX_URL"            "${SYNC_CONVEX_URL:-}"
+sync_env "CONVEX_DEPLOYMENT"                 "${SYNC_CONVEX_DEPLOYMENT:-}"
+sync_env "CONVEX_DEPLOY_KEY"                 "${SYNC_CONVEX_DEPLOY_KEY:-}"
 
-echo "Secrets fetched from GCP Secret Manager."
+# --- Integrations ---
+sync_env "ZERNIO_API_KEY"                    "${SYNC_ZERNIO_API_KEY:-}"
+sync_env "NEXT_PUBLIC_SENTRY_DSN"            "${SYNC_SENTRY_DSN:-}"
+sync_env "SENTRY_DSN"                        "${SYNC_SENTRY_DSN:-}"
+sync_env "NEXT_PUBLIC_POSTHOG_KEY"           "${SYNC_POSTHOG_KEY:-}"
 
-echo "--- Writing env vars to Vercel ($ENVIRONMENT) ---"
+# --- Google / Vertex AI ---
+sync_env "GOOGLE_SERVICE_ACCOUNT_KEY"        "${SYNC_VERTEX_AI_SA_KEY:-}"
+sync_env "GOOGLE_CLOUD_PROJECT"              "${SYNC_GOOGLE_CLOUD_PROJECT:-}"
+sync_env "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"   "${SYNC_GOOGLE_MAPS_API_KEY:-}"
 
-vercel_set "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" "$CLERK_PUB_KEY"    "$ENVIRONMENT"
-vercel_set "CLERK_SECRET_KEY"                   "$CLERK_SEC_KEY"    "$ENVIRONMENT"
-vercel_set "CLERK_WEBHOOK_SECRET"               "$CLERK_WEBHOOK_SECRET" "$ENVIRONMENT"
-vercel_set "NEXT_PUBLIC_CONVEX_URL"             "$CONVEX_URL"       "$ENVIRONMENT"
-vercel_set "CONVEX_DEPLOYMENT"                  "$CONVEX_DEPLOYMENT" "$ENVIRONMENT"
-vercel_set "CONVEX_DEPLOY_KEY"                  "$CONVEX_DEPLOY_KEY" "$ENVIRONMENT"
-vercel_set "ZERNIO_API_KEY"                     "$ZERNIO_API_KEY"   "$ENVIRONMENT"
-vercel_set "GOOGLE_SERVICE_ACCOUNT_KEY"         "$VERTEX_AI_KEY"    "$ENVIRONMENT"
-vercel_set "GOOGLE_CLOUD_PROJECT"               "social-engine-${ENV}" "$ENVIRONMENT"
-vercel_set "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"    "$GOOGLE_MAPS_KEY"  "$ENVIRONMENT"
-vercel_set "NEXT_PUBLIC_SENTRY_DSN"             "$SENTRY_DSN"       "$ENVIRONMENT"
-vercel_set "NEXT_PUBLIC_POSTHOG_KEY"            "$POSTHOG_KEY"      "$ENVIRONMENT"
+# --- Hardcoded values ---
+sync_env "NEXT_PUBLIC_POSTHOG_HOST"             "https://us.posthog.com"
+sync_env "SENTRY_ORG"                           "firefly-events-inc"
+sync_env "SENTRY_PROJECT"                       "social-engine"
+sync_env "NEXT_PUBLIC_CLERK_SIGN_IN_URL"        "/sign-in"
+sync_env "NEXT_PUBLIC_CLERK_SIGN_UP_URL"        "/sign-up"
+sync_env "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL"  "/dashboard"
+sync_env "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL"  "/dashboard"
 
-echo "--- Writing static env vars to Vercel ($ENVIRONMENT) ---"
+# App URL — dynamic per environment
+if [[ "${SYNC_ENV}" == "production" ]]; then
+  sync_env "NEXT_PUBLIC_APP_URL" "https://social-engine-five.vercel.app"
+else
+  sync_env "NEXT_PUBLIC_APP_URL" "https://social-engine-five-git-${GITHUB_HEAD_REF:-preview}.vercel.app"
+fi
 
-vercel_set "NEXT_PUBLIC_POSTHOG_HOST"              "https://us.posthog.com"                           "$ENVIRONMENT"
-vercel_set "SENTRY_ORG"                            "firefly-events-inc"                               "$ENVIRONMENT"
-vercel_set "SENTRY_PROJECT"                        "social-engine"                                    "$ENVIRONMENT"
-vercel_set "NEXT_PUBLIC_CLERK_SIGN_IN_URL"         "/sign-in"                                         "$ENVIRONMENT"
-vercel_set "NEXT_PUBLIC_CLERK_SIGN_UP_URL"         "/sign-up"                                         "$ENVIRONMENT"
-vercel_set "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL"   "/dashboard"                                       "$ENVIRONMENT"
-vercel_set "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL"   "/dashboard"                                       "$ENVIRONMENT"
-vercel_set "CLERK_JWT_ISSUER_DOMAIN"               "https://regular-ant-26.clerk.accounts.dev"        "$ENVIRONMENT"
-vercel_set "NEXT_PUBLIC_APP_URL"                   "https://social-engine-five.vercel.app"             "$ENVIRONMENT"
-
-echo "Done. All env vars synced to Vercel ($ENVIRONMENT)."
+echo "All Vercel env vars synced for: ${TARGETS}"
