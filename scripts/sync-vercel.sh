@@ -32,7 +32,7 @@ echo "Syncing secrets for environment: $ENVIRONMENT (GCP suffix: $ENV)"
 # Helper: read a secret from GCP Secret Manager
 gcp_secret() {
   local secret_name="$1"
-  gcloud secrets versions access latest --secret="$secret_name" --project=ffe-cicd
+  gcloud secrets versions access latest --secret="$secret_name" --project=ffe-cicd 2>/dev/null || echo ""
 }
 
 # Helper: set a Vercel env var (force-overwrites if already set)
@@ -40,11 +40,17 @@ vercel_set() {
   local var_name="$1"
   local var_value="$2"
   local env_target="$3"   # production | preview | development
-  printf '%s' "$var_value" | vercel env add "$var_name" "$env_target" \
+  
+  if [[ -z "$var_value" ]]; then
+    echo "  SKIP: $var_name (empty value)"
+    return
+  fi
+
+  printf '%s' "$var_value" | npx vercel env add "$var_name" "$env_target" \
     --token="$VERCEL_TOKEN" \
     --yes \
     --force 2>/dev/null || \
-  printf '%s' "$var_value" | vercel env add "$var_name" "$env_target" \
+  printf '%s' "$var_value" | npx vercel env add "$var_name" "$env_target" \
     --token="$VERCEL_TOKEN" \
     --yes
   echo "  Set $var_name ($env_target)"
@@ -54,10 +60,13 @@ echo "--- Syncing GCP secrets ---"
 
 CLERK_PUB_KEY=$(gcp_secret "social-engine-dev-clerk-publishable-key")
 CLERK_SEC_KEY=$(gcp_secret "social-engine-dev-clerk-secret-key")
+CLERK_WEBHOOK_SECRET=$(gcp_secret "social-engine-dev-clerk-webhook-secret")
 CONVEX_URL=$(gcp_secret "social-engine-${ENV}-convex-url")
 CONVEX_DEPLOYMENT=$(gcp_secret "social-engine-${ENV}-convex-deployment")
 CONVEX_DEPLOY_KEY=$(gcp_secret "social-engine-${ENV}-convex-deploy-key")
 ZERNIO_API_KEY=$(gcp_secret "social-engine-dev-zernio-api-key")
+VERTEX_AI_KEY=$(gcp_secret "social-engine-${ENV}-vertex-ai-sa-key")
+GOOGLE_MAPS_KEY=$(gcp_secret "social-engine-dev-google-maps-key")
 SENTRY_DSN=$(gcp_secret "social-engine-dev-sentry-dsn")
 POSTHOG_KEY=$(gcp_secret "social-engine-dev-posthog-key")
 
@@ -67,10 +76,14 @@ echo "--- Writing env vars to Vercel ($ENVIRONMENT) ---"
 
 vercel_set "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY" "$CLERK_PUB_KEY"    "$ENVIRONMENT"
 vercel_set "CLERK_SECRET_KEY"                   "$CLERK_SEC_KEY"    "$ENVIRONMENT"
+vercel_set "CLERK_WEBHOOK_SECRET"               "$CLERK_WEBHOOK_SECRET" "$ENVIRONMENT"
 vercel_set "NEXT_PUBLIC_CONVEX_URL"             "$CONVEX_URL"       "$ENVIRONMENT"
 vercel_set "CONVEX_DEPLOYMENT"                  "$CONVEX_DEPLOYMENT" "$ENVIRONMENT"
 vercel_set "CONVEX_DEPLOY_KEY"                  "$CONVEX_DEPLOY_KEY" "$ENVIRONMENT"
 vercel_set "ZERNIO_API_KEY"                     "$ZERNIO_API_KEY"   "$ENVIRONMENT"
+vercel_set "GOOGLE_SERVICE_ACCOUNT_KEY"         "$VERTEX_AI_KEY"    "$ENVIRONMENT"
+vercel_set "GOOGLE_CLOUD_PROJECT"               "social-engine-${ENV}" "$ENVIRONMENT"
+vercel_set "NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"    "$GOOGLE_MAPS_KEY"  "$ENVIRONMENT"
 vercel_set "NEXT_PUBLIC_SENTRY_DSN"             "$SENTRY_DSN"       "$ENVIRONMENT"
 vercel_set "NEXT_PUBLIC_POSTHOG_KEY"            "$POSTHOG_KEY"      "$ENVIRONMENT"
 
@@ -84,5 +97,6 @@ vercel_set "NEXT_PUBLIC_CLERK_SIGN_UP_URL"         "/sign-up"                   
 vercel_set "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL"   "/dashboard"                                       "$ENVIRONMENT"
 vercel_set "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL"   "/dashboard"                                       "$ENVIRONMENT"
 vercel_set "CLERK_JWT_ISSUER_DOMAIN"               "https://regular-ant-26.clerk.accounts.dev"        "$ENVIRONMENT"
+vercel_set "NEXT_PUBLIC_APP_URL"                   "https://social-engine-five.vercel.app"             "$ENVIRONMENT"
 
 echo "Done. All env vars synced to Vercel ($ENVIRONMENT)."
