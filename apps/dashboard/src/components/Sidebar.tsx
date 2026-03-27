@@ -10,7 +10,7 @@ export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
     { label: 'Analytics', href: '/analytics', icon: '📈', minTier: 'PRO' },
     { label: 'Automations', href: '/automations', icon: '🤖', minTier: 'PRO' },
     { label: 'Voice Studio', href: '/voices', icon: '🎙️', minTier: 'PRO' },
-    { label: 'Settings', href: '/settings', icon: '⚙️', minTier: 'FREE' }
+    { label: 'Settings', href: '/profile', icon: '⚙️', minTier: 'FREE' }
   ];
 
   const tiers = ['FREE', 'STARTER', 'BASIC', 'PRO', 'BUSINESS', 'AGENCY'];
