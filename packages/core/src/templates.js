@@ -3,6 +3,33 @@
  * Each template has distinct form fields, system prompts, default platforms, tone, and output types.
  */
 
+/**
+ * Helper to inject brand voice into prompts
+ */
+const injectBrandVoice = (prompt, brandVoice) => {
+  if (!brandVoice) return prompt;
+  
+  let parts = [prompt];
+  
+  if (brandVoice.tone) {
+    parts.push(`Tone: ${brandVoice.tone}`);
+  }
+  if (brandVoice.avoid) {
+    parts.push(`NEVER use these words/phrases: ${brandVoice.avoid}`);
+  }
+  if (brandVoice.examples) {
+    parts.push(`Reference these examples for style: ${brandVoice.examples}`);
+  }
+  if (brandVoice.emojiUsage) {
+    parts.push(`Emoji usage level: ${brandVoice.emojiUsage}`);
+  }
+  if (brandVoice.hashtagStyle) {
+    parts.push(`Hashtag style: ${brandVoice.hashtagStyle}`);
+  }
+  
+  return parts.join('\n');
+};
+
 /** @type {Record<string, import('./types').TemplateConfig>} */
 const TEMPLATES = {
   'product-launch': {
@@ -20,12 +47,12 @@ const TEMPLATES = {
     defaultPlatforms: ['instagram', 'x', 'linkedin'],
     tone: 'excited',
     outputTypes: ['caption', 'batch', 'hashtags'],
-    systemPrompt: (fields) => `You are crafting a product launch announcement for "${fields.productName}".
+    systemPrompt: (fields, brandVoice) => injectBrandVoice(`You are crafting a product launch announcement for "${fields.productName}".
 Key benefit: ${fields.keyBenefit || 'not specified'}
 Price: ${fields.price || 'not specified'}
 Launch date: ${fields.launchDate || 'soon'}
 CTA: ${fields.callToAction || 'Learn more'}
-Make it exciting, benefit-focused, and drive urgency.`,
+Make it exciting, benefit-focused, and drive urgency.`, brandVoice),
   },
 
   'tutorial': {
@@ -42,11 +69,11 @@ Make it exciting, benefit-focused, and drive urgency.`,
     defaultPlatforms: ['youtube', 'tiktok', 'instagram'],
     tone: 'educational',
     outputTypes: ['caption', 'thread', 'hashtags'],
-    systemPrompt: (fields) => `You are creating tutorial content about: "${fields.topic}".
+    systemPrompt: (fields, brandVoice) => injectBrandVoice(`You are creating tutorial content about: "${fields.topic}".
 Difficulty: ${fields.difficulty || 'beginner'}
 Key steps: ${fields.steps || 'to be determined'}
 Time: ${fields.duration || 'quick'}
-Make it instructional, clear, and encouraging.`,
+Make it instructional, clear, and encouraging.`, brandVoice),
   },
 
   'trending': {
@@ -62,10 +89,10 @@ Make it instructional, clear, and encouraging.`,
     defaultPlatforms: ['tiktok', 'instagram', 'x'],
     tone: 'energetic',
     outputTypes: ['caption', 'batch', 'hashtags'],
-    systemPrompt: (fields) => `You are creating content around the trend: "${fields.trend}".
+    systemPrompt: (fields, brandVoice) => injectBrandVoice(`You are creating content around the trend: "${fields.trend}".
 Your unique angle: ${fields.angle}
 Target audience: ${fields.audience || 'general'}
-Make it timely, relatable, and shareable.`,
+Make it timely, relatable, and shareable.`, brandVoice),
   },
 
   'behind-scenes': {
@@ -81,10 +108,10 @@ Make it timely, relatable, and shareable.`,
     defaultPlatforms: ['instagram', 'tiktok', 'youtube'],
     tone: 'authentic',
     outputTypes: ['caption', 'hashtags'],
-    systemPrompt: (fields) => `You are writing behind-the-scenes content showing: "${fields.what}".
+    systemPrompt: (fields, brandVoice) => injectBrandVoice(`You are writing behind-the-scenes content showing: "${fields.what}".
 Who: ${fields.who || 'the creator'}
 Mood: ${fields.mood || 'authentic'}
-Make it real, human, and build genuine connection with the audience.`,
+Make it real, human, and build genuine connection with the audience.`, brandVoice),
   },
 
   'promo': {
@@ -101,11 +128,11 @@ Make it real, human, and build genuine connection with the audience.`,
     defaultPlatforms: ['instagram', 'facebook', 'x'],
     tone: 'urgent',
     outputTypes: ['caption', 'batch', 'hashtags'],
-    systemPrompt: (fields) => `You are writing promotional content for: "${fields.discount}".
+    systemPrompt: (fields, brandVoice) => injectBrandVoice(`You are writing promotional content for: "${fields.discount}".
 Product/service: ${fields.product || 'the offer'}
 Ends: ${fields.endDate || 'soon'}
 Urgency: ${fields.urgency || 'limited time only'}
-Make it compelling, create FOMO, and drive immediate action.`,
+Make it compelling, create FOMO, and drive immediate action.`, brandVoice),
   },
 };
 
@@ -126,4 +153,4 @@ function getAllTemplates() {
   return Object.values(TEMPLATES);
 }
 
-module.exports = { TEMPLATES, getTemplate, getAllTemplates };
+module.exports = { TEMPLATES, getTemplate, getAllTemplates, injectBrandVoice };

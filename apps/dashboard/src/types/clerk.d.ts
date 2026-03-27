@@ -1,4 +1,4 @@
-import { UserPublicMetadata as FfeUserPublicMetadata, UserUnsafeMetadata as FfeUserUnsafeMetadata } from '@ffe/core/src/types';
+import { UserPublicMetadata as FfeUserPublicMetadata, UserUnsafeMetadata as FfeUserUnsafeMetadata } from '@ffe/core/types';
 
 declare global {
   interface UserPublicMetadata extends FfeUserPublicMetadata {}

@@ -1,20 +1,18 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { convexClient } from "@/lib/convex-client";
 import { api } from "@convex/_generated/api";
 import { NextResponse } from "next/server";
+import { getTemplate, injectBrandVoice } from "@ffe/core/templates";
 
-// Fallback templates in case we can't easily import from packages/core/src/templates.js
-// Ideally, we'd have shared types and constants.
-const FALLBACK_SYSTEM_PROMPT = (topic: string, style: string) => 
-  `You are an expert social media manager. Generate high-quality content about "${topic}" in a ${style} tone.
-   Output must be a valid JSON object with the following structure:
-   {
-     "short": "A catchy, concise social media caption (1-2 sentences).",
-     "long": "A detailed, informative long-form post or a multi-part thread.",
-     "hashtags": "A string containing 10-15 relevant and trending hashtags."
-   }`;
+const JSON_OUTPUT_INSTRUCTION = `
+Output must be a valid JSON object with the following structure:
+{
+  "short": "A catchy, concise social media caption (1-2 sentences).",
+  "long": "A detailed, informative long-form post or a multi-part thread.",
+  "hashtags": "A string containing 10-15 relevant and trending hashtags."
+}`;
 
 export async function POST(req: Request) {
   try {
@@ -24,7 +22,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { topic, style = "professional", templateId, platforms = [] } = await req.json();
+    // Get brand voice from Clerk user metadata
+    const user = await currentUser();
+    const brandVoice = user?.publicMetadata?.brandVoice;
+
+    const body = await req.json();
+    const { topic, style = "professional", templateId, platforms = [] } = body;
 
     if (!topic) {
       return NextResponse.json({ error: "Topic is required" }, { status: 400 });
@@ -42,7 +45,29 @@ export async function POST(req: Request) {
 
     try {
       // 2. Generate content with AI
-      const systemPrompt = FALLBACK_SYSTEM_PROMPT(topic, style);
+      
+      // Determine system prompt based on template and brand voice
+      const template = templateId ? getTemplate(templateId) : null;
+      let systemPromptText;
+      
+      if (template) {
+        // Map topic to relevant template fields if they aren't provided explicitly
+        const fields = { 
+          ...body,
+          productName: body.productName || topic, 
+          topic, 
+          trend: body.trend || topic, 
+          what: body.what || topic, 
+          discount: body.discount || topic 
+        };
+        systemPromptText = template.systemPrompt(fields, brandVoice);
+      } else {
+        // Fallback to generic prompt if no template is found
+        const basePrompt = `You are an expert social media manager. Generate high-quality content about "${topic}" in a ${style} tone.`;
+        systemPromptText = injectBrandVoice(basePrompt, brandVoice);
+      }
+      
+      const systemPrompt = `${systemPromptText}\n\n${JSON_OUTPUT_INSTRUCTION}`;
       
       const { text, usage } = await generateText({
         model: google("gemini-1.5-flash"),
