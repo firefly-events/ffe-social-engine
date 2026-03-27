@@ -34,6 +34,7 @@ export default function Sidebar({ userTier = 'FREE', usage = {} }: SidebarProps)
           return isLocked ? (
               <span
                 key={item.label}
+                role="link"
                 aria-disabled="true"
                 tabIndex={-1}
                 className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm no-underline transition-colors text-muted-foreground cursor-not-allowed"
