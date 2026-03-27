@@ -5,7 +5,8 @@
   "main": "src/templates.js",
   "exports": {
     ".": "./src/templates.js",
-    "./templates": "./src/templates.js"
+    "./templates": "./src/templates.js",
+    "./types": "./src/types.ts"
   },
   "scripts": {
     "build": "echo build",

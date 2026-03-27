@@ -1,5 +1,5 @@
 import './globals.css'
-import { ClerkProvider } from '@clerk/nextjs'
+import { ClerkProvider } from '@/providers/clerk-provider'
 import { PostHogProvider } from '@/providers/posthog'
 import { ConvexClientProvider } from '@/providers/convex'
 import { SentryErrorBoundary } from '@/components/error-boundary'
