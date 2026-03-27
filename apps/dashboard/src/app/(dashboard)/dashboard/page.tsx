@@ -14,30 +14,27 @@ export default function DashboardPage() {
   const { user } = useUser();
   const router = useRouter();
 
-  const clerkId = user?.id ?? '';
-
   const currentUser = useQuery(api.users.getCurrentUser, {});
-  const dashboardMetrics = useQuery(
-    api.posts.getDashboardMetrics,
-    clerkId ? { userId: clerkId } : 'skip'
-  );
-  const recentPosts = useQuery(
-    api.posts.getRecentPosts,
-    clerkId ? { userId: clerkId } : 'skip'
-  );
-  const scheduledToday = useQuery(
-    api.posts.getScheduledToday,
-    clerkId ? { userId: clerkId } : 'skip'
-  );
-  const performanceData = useQuery(
-    api.posts.getPerformanceData,
-    clerkId ? { userId: clerkId } : 'skip'
-  );
-
   const isPro =
     currentUser?.plan === 'pro' ||
     currentUser?.plan === 'business' ||
     currentUser?.plan === 'agency';
+
+  // These queries derive userId from server-side auth (ctx.auth.getUserIdentity)
+  const dashboardMetrics = useQuery(api.posts.getDashboardMetrics, {});
+  const recentPosts = useQuery(api.posts.getRecentPosts, {});
+
+  // Scheduled today needs client timezone boundaries
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const endOfDay = startOfDay + 86400000;
+  const scheduledToday = useQuery(api.posts.getScheduledToday, { startOfDay, endOfDay });
+
+  // Only fetch performance data for pro users
+  const performanceData = useQuery(
+    api.posts.getPerformanceData,
+    isPro ? {} : 'skip'
+  );
 
   const totalPosts =
     dashboardMetrics === undefined ? 'Loading…' : String(dashboardMetrics.total);

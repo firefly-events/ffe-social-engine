@@ -2,11 +2,14 @@ import { query } from "./_generated/server";
 import { v } from "convex/values";
 
 export const getDashboardMetrics = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return { total: 0, posted: 0, scheduled: 0, drafts: 0 };
+    const userId = identity.subject;
     const posts = await ctx.db
       .query("posts")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
     const total = posts.length;
     const posted = posts.filter((p) => p.status === "posted").length;
@@ -17,11 +20,14 @@ export const getDashboardMetrics = query({
 });
 
 export const getRecentPosts = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    const userId = identity.subject;
     const posts = await ctx.db
       .query("posts")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
       .order("desc")
       .take(5);
     return posts.map((p) => ({
@@ -36,22 +42,22 @@ export const getRecentPosts = query({
 });
 
 export const getScheduledToday = query({
-  args: { userId: v.string() },
+  args: { startOfDay: v.number(), endOfDay: v.number() },
   handler: async (ctx, args) => {
-    const now = Date.now();
-    const startOfDay = now - (now % 86400000);
-    const endOfDay = startOfDay + 86400000;
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    const userId = identity.subject;
     const posts = await ctx.db
       .query("posts")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
     return posts
       .filter(
         (p) =>
           p.status === "scheduled" &&
           p.scheduledAt !== undefined &&
-          p.scheduledAt >= startOfDay &&
-          p.scheduledAt < endOfDay
+          p.scheduledAt >= args.startOfDay &&
+          p.scheduledAt < args.endOfDay
       )
       .map((p) => ({
         _id: p._id,
@@ -63,15 +69,21 @@ export const getScheduledToday = query({
 });
 
 export const getPerformanceData = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return { byPlatform: [], totals: { impressions: 0, engagement: 0, clicks: 0 } };
+    const userId = identity.subject;
     const userPosts = await ctx.db
       .query("posts")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
       .collect();
     if (userPosts.length === 0) {
       return { byPlatform: [], totals: { impressions: 0, engagement: 0, clicks: 0 } };
     }
+    // NOTE: This fans out N queries (one per post) to fetch analytics rows.
+    // If the analytics table grows large, consider adding a compound index
+    // (e.g., by_userId_postId) to allow a single indexed query instead of N+1.
     const analyticsRows = await Promise.all(
       userPosts.map((post) =>
         ctx.db
