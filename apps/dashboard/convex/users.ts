@@ -155,3 +155,23 @@ export const updateZernioProfileId = mutation({
     }
   },
 });
+
+/**
+ * Update a user's plan. Called by the Clerk subscription webhook.
+ */
+export const updatePlan = mutation({
+  args: { clerkId: v.string(), plan: v.string() },
+  handler: async (ctx, args) => {
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
+      .first();
+
+    if (existingUser) {
+      await ctx.db.patch(existingUser._id, {
+        plan: args.plan,
+        updatedAt: Date.now(),
+      });
+    }
+  },
+});

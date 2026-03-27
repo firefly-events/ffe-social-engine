@@ -81,5 +81,23 @@ export async function POST(req: Request) {
     }
   }
 
+  if (eventType === 'subscription.created' || eventType === 'subscription.updated') {
+    const { user_id, plan, plan_name, metadata } = evt.data as any;
+    const clerkId = user_id || metadata?.user_id;
+    const planName = (plan?.name ?? plan_name ?? 'free').toLowerCase();
+
+    if (clerkId) {
+      try {
+        await fetchMutation(api.users.updatePlan, {
+          clerkId,
+          plan: planName,
+        });
+      } catch (error) {
+        console.error('Error syncing plan to Convex:', error);
+        return new Response('Error syncing plan', { status: 500 });
+      }
+    }
+  }
+
   return new Response('', { status: 200 })
 }

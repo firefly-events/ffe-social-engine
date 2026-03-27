@@ -34,7 +34,7 @@ export function GuidedUnlockWizard({
   if (!isLoaded || (user && dbUser === undefined)) return <div>Loading...</div>;
 
   // Determine if feature is unlocked (e.g. they are on pro plan)
-  const isPro = dbUser?.plan !== "free" && dbUser?.plan !== undefined;
+  const isPro = dbUser?.plan !== undefined && dbUser.plan !== "free";
   
   // Or if they have already used the trial
   const hasUsedTrial = dbUser?.usedFreeTrials?.includes(featureId);

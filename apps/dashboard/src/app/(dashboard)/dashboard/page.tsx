@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import MetricCard from '../../../components/MetricCard';
 import QuickAction from '../../../components/QuickAction';
@@ -26,11 +27,29 @@ export default function DashboardPage() {
     { title: 'Social Post', icon: '💬', color: '#1da1f2', templateId: 'trending' }
   ];
 
-  const recentContent = [
-    { title: 'New Product Demo', type: 'Video', status: 'Posted', date: '2 hours ago' },
-    { title: 'Team Meeting', type: 'Image', status: 'Scheduled', date: 'Tomorrow, 10:00 AM' },
-    { title: 'Tutorial Part 1', type: 'Video', status: 'Draft', date: '1 day ago' }
-  ];
+  const [recentContent, setRecentContent] = useState<Array<{title: string; type: string; status: string; date: string}>>([]);
+  const [contentLoading, setContentLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/content?limit=5')
+      .then((res) => res.ok ? res.json() : Promise.reject())
+      .then((data) => {
+        const items = (data.items || []).map((item: any) => {
+          const type = item.videoUrl ? 'Video' : item.imageUrl ? 'Image' : item.audioUrl ? 'Audio' : 'Text';
+          const diffMs = Date.now() - new Date(item.createdAt).getTime();
+          const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+          let date = 'Just now';
+          if (diffHrs >= 24) date = `${Math.floor(diffHrs / 24)} day(s) ago`;
+          else if (diffHrs >= 1) date = `${diffHrs}h ago`;
+          const status = item.status.charAt(0).toUpperCase() + item.status.slice(1);
+          const title = item.text.length > 50 ? item.text.slice(0, 50) + '...' : item.text;
+          return { title, type, status, date };
+        });
+        setRecentContent(items);
+      })
+      .catch(() => {})
+      .finally(() => setContentLoading(false));
+  }, []);
 
   return (
     <div className="flex flex-col gap-8">
@@ -71,15 +90,27 @@ export default function DashboardPage() {
           <section>
             <h2 className="text-xl font-semibold mb-6">Recent Activity</h2>
             <Card className="p-4">
-              {recentContent.map(content => (
-                <ContentCard key={content.title} {...content} />
-              ))}
+              {contentLoading ? (
+                <div className="flex flex-col gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-16 bg-muted animate-pulse rounded" />
+                  ))}
+                </div>
+              ) : recentContent.length > 0 ? (
+                <>
+                  {recentContent.map((content) => (
+                    <ContentCard key={content.title} {...content} />
+                  ))}
+                </>
+              ) : (
+                <p className="text-center text-muted-foreground py-8">No content yet. Create your first post!</p>
+              )}
               <Button
                 variant="ghost"
                 className="w-full mt-4 text-purple-600 hover:text-purple-700 font-bold"
                 onClick={() => router.push('/content')}
               >
-                View All Activity →
+                View All Activity &rarr;
               </Button>
             </Card>
           </section>

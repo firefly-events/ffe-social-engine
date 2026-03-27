@@ -30,14 +30,7 @@ http.route({
     const wh = new Webhook(webhookSecret);
     let event: {
       type: string;
-      data: {
-        id: string;
-        email_addresses: Array<{ email_address: string }>;
-        first_name?: string;
-        last_name?: string;
-        image_url?: string;
-        deleted?: boolean;
-      };
+      data: Record<string, any>;
     };
 
     try {
@@ -72,6 +65,16 @@ http.route({
       await ctx.runMutation(api.users.softDeleteUser, {
         clerkId: data.id,
       });
+    } else if (type === 'subscription.created' || type === 'subscription.updated') {
+      const clerkId = data.user_id || data.metadata?.user_id;
+      const plan = (data.plan?.name ?? data.plan_name ?? 'free').toLowerCase();
+
+      if (clerkId) {
+        await ctx.runMutation(api.users.updatePlan, {
+          clerkId,
+          plan,
+        });
+      }
     }
 
     return new Response(null, { status: 200 });

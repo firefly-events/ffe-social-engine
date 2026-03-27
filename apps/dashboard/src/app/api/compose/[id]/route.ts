@@ -4,12 +4,12 @@ import type { ComposeJob } from '@/lib/api-types'
 
 const COMPOSER_URL = process.env.COMPOSER_SERVICE_URL ?? 'http://localhost:8003'
 
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await auth()
     if (!session.userId) return unauthorized()
 
-    const { id } = params
+    const { id } = await params
     if (!id) return notFound('Job')
 
     let upstream: Response
