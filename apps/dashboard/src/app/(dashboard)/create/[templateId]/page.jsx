@@ -56,18 +56,31 @@ const TEMPLATES = {
     defaultPlatforms: ['instagram', 'tiktok', 'youtube'],
     tone: 'authentic',
   },
-  'promo': {
-    id: 'promo',
-    name: 'Promotion / Sale',
+  'event-promo': {
+    id: 'event-promo',
+    name: 'Event Promo',
     icon: '💰',
     fields: [
-      { id: 'discount', label: 'Discount / Offer',  type: 'text', placeholder: 'e.g. 30% off', required: true },
-      { id: 'endDate',  label: 'Offer Ends',        type: 'date' },
-      { id: 'urgency',  label: 'Urgency Message',   type: 'text', placeholder: 'e.g. Only 50 spots left!' },
-      { id: 'product',  label: 'Product / Service', type: 'text', placeholder: 'e.g. Annual membership' },
+      { id: 'eventName',  label: 'Event Name',       type: 'text', placeholder: 'e.g. Summer Festival', required: true },
+      { id: 'eventDate',  label: 'Event Date',       type: 'date' },
+      { id: 'venue',      label: 'Venue',            type: 'text', placeholder: 'e.g. Central Park' },
+      { id: 'ticketLink', label: 'Ticket Link',      type: 'text', placeholder: 'e.g. link in bio' },
+      { id: 'urgency',    label: 'Urgency Message',  type: 'text', placeholder: 'e.g. Almost sold out!' },
     ],
     defaultPlatforms: ['instagram', 'facebook', 'x'],
     tone: 'urgent',
+  },
+  'scratch': {
+    id: 'scratch',
+    name: 'Start from Scratch',
+    icon: '➕',
+    fields: [
+      { id: 'topic',      label: 'What are we writing about?', type: 'textarea', required: true },
+      { id: 'tone',       label: 'Tone',                       type: 'select',   options: ['professional', 'casual', 'excited', 'urgent', 'educational'] },
+      { id: 'platform',   label: 'Target Platform',            type: 'select',   options: ['x', 'instagram', 'linkedin', 'tiktok', 'facebook', 'youtube'] },
+    ],
+    defaultPlatforms: ['x'],
+    tone: 'casual',
   },
 };
 

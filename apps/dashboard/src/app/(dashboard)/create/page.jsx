@@ -29,16 +29,6 @@ export default function CreatePage() {
         ))}
       </div>
 
-      <div className="mt-20">
-        <h2>Popular with creators like you</h2>
-        <div className="flex gap-4 mt-6 overflow-x-auto pb-4">
-          {['Weekly Tip', 'Q&A Response', 'Testimonial'].map(name => (
-            <div key={name} className="min-w-[200px] p-6 bg-card border border-border rounded-lg text-center cursor-pointer">
-              {name}
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
