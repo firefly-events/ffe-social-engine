@@ -23,20 +23,21 @@ export function GuidedUnlockWizard({
 }: GuidedUnlockWizardProps) {
   const { user, isLoaded } = useUser();
   const router = useRouter();
-  
+
   const dbUser = useQuery(api.users.getUser, user ? { clerkId: user.id } : "skip");
   const markTrialUsed = useMutation(api.users.markFreeTrialUsed);
-  
+
   const [step, setStep] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // If loading user data, show nothing
   if (!isLoaded || (user && dbUser === undefined)) return <div>Loading...</div>;
 
-  // Determine if feature is unlocked (e.g. they are on pro plan)
-  const isPro = dbUser?.plan !== "free" && dbUser?.plan !== undefined;
-  
-  // Or if they have already used the trial
+  // Determine if feature is unlocked via Clerk publicMetadata (source of truth)
+  const clerkPlan = user?.publicMetadata?.plan as string | undefined;
+  const isPro = clerkPlan !== undefined && clerkPlan !== "free";
+
+  // Trial tracking is still stored in Convex
   const hasUsedTrial = dbUser?.usedFreeTrials?.includes(featureId);
 
   const canUseTrial = !isPro && !hasUsedTrial;

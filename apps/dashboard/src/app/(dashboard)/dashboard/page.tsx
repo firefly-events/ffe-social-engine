@@ -1,6 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
+import { useState, useEffect } from 'react';
 import MetricCard from '../../../components/MetricCard';
 import QuickAction from '../../../components/QuickAction';
 import ContentCard from '../../../components/ContentCard';
@@ -8,9 +9,30 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
+interface RecentContentItem {
+  id: string;
+  title?: string;
+  text?: string;
+  type?: string;
+  status: string;
+  createdAt: string;
+}
+
 export default function DashboardPage() {
   const { user } = useUser();
   const router = useRouter();
+  const [recentContent, setRecentContent] = useState<RecentContentItem[]>([]);
+
+  useEffect(() => {
+    fetch('/api/content?limit=3')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data.items)) {
+          setRecentContent(data.items);
+        }
+      })
+      .catch(err => console.error('Failed to fetch recent content:', err));
+  }, []);
 
   const metrics = [
     { label: 'Total Posts', value: '12', growth: '+2', icon: '📝', isLocked: false },
@@ -24,12 +46,6 @@ export default function DashboardPage() {
     { title: 'Instagram Reel', icon: '📸', color: '#c13584', templateId: 'behind-scenes' },
     { title: 'YouTube Short', icon: '🎥', color: '#ff0000', templateId: 'tutorial' },
     { title: 'Social Post', icon: '💬', color: '#1da1f2', templateId: 'trending' }
-  ];
-
-  const recentContent = [
-    { title: 'New Product Demo', type: 'Video', status: 'Posted', date: '2 hours ago' },
-    { title: 'Team Meeting', type: 'Image', status: 'Scheduled', date: 'Tomorrow, 10:00 AM' },
-    { title: 'Tutorial Part 1', type: 'Video', status: 'Draft', date: '1 day ago' }
   ];
 
   return (
@@ -71,9 +87,19 @@ export default function DashboardPage() {
           <section>
             <h2 className="text-xl font-semibold mb-6">Recent Activity</h2>
             <Card className="p-4">
-              {recentContent.map(content => (
-                <ContentCard key={content.title} {...content} />
-              ))}
+              {recentContent.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-4">No recent content yet.</p>
+              ) : (
+                recentContent.map(content => (
+                  <ContentCard
+                    key={content.id}
+                    title={content.title || content.text?.slice(0, 50) || 'Untitled'}
+                    type={content.type || 'text'}
+                    status={content.status.charAt(0).toUpperCase() + content.status.slice(1)}
+                    date={new Date(content.createdAt).toLocaleDateString()}
+                  />
+                ))
+              )}
               <Button
                 variant="ghost"
                 className="w-full mt-4 text-purple-600 hover:text-purple-700 font-bold"

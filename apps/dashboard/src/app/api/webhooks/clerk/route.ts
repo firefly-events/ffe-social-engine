@@ -81,5 +81,9 @@ export async function POST(req: Request) {
     }
   }
 
+  // NOTE: subscription.created / subscription.updated are handled exclusively by
+  // the Convex HTTP action (convex/http.ts) which is the primary webhook endpoint.
+  // Do NOT handle them here to prevent double-writes.
+
   return new Response('', { status: 200 })
 }
