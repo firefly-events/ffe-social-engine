@@ -87,23 +87,25 @@ Mood: ${fields.mood || 'authentic'}
 Make it real, human, and build genuine connection with the audience.`,
   },
 
-  'promo': {
-    id: 'promo',
-    name: 'Promotion / Sale',
-    description: 'Drive sales with a limited-time offer',
+  'event-promo': {
+    id: 'event-promo',
+    name: 'Event Promo',
+    description: 'Promote an upcoming event',
     icon: '💰',
     fields: [
-      { id: 'discount',  label: 'Discount / Offer',  type: 'text', placeholder: 'e.g. 30% off or Buy 1 Get 1', required: true },
-      { id: 'endDate',   label: 'Offer Ends',        type: 'date', required: false },
-      { id: 'urgency',   label: 'Urgency Message',   type: 'text', placeholder: 'e.g. Only 50 spots left!', required: false },
-      { id: 'product',   label: 'Product / Service', type: 'text', placeholder: 'e.g. Annual membership', required: false },
+      { id: 'eventName',  label: 'Event Name',       type: 'text', placeholder: 'e.g. Summer Festival', required: true },
+      { id: 'eventDate',  label: 'Event Date',       type: 'date', required: false },
+      { id: 'venue',      label: 'Venue',            type: 'text', placeholder: 'e.g. Central Park', required: false },
+      { id: 'ticketLink', label: 'Ticket Link',      type: 'text', placeholder: 'e.g. link in bio', required: false },
+      { id: 'urgency',    label: 'Urgency Message',  type: 'text', placeholder: 'e.g. Almost sold out!', required: false },
     ],
     defaultPlatforms: ['instagram', 'facebook', 'x'],
     tone: 'urgent',
     outputTypes: ['caption', 'batch', 'hashtags'],
-    systemPrompt: (fields) => `You are writing promotional content for: "${fields.discount}".
-Product/service: ${fields.product || 'the offer'}
-Ends: ${fields.endDate || 'soon'}
+    systemPrompt: (fields) => `You are writing event promotional content for: "${fields.eventName}".
+Event date: ${fields.eventDate || 'soon'}
+Venue: ${fields.venue || 'TBA'}
+Ticket link: ${fields.ticketLink || 'see bio'}
 Urgency: ${fields.urgency || 'limited time only'}
 Make it compelling, create FOMO, and drive immediate action.`,
   },
