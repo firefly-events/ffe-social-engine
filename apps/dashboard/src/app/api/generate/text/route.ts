@@ -1,13 +1,26 @@
 import { auth } from "@clerk/nextjs/server";
 import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
+import { createVertex } from "@ai-sdk/google-vertex";
 import { convexClient } from "@/lib/convex-client";
 import { api } from "@convex/_generated/api";
 import { NextResponse } from "next/server";
 
+function getVertex() {
+  const saKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  return createVertex({
+    project: process.env.GOOGLE_CLOUD_PROJECT ?? 'social-engine-dev',
+    location: process.env.GOOGLE_VERTEX_LOCATION ?? 'us-central1',
+    ...(saKey && {
+      googleAuthOptions: {
+        credentials: JSON.parse(saKey),
+      },
+    }),
+  });
+}
+
 // Fallback templates in case we can't easily import from packages/core/src/templates.js
 // Ideally, we'd have shared types and constants.
-const FALLBACK_SYSTEM_PROMPT = (topic: string, style: string) => 
+const FALLBACK_SYSTEM_PROMPT = (topic: string, style: string) =>
   `You are an expert social media manager. Generate high-quality content about "${topic}" in a ${style} tone.
    Output must be a valid JSON object with the following structure:
    {
@@ -43,9 +56,9 @@ export async function POST(req: Request) {
     try {
       // 2. Generate content with AI
       const systemPrompt = FALLBACK_SYSTEM_PROMPT(topic, style);
-      
+
       const { text, usage } = await generateText({
-        model: google("gemini-1.5-flash"),
+        model: getVertex()("gemini-1.5-flash-001"),
         system: systemPrompt,
         prompt: `Create content for the topic: "${topic}". Target platforms: ${platforms.join(", ")}. Ensure the output is strictly valid JSON.`,
       });
@@ -78,9 +91,9 @@ export async function POST(req: Request) {
         },
       });
 
-      return NextResponse.json({ 
-        jobId, 
-        variations, 
+      return NextResponse.json({
+        jobId,
+        variations,
         usage: {
           promptTokens: usage.promptTokens,
           completionTokens: usage.completionTokens,
@@ -90,7 +103,7 @@ export async function POST(req: Request) {
 
     } catch (error: any) {
       console.error("Generation error:", error);
-      
+
       // Update Convex job with failure
       await convexClient.mutation(api.generations.failJob, {
         id: jobId,

@@ -1,8 +1,20 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createVertex } from '@ai-sdk/google-vertex';
+import { generateText } from 'ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+function getVertex() {
+  const saKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
+  return createVertex({
+    project: process.env.GOOGLE_CLOUD_PROJECT ?? 'social-engine-dev',
+    location: process.env.GOOGLE_VERTEX_LOCATION ?? 'us-central1',
+    ...(saKey && {
+      googleAuthOptions: {
+        credentials: JSON.parse(saKey),
+      },
+    }),
+  });
+}
 
 export async function POST(req) {
   const { userId, has } = await auth();
@@ -11,20 +23,20 @@ export async function POST(req) {
   }
 
   if (!has({ feature: 'ai_captions' })) {
-    return NextResponse.json({ error: 'Upgrade to Pro to use AI captions' }, { status: 402 })
+    return NextResponse.json({ error: 'Upgrade to Pro to use AI captions' }, { status: 402 });
   }
 
   try {
     const { topic, template, tone = 'engaging', platform = 'tiktok' } = await req.json();
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const vertex = getVertex();
 
     const prompt = `
       Create a social media caption and hashtags for a ${platform} post.
       Topic: ${topic}
       Template Type: ${template}
       Tone: ${tone}
-      
+
       Return the result as a JSON object with:
       {
         "caption": "...",
@@ -33,10 +45,11 @@ export async function POST(req) {
       }
     `;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-    
+    const { text } = await generateText({
+      model: vertex('gemini-1.5-flash-001'),
+      prompt,
+    });
+
     // Extract JSON from response (Gemini sometimes wraps it in markdown blocks)
     const jsonStr = text.replace(/```json/g, '').replace(/```/g, '').trim();
     const data = JSON.parse(jsonStr);
