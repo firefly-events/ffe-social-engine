@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
-import { generateText } from "ai";
-import { google } from "@ai-sdk/google";
+import { generateText, type LanguageModel } from "ai";
+import { vertex } from "@ai-sdk/google-vertex";
 import { convexClient } from "@/lib/convex-client";
 import { api } from "@convex/_generated/api";
 import { NextResponse } from "next/server";
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
       const systemPrompt = FALLBACK_SYSTEM_PROMPT(topic, style);
       
       const { text, usage } = await generateText({
-        model: google("gemini-1.5-flash"),
+        model: vertex("gemini-1.5-flash") as unknown as LanguageModel,
         system: systemPrompt,
         prompt: `Create content for the topic: "${topic}". Target platforms: ${platforms.join(", ")}. Ensure the output is strictly valid JSON.`,
       });

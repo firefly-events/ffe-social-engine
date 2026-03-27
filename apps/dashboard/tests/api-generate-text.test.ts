@@ -14,8 +14,8 @@ vi.mock("ai", () => ({
   generateText: vi.fn(),
 }));
 
-vi.mock("@ai-sdk/google", () => ({
-  google: vi.fn(() => ({})),
+vi.mock("@ai-sdk/google-vertex", () => ({
+  vertex: vi.fn(() => ({})),
 }));
 
 vi.mock("@/lib/convex-client", () => ({
