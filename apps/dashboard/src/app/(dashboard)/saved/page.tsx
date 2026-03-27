@@ -11,7 +11,7 @@ export default function SavedVariantsPage() {
 
   const variants = useQuery(
     api.savedVariants.list,
-    user?.id ? { userId: user.id, assetType: filter, limit: 50 } : "skip"
+    user?.id ? { assetType: filter, limit: 50 } : "skip"
   );
   const removeVariant = useMutation(api.savedVariants.remove);
 

@@ -6,7 +6,6 @@ import { Id } from "@convex/_generated/dataModel";
 import { useState } from "react";
 
 interface AssetCardProps {
-  userId: string;
   assetType: "text" | "image" | "video";
   content?: string;
   imageUrl?: string;
@@ -19,7 +18,6 @@ interface AssetCardProps {
 }
 
 export function AssetCard({
-  userId,
   assetType,
   content,
   imageUrl,
@@ -38,7 +36,6 @@ export function AssetCard({
     setSaving(true);
     try {
       await saveVariant({
-        userId,
         assetType,
         content,
         imageUrl,
