@@ -9,7 +9,7 @@ This research compares current market rates for high-quality image and video gen
 | Provider | Model | Cost / Image | Notes |
 | :--- | :--- | :--- | :--- |
 | **Grok Imagine (xAI)** | Standard | $0.02 | OpenAI SDK compatible. |
-| | Pro | $0.07 | 5 signup credit, up to 50/mo credit for data sharing. |
+| | Pro | $0.07 | $25 signup credit, up to $150/mo credit for data sharing. |
 | **Gemini Imagen 3** | 3 Pro | $0.134 (per 1K) | Vertex AI Multimodal API. |
 | | 3.1 Flash | $0.067 (per 1K) | |
 | **Replicate FLUX.1** | Schnell | $0.003 | Cheapest high-quality option. |
