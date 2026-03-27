@@ -45,6 +45,9 @@ importers:
       '@clerk/themes':
         specifier: ^2.4.57
         version: 2.4.57(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@ffe/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@ffe/db':
         specifier: workspace:*
         version: link:../../packages/db

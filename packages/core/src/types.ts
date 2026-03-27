@@ -14,6 +14,7 @@ export interface UserPublicMetadata {
   onboardingCompleted?: boolean;
   onboardingStep?: string;
   planCache?: any;
+  [key: string]: any;
 }
 
 export interface UserUnsafeMetadata {
@@ -23,4 +24,5 @@ export interface UserUnsafeMetadata {
   theme?: 'light' | 'dark' | 'system';
   hasSeenWelcomeModal?: boolean;
   lastActiveTemplateId?: string;
+  [key: string]: any;
 }

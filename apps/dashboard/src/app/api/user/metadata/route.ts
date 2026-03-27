@@ -1,5 +1,5 @@
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { UserPublicMetadata } from '@ffe/core/types';
+import { UserPublicMetadata } from '@ffe/core/src/types';
 
 export async function PATCH(req: Request) {
   const { userId } = await auth();

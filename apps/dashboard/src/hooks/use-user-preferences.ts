@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { UserUnsafeMetadata } from '@ffe/core/types';
+import { UserUnsafeMetadata } from '@ffe/core/src/types';
 
 export function useUserPreferences() {
   const { user, isLoaded, isSignedIn } = useUser();
