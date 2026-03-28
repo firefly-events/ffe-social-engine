@@ -1,31 +1,32 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useParams, useSearchParams } from "next/navigation";
+import { Id } from "@/convex/_generated/dataModel";
 
 export default function ContentDetailPage() {
   const { id } = useParams();
-  const [content, setContent] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+  const tableName = searchParams.get("tableName");
 
-  useEffect(() => {
-    fetch(`/api/content/${id}`)
-      .then(res => res.json())
-      .then(data => { setContent(data); setLoading(false); })
-      .catch(() => setLoading(false));
-  }, [id]);
+  const content = useQuery(api.content.get, { _id: id as Id<any>, tableName: tableName! }, { skip: !tableName });
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (!content) return <div className="p-6">Content not found.</div>;
+
+  if (content === undefined) return <div className="p-6">Loading...</div>;
+  if (content === null) return <div className="p-6">Content not found.</div>;
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">{content.title || "Content Detail"}</h1>
+      <h1 className="text-2xl font-bold mb-4">{content.title || content.text?.slice(0,50) || content.content?.slice(0,50) || "Content Detail"}</h1>
       {content.text && <p className="mb-4 text-foreground">{content.text}</p>}
+      {content.content && <p className="mb-4 text-foreground">{content.content}</p>}
       {content.imageUrl && <img src={content.imageUrl} alt="" className="rounded-lg mb-4 max-w-full" />}
+      {tableName === 'mediaFiles' && content.mimeType.startsWith('image/') && <img src={`/api/media/${content._id}`} alt="" className="rounded-lg mb-4 max-w-full" />}
       {content.videoUrl && <video src={content.videoUrl} controls className="rounded-lg mb-4 max-w-full" />}
+      {tableName === 'mediaFiles' && content.mimeType.startsWith('video/') && <video src={`/api/media/${content._id}`} controls className="rounded-lg mb-4 max-w-full" />}
       <div className="flex gap-2">
-        <span className="px-3 py-1 rounded-full text-sm bg-muted capitalize">{content.status}</span>
-        {content.platforms?.map(p => (
+        {content.status && <span className="px-3 py-1 rounded-full text-sm bg-muted capitalize">{content.status}</span>}
+        {content.platforms?.map((p:string) => (
           <span key={p} className="px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">{p}</span>
         ))}
       </div>

@@ -1,76 +1,45 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../../../convex/_generated/api";
 import ContentCard from "@/components/ContentCard";
+import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
-type ContentStatus = "draft" | "scheduled" | "posted" | "archived";
-
-interface ContentItem {
-  id: string;
-  title?: string;
-  text?: string;
-  imageUrl?: string;
-  videoUrl?: string;
-  platforms?: string[];
-  status: ContentStatus;
-  createdAt: string;
-  type?: string;
-}
-
-interface ApiResponse {
-  items: ContentItem[];
-  nextCursor?: string | null;
-  total?: number;
-}
-
-const STATUS_TABS = ["all", "draft", "scheduled", "posted", "archived"] as const;
-const PLATFORMS = ["All Platforms", "Instagram", "TikTok", "Twitter", "Facebook", "LinkedIn", "YouTube"];
+const FILTER_TABS = ["all", "text", "image", "video"] as const;
 
 export default function ContentLibraryPage() {
-  const [items, setItems] = useState<ContentItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [cursor, setCursor] = useState<string | undefined>();
-  const [hasMore, setHasMore] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<"all" | ContentStatus>("all");
-  const [platformFilter, setPlatformFilter] = useState("All Platforms");
+  const { userId: clerkId } = useAuth();
+  const router = useRouter();
+  const [filter, setFilter] = useState<"all" | "text" | "image" | "video">("all");
   const [search, setSearch] = useState("");
 
-  const fetchContent = useCallback(async (reset = false) => {
-    setLoading(true);
+  const user = useQuery(api.users.getByClerkId, clerkId ? { clerkId } : "skip");
+  const items = useQuery(api.content.list, user?._id ? { userId: user._id, filter: filter === "all" ? undefined : filter } : "skip");
+  const deleteItem = useMutation(api.content.deleteItem);
+
+  const handleDelete = (item: any) => {
+    deleteItem({ _id: item._id, _tableName: item._tableName });
+  };
+
+  const handleReUse = (item: any) => {
     const params = new URLSearchParams();
-    if (statusFilter !== "all") params.set("status", statusFilter);
-    if (platformFilter !== "All Platforms") params.set("platform", platformFilter.toLowerCase());
-    if (!reset && cursor) params.set("cursor", cursor);
-
-    try {
-      const res = await fetch(`/api/content?${params}`);
-      const data: ApiResponse = await res.json();
-      if (reset) {
-        setItems(data.items || []);
-      } else {
-        setItems(prev => [...prev, ...(data.items || [])]);
-      }
-      setCursor(data.nextCursor ?? undefined);
-      setHasMore(!!data.nextCursor);
-    } catch (err) {
-      console.error("Failed to fetch content:", err);
-    } finally {
-      setLoading(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, platformFilter]);
-
-  useEffect(() => {
-    setCursor(undefined);
-    fetchContent(true);
-  }, [fetchContent]);
+    if(item.text) params.set("text", item.text);
+    if(item.imageUrl) params.set("imageUrl", item.imageUrl);
+    if(item.videoUrl) params.set("videoUrl", item.videoUrl);
+    if(item.content) params.set("text", item.content);
+    
+    router.push(`/create?${params.toString()}`);
+  };
 
   const filtered = search
-    ? items.filter(
-        item =>
+    ? items?.filter(
+        (item: any) =>
           item.text?.toLowerCase().includes(search.toLowerCase()) ||
-          item.title?.toLowerCase().includes(search.toLowerCase())
+          item.title?.toLowerCase().includes(search.toLowerCase()) ||
+          item.content?.toLowerCase().includes(search.toLowerCase())
       )
     : items;
 
@@ -86,7 +55,6 @@ export default function ContentLibraryPage() {
         </Link>
       </div>
 
-      {/* Search */}
       <input
         type="text"
         placeholder="Search content..."
@@ -95,16 +63,14 @@ export default function ContentLibraryPage() {
         className="w-full mb-4 px-4 py-2 border rounded-lg bg-background"
       />
 
-      {/* Filters row */}
       <div className="flex gap-4 mb-6 flex-wrap">
-        {/* Status tabs */}
         <div className="flex gap-1 border rounded-lg p-1">
-          {STATUS_TABS.map(tab => (
+          {FILTER_TABS.map(tab => (
             <button
               key={tab}
-              onClick={() => setStatusFilter(tab)}
+              onClick={() => setFilter(tab)}
               className={`px-3 py-1 rounded-md text-sm capitalize transition-colors ${
-                statusFilter === tab
+                filter === tab
                   ? "bg-blue-600 text-white"
                   : "text-muted-foreground hover:bg-muted"
               }`}
@@ -113,29 +79,15 @@ export default function ContentLibraryPage() {
             </button>
           ))}
         </div>
-
-        {/* Platform filter */}
-        <select
-          value={platformFilter}
-          onChange={e => setPlatformFilter(e.target.value)}
-          className="border rounded-lg px-3 py-1 text-sm bg-background"
-        >
-          {PLATFORMS.map(p => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
       </div>
 
-      {/* Content grid */}
-      {loading && items.length === 0 ? (
+      {items === undefined ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
             <div key={i} className="h-48 bg-muted rounded-lg animate-pulse" />
           ))}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : filtered && filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="text-6xl mb-4">📭</div>
           <h2 className="text-xl font-semibold mb-2">No content yet</h2>
@@ -150,34 +102,27 @@ export default function ContentLibraryPage() {
           </Link>
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(item => (
-              <Link key={item.id} href={`/content/${item.id}`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered?.map((item: any) => (
+            <div key={item._id}>
+              <Link href={`/content/${item._id}?tableName=${item._tableName}`}>
                 <ContentCard
-                  title={item.title || item.text?.slice(0, 50) || "Untitled"}
-                  type={item.type || "text"}
+                  title={item.title || item.text?.slice(0, 50) || item.content?.slice(0, 50) || "Untitled"}
+                  type={item.type || item._tableName}
                   status={
-                    item.status.charAt(0).toUpperCase() + item.status.slice(1)
+                    item.status ? (item.status.charAt(0).toUpperCase() + item.status.slice(1)) : 'New'
                   }
-                  date={new Date(item.createdAt).toLocaleDateString()}
-                  thumbnail={item.imageUrl}
+                  date={new Date(item._creationTime).toLocaleDateString()}
+                  thumbnail={item.imageUrl || (item._tableName === 'mediaFiles' && item.mimeType.startsWith('image/')) ? `/api/media/${item._id}` : undefined}
                 />
               </Link>
-            ))}
-          </div>
-          {hasMore && (
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={() => fetchContent(false)}
-                disabled={loading}
-                className="px-6 py-2 border rounded-lg hover:bg-muted disabled:opacity-50"
-              >
-                {loading ? "Loading..." : "Load More"}
-              </button>
+              <div className="flex justify-end gap-2 mt-2">
+                <button onClick={() => handleReUse(item)} className="text-xs text-gray-500 hover:text-gray-700">Re-use</button>
+                <button onClick={() => handleDelete(item)} className="text-xs text-red-500 hover:text-red-700">Delete</button>
+              </div>
             </div>
-          )}
-        </>
+          ))}
+        </div>
       )}
     </div>
   );
