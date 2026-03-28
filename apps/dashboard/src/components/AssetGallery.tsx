@@ -64,14 +64,16 @@ function formatMs(ms: number): string {
 interface CheckboxProps {
   checked: boolean
   onChange: (checked: boolean) => void
+  'aria-label'?: string
 }
 
-function Checkbox({ checked, onChange }: CheckboxProps) {
+function Checkbox({ checked, onChange, 'aria-label': ariaLabel }: CheckboxProps) {
   return (
     <input
       type="checkbox"
       checked={checked}
       onChange={(e) => onChange(e.target.checked)}
+      aria-label={ariaLabel || "Select item"}
       className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-purple-600 focus:ring-purple-500 focus:ring-offset-slate-900"
       onClick={(e) => e.stopPropagation()}
     />
@@ -410,17 +412,19 @@ export function AssetGallery({ assets, selectedIds, onSelectionChange }: AssetGa
 
   // Filter and sort assets
   const filteredAssets = useMemo(() => {
-    let result = assets.filter((asset) => {
+    const searchLower = search.toLowerCase()
+    const result = assets.filter((asset) => {
+      if (!searchLower) return true
       const matchSearch =
-        asset.name.toLowerCase().includes(search.toLowerCase()) ||
-        (asset.model || '').toLowerCase().includes(search.toLowerCase()) ||
-        (asset.text || '').toLowerCase().includes(search.toLowerCase())
+        asset.name.toLowerCase().includes(searchLower) ||
+        (asset.model || '').toLowerCase().includes(searchLower) ||
+        (asset.text || '').toLowerCase().includes(searchLower)
       
       return matchSearch
     })
 
     // Sort
-    result = [...result].sort((a, b) => {
+    result.sort((a, b) => {
       if (sortBy === 'newest') {
         return (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime())
       }
@@ -476,6 +480,7 @@ export function AssetGallery({ assets, selectedIds, onSelectionChange }: AssetGa
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
             type="text"
+            aria-label="Search assets"
             placeholder="Search name, model, or text..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -485,8 +490,9 @@ export function AssetGallery({ assets, selectedIds, onSelectionChange }: AssetGa
 
         <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 shrink-0">
-            <ArrowUpDown className="w-4 h-4 text-slate-500" />
+            <ArrowUpDown className="w-4 h-4 text-slate-500" aria-hidden="true" />
             <select
+              aria-label="Sort assets"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="bg-transparent text-sm text-slate-300 focus:outline-none cursor-pointer"
