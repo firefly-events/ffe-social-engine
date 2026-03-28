@@ -281,43 +281,29 @@ function Step2BrandVoice({
 
 // ─── Step 3 — Generate First Content ──────────────────────────────────────────
 
-const GENERATED_POSTS = [
-  {
-    id: 'a',
-    platform: 'Instagram',
-    platformColor: 'bg-gradient-to-br from-purple-500 to-pink-500',
-    text: "We're thrilled to announce our biggest event of the year is coming this summer! Three stages, 40+ artists, and the best food trucks in the city. Early bird tickets are on sale NOW — don't miss out. 🎵✨",
-    hashtags: '#FireflyEvents #SummerFest #LiveMusic',
-    type: 'Image post',
-  },
-  {
-    id: 'b',
-    platform: 'LinkedIn',
-    platformColor: 'bg-blue-600',
-    text: "3 things we've learned from producing 50+ events this year: (1) The line-up matters less than the experience. (2) The best marketing is a great crowd. (3) Timing is everything — and Thursday evenings win every time.\n\nWhat's your biggest event lesson?",
-    hashtags: '#EventManagement #EventIndustry #FireflyEvents',
-    type: 'Article',
-  },
-  {
-    id: 'c',
-    platform: 'Twitter/X',
-    platformColor: 'bg-black',
-    text: "Spoiler: the lineup we're dropping this Friday is going to break the internet. Set your alarm. 🔥",
-    hashtags: '#FireflyEvents #SummerFest',
-    type: 'Tweet',
-  },
-]
+interface GeneratedPost {
+  id: string;
+  platform: string;
+  platformColor: string;
+  text: string;
+  hashtags: string;
+  type: string;
+}
 
 function Step3GenerateContent({
+  posts,
   selectedPost,
   onSelectPost,
   generating,
   onGenerate,
+  error,
 }: {
-  selectedPost: string | null
-  onSelectPost: (id: string) => void
-  generating: boolean
-  onGenerate: () => void
+  posts: GeneratedPost[];
+  selectedPost: string | null;
+  onSelectPost: (id: string) => void;
+  generating: boolean;
+  onGenerate: () => void;
+  error: string | null;
 }) {
   return (
     <div className="space-y-6">
@@ -342,10 +328,15 @@ function Step3GenerateContent({
             <p className="text-sm text-gray-500 mt-1">Matching your brand voice and tone preferences</p>
           </div>
         </div>
+      ) : error ? (
+        <div className="text-center py-12">
+          <p className="text-red-500">{error}</p>
+          <button onClick={onGenerate} className="btn-secondary mt-4">Try again</button>
+        </div>
       ) : (
         <>
           <div className="space-y-3">
-            {GENERATED_POSTS.map((post) => (
+            {posts.map((post) => (
               <button
                 key={post.id}
                 onClick={() => onSelectPost(post.id)}
@@ -565,23 +556,95 @@ export default function OnboardPage() {
   const { user } = useUser()
   const [step, setStep] = useState(1)
   const [done, setDone] = useState(false)
-  const [generating, setGenerating] = useState(false)
+  const [generating, setGenerating] = useState(true)
+  const [generationError, setGenerationError] = useState<string | null>(null)
 
   // Step 1 state
-  const [connectedPlatforms, setConnectedPlatforms] = useState<Set<Platform>>(new Set())
+  const [connectedPlatforms, setConnectedPlatforms] = useState<Set<Platform>>(new Set(['instagram', 'twitter']))
 
   // Step 2 state
-  const [tone, setTone] = useState<Tone | null>(null)
-  const [contentTypes, setContentTypes] = useState<Set<ContentType>>(new Set())
-  const [brandName, setBrandName] = useState('')
+  const [tone, setTone] = useState<Tone | null>('casual')
+  const [contentTypes, setContentTypes] = useState<Set<ContentType>>(new Set(['events', 'behind-the-scenes']))
+  const [brandName, setBrandName] = useState('Firefly Events')
 
   // Step 3 state
+  const [generatedPosts, setGeneratedPosts] = useState<GeneratedPost[]>([])
   const [selectedPost, setSelectedPost] = useState<string | null>(null)
 
   // Step 4 state
   const [frequency, setFrequency] = useState<FrequencyId | null>(null)
   const [days, setDays] = useState<Set<ScheduleDay>>(new Set(['Tue', 'Thu']))
   const [time, setTime] = useState<ScheduleTime | null>('6pm')
+
+  const generateInitialContent = useCallback(async () => {
+    setGenerating(true)
+    setGenerationError(null)
+    setSelectedPost(null)
+
+    const platformLabels = PLATFORM_CONFIGS.filter(p => connectedPlatforms.has(p.id)).map(p => p.label)
+    const contentTypesLabels = CONTENT_TYPES_CONFIG.filter(c => contentTypes.has(c.id)).map(c => c.label)
+
+    const prompt = `
+      You are an expert social media manager for a brand called "${brandName}".
+      Your tone of voice is: ${tone}.
+      The brand's content focuses on: ${contentTypesLabels.join(', ')}.
+      The social media platforms we use are: ${platformLabels.join(', ')}.
+
+      Generate 3 distinct social media post ideas for this brand.
+      For each post, provide:
+      - A platform (e.g., Instagram, LinkedIn, Twitter/X)
+      - The post text (caption)
+      - Relevant hashtags (as a single string, e.g., "#event #music")
+      - The type of post (e.g., Image post, Article, Tweet)
+
+      Return this as a JSON array of objects. Each object should have keys: "id", "platform", "platformColor", "text", "hashtags", "type".
+      The "id" should be a unique random string for each post.
+      The "platformColor" should be a valid tailwindcss background color class, e.g., "bg-blue-600".
+    `
+
+    try {
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: prompt }],
+          model: 'gemini-pro',
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.error || 'Failed to generate content.')
+      }
+
+      const data = await res.json()
+      // The Gemini API may return the JSON wrapped in ```json ... ```, so we need to parse that.
+      const jsonString = data.choices[0].message.content.match(/```json\n([\s\S]*?)\n```/)?.[1]
+      if (!jsonString) {
+        // Fallback for when the model doesn't use markdown
+        try {
+          const posts = JSON.parse(data.choices[0].message.content);
+          setGeneratedPosts(posts);
+        } catch (e) {
+          throw new Error("Invalid response format from AI. Could not find JSON.")
+        }
+      } else {
+        const posts = JSON.parse(jsonString)
+        setGeneratedPosts(posts)
+      }
+    } catch (error: any) {
+      setGenerationError(error.message)
+    } finally {
+      setGenerating(false)
+    }
+  }, [brandName, tone, contentTypes, connectedPlatforms])
+
+  useEffect(() => {
+    if (step === 3 && generatedPosts.length === 0 && !generationError) {
+      generateInitialContent()
+    }
+  }, [step, generatedPosts.length, generationError, generateInitialContent])
+
 
   function togglePlatform(id: Platform) {
     setConnectedPlatforms((prev) => {
@@ -611,9 +674,7 @@ export default function OnboardPage() {
   }
 
   function handleRegenerate() {
-    setGenerating(true)
-    setSelectedPost(null)
-    setTimeout(() => setGenerating(false), 1600)
+    generateInitialContent()
   }
 
   function canProceed() {
@@ -760,10 +821,12 @@ export default function OnboardPage() {
         )}
         {step === 3 && (
           <Step3GenerateContent
+            posts={generatedPosts}
             selectedPost={selectedPost}
             onSelectPost={setSelectedPost}
             generating={generating}
             onGenerate={handleRegenerate}
+            error={generationError}
           />
         )}
         {step === 4 && (

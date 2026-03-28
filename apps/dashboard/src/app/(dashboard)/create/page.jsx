@@ -6,11 +6,11 @@ export default function CreatePage() {
   const router = useRouter();
 
   const templates = [
-    { id: 'product-launch', name: 'Product Launch', description: 'Announce a new feature or product' },
-    { id: 'behind-scenes', name: 'Behind the Scenes', description: 'Show the process or the team' },
-    { id: 'tutorial', name: 'Tutorial / How-To', description: 'Teach something to your audience' },
-    { id: 'trending', name: 'Trending Topic', description: 'Join a viral conversation' },
-    { id: 'event-promo', name: 'Event Promo', description: 'Promote an upcoming event' },
+    { id: 'product-launch', name: 'Product Launch', description: 'Announce a new product or feature with excitement' },
+    { id: 'behind-scenes', name: 'Behind the Scenes', description: 'Show your authentic process or team' },
+    { id: 'tutorial', name: 'Tutorial', description: 'Teach your audience a skill or process' },
+    { id: 'trending', name: 'Trending', description: 'Ride a current trend or viral moment' },
+    { id: 'promo', name: 'Promotion / Sale', description: 'Drive sales with a limited-time offer' },
     { id: 'scratch', name: 'Start from Scratch', description: 'Full control from the beginning' }
   ];
 
