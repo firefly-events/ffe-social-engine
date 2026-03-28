@@ -5,6 +5,7 @@ import { PostHogProvider as PHProvider } from 'posthog-js/react'
 import { useEffect, Suspense } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { identifyUser, resetIdentity } from '@/lib/posthog'
 
 /**
  * Initialize PostHog client-side with configuration.
@@ -55,15 +56,16 @@ function PostHogTracking() {
   // ─── Clerk Integration ─────────────────────────────────────────────────────
   useEffect(() => {
     if (user && typeof window !== 'undefined') {
-      posthog.identify(user.id, {
-        email: user.primaryEmailAddress?.emailAddress,
-        username: user.username,
-        full_name: user.fullName,
-        tier: user.publicMetadata?.tier || 'free',
-        organization: user.publicMetadata?.orgId || 'personal',
+      identifyUser(user.id, {
+        email: user.primaryEmailAddress?.emailAddress ?? undefined,
+        username: user.username ?? undefined,
+        full_name: user.fullName ?? undefined,
+        tier: (user.publicMetadata?.tier as string) || 'free',
+        organization: (user.publicMetadata?.orgId as string) || 'personal',
+        app: 'social-engine',
       })
     } else if (!user && typeof window !== 'undefined') {
-      posthog.reset()
+      resetIdentity()
     }
   }, [user])
 

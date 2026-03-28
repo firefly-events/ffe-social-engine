@@ -1,0 +1,165 @@
+{
+  "_meta": {
+    "description": "Retention cohort analysis configuration for FFE Social Engine. Defines weekly/monthly retention targets, D1/D7/D30 activation retention, and the PostHog retention insight setup instructions.",
+    "ticket": "FIR-1179",
+    "created": "2026-03-25",
+    "app": "ffe-social-engine",
+    "implementation_note": "PostHog retention insights are configured in the PostHog UI (Insights > Retention). Use the queries below as reference for manual setup or API provisioning."
+  },
+  "retention_analyses": [
+    {
+      "name": "Weekly Content Creation Retention",
+      "description": "Users who return to create content in week N+1 after their signup week. Measures whether users form a content creation habit.",
+      "type": "retention",
+      "query": {
+        "insight": "RETENTION",
+        "target_entity": {
+          "id": "se_user_signed_up",
+          "name": "se_user_signed_up",
+          "type": "events"
+        },
+        "returning_entity": {
+          "id": "se_content_created",
+          "name": "se_content_created",
+          "type": "events"
+        },
+        "retention_type": "retention_first_time",
+        "period": "Week",
+        "total_intervals": 8,
+        "filter_test_accounts": true
+      },
+      "targets": {
+        "week_1": "> 40%",
+        "week_4": "> 25%",
+        "week_8": "> 15%"
+      },
+      "interpretation": "Retained = user created at least one piece of content in week N+1 after they first signed up. Strong signal of product-market fit when week 4 > 25%."
+    },
+    {
+      "name": "Monthly Post Retention",
+      "description": "Users who successfully post content in month N+1 after their first post. Measures long-term engagement with the publish workflow.",
+      "type": "retention",
+      "query": {
+        "insight": "RETENTION",
+        "target_entity": {
+          "id": "se_content_posted",
+          "name": "se_content_posted",
+          "type": "events"
+        },
+        "returning_entity": {
+          "id": "se_content_posted",
+          "name": "se_content_posted",
+          "type": "events"
+        },
+        "retention_type": "retention_first_time",
+        "period": "Month",
+        "total_intervals": 6,
+        "filter_test_accounts": true
+      },
+      "targets": {
+        "month_1": "> 35%",
+        "month_3": "> 20%",
+        "month_6": "> 12%"
+      },
+      "interpretation": "Retained = user published at least one post in month N+1 after first post. 6-month retention > 12% indicates sustainable usage patterns."
+    },
+    {
+      "name": "D1 / D7 / D30 Activation Retention",
+      "description": "Classic activation retention: do users who sign up come back on day 1, day 7, and day 30?",
+      "type": "retention",
+      "query": {
+        "insight": "RETENTION",
+        "target_entity": {
+          "id": "se_user_signed_up",
+          "name": "se_user_signed_up",
+          "type": "events"
+        },
+        "returning_entity": {
+          "id": "$pageview",
+          "name": "$pageview",
+          "type": "events"
+        },
+        "retention_type": "retention_first_time",
+        "period": "Day",
+        "total_intervals": 30,
+        "filter_test_accounts": true
+      },
+      "targets": {
+        "day_1": "> 40%",
+        "day_7": "> 20%",
+        "day_30": "> 10%"
+      },
+      "interpretation": "Retained = any $pageview after signup. D1 > 40% is the industry benchmark for SaaS tools. Low D1 suggests weak activation hook or email follow-up gap."
+    },
+    {
+      "name": "Onboarding Completion → Content Retention",
+      "description": "Of users who complete onboarding, what % are still creating content 30 days later?",
+      "type": "retention",
+      "query": {
+        "insight": "RETENTION",
+        "target_entity": {
+          "id": "se_onboarding_completed",
+          "name": "se_onboarding_completed",
+          "type": "events"
+        },
+        "returning_entity": {
+          "id": "se_content_created",
+          "name": "se_content_created",
+          "type": "events"
+        },
+        "retention_type": "retention_first_time",
+        "period": "Week",
+        "total_intervals": 6,
+        "filter_test_accounts": true
+      },
+      "targets": {
+        "week_1": "> 60%",
+        "week_4": "> 35%"
+      },
+      "interpretation": "Users who complete onboarding should have much higher retention than overall. If onboarding-completed retention is close to overall retention, the wizard isn't adding value."
+    },
+    {
+      "name": "Trial Users — Content Engagement During Trial",
+      "description": "Do trial users engage with content creation during their 14-day trial? Leading indicator of conversion.",
+      "type": "trend",
+      "query": {
+        "insight": "TRENDS",
+        "events": [
+          { "id": "se_content_created", "math": "total", "name": "Content Created" },
+          { "id": "se_content_posted", "math": "total", "name": "Content Posted" },
+          { "id": "se_trial_converted", "math": "total", "name": "Converted" }
+        ],
+        "filter_test_accounts": true,
+        "interval": "day",
+        "date_from": "-14d",
+        "properties": [
+          {
+            "key": "trial_active",
+            "type": "person",
+            "operator": "exact",
+            "value": "true"
+          }
+        ]
+      },
+      "interpretation": "Users who post ≥ 3 times during their trial have 3x higher conversion. Use this to define the 'magic number' for trial activation campaigns."
+    }
+  ],
+  "setup_instructions": {
+    "step_1": {
+      "title": "Create Retention Insights in PostHog",
+      "description": "Retention insights are not creatable via the dashboards API — they must be created via the Insights API or manually.",
+      "api_endpoint": "POST /api/projects/:project_id/insights/",
+      "automated": "Retention insights are created by posthog-provision.js --app social-engine (creates as standalone insights, then adds to dashboard)"
+    },
+    "step_2": {
+      "title": "Benchmark Baseline",
+      "description": "After deploying, wait 4 weeks before interpreting retention charts. First 2 weeks are too early for meaningful weekly retention data.",
+      "action": "Set a Linear reminder for 4 weeks post-launch to review baseline metrics"
+    },
+    "step_3": {
+      "title": "Export Retention Data",
+      "description": "For stakeholder reports, export retention CSVs from PostHog and import to a spreadsheet. PostHog API endpoint: GET /api/projects/:id/insights/:insight_id/",
+      "schedule": "Monthly — first Monday of each month"
+    }
+  }
+}
