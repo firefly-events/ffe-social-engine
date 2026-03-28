@@ -1,7 +1,8 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { useState, useEffect } from 'react';
+import { useQuery } from 'convex/react';
+import { api } from '../../../../convex/_generated/api';
 import MetricCard from '../../../components/MetricCard';
 import QuickAction from '../../../components/QuickAction';
 import ContentCard from '../../../components/ContentCard';
@@ -9,43 +10,36 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
-interface RecentContentItem {
-  id: string;
-  title?: string;
-  text?: string;
-  type?: string;
-  status: string;
-  createdAt: string;
-}
-
 export default function DashboardPage() {
   const { user } = useUser();
   const router = useRouter();
-  const [recentContent, setRecentContent] = useState<RecentContentItem[]>([]);
 
-  useEffect(() => {
-    fetch('/api/content?limit=3')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data.items)) {
-          setRecentContent(data.items);
-        }
-      })
-      .catch(err => console.error('Failed to fetch recent content:', err));
-  }, []);
+  const generationJobs = useQuery(api.generationJobs.list, {
+    userId: user?.id ?? '',
+  });
+
+  const recentContent = useQuery(api.content.list, {
+    userId: user?.id ?? '',
+  });
 
   const metrics = [
-    { label: 'Total Posts', value: '12', growth: '+2', icon: '📝', isLocked: false },
-    { label: 'Avg Engagement', value: '4.2%', growth: '+0.5%', icon: '🔥', isLocked: true },
-    { label: 'Top Platform', value: 'TikTok', growth: null, icon: '📱', isLocked: true },
-    { label: 'New Followers', value: '124', growth: '+15%', icon: '👥', isLocked: true }
+    {
+      label: 'Total Posts',
+      value: generationJobs?.length.toString() || '0',
+      growth: '+0',
+      icon: '📝',
+      isLocked: false,
+    },
+    { label: 'Avg Engagement', value: 'N/A', growth: 'N/A', icon: '🔥', isLocked: true },
+    { label: 'Top Platform', value: 'N/A', growth: null, icon: '📱', isLocked: true },
+    { label: 'New Followers', value: 'N/A', growth: 'N/A', icon: '👥', isLocked: true },
   ];
 
   const quickActions = [
     { title: 'TikTok Video', icon: '📽️', color: '#ff0050', templateId: 'product-launch' },
     { title: 'Instagram Reel', icon: '📸', color: '#c13584', templateId: 'behind-scenes' },
     { title: 'YouTube Short', icon: '🎥', color: '#ff0000', templateId: 'tutorial' },
-    { title: 'Social Post', icon: '💬', color: '#1da1f2', templateId: 'trending' }
+    { title: 'Social Post', icon: '💬', color: '#1da1f2', templateId: 'trending' },
   ];
 
   return (
@@ -87,14 +81,14 @@ export default function DashboardPage() {
           <section>
             <h2 className="text-xl font-semibold mb-6">Recent Activity</h2>
             <Card className="p-4">
-              {recentContent.length === 0 ? (
+              {recentContent && recentContent.length === 0 ? (
                 <p className="text-muted-foreground text-sm text-center py-4">No recent content yet.</p>
               ) : (
-                recentContent.map(content => (
+                recentContent?.slice(0, 3).map(content => (
                   <ContentCard
-                    key={content.id}
-                    title={content.title || content.text?.slice(0, 50) || 'Untitled'}
-                    type={content.type || 'text'}
+                    key={content._id}
+                    title={content.text.slice(0, 50) || 'Untitled'}
+                    type={'text'}
                     status={content.status.charAt(0).toUpperCase() + content.status.slice(1)}
                     date={new Date(content.createdAt).toLocaleDateString()}
                   />
