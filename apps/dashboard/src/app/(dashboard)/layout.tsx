@@ -9,6 +9,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const user = await currentUser();
   const VALID_TIERS = ['FREE', 'STARTER', 'BASIC', 'PRO', 'BUSINESS', 'AGENCY'] as const;
   type UserTier = typeof VALID_TIERS[number];
+  const role = (user?.publicMetadata?.role as string) || 'user';
   const rawPlan = ((user?.publicMetadata?.plan as string) || 'free').toUpperCase();
   const plan: UserTier = (VALID_TIERS as readonly string[]).includes(rawPlan)
     ? (rawPlan as UserTier)
@@ -24,7 +25,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen bg-muted/30">
-      <Sidebar userTier={plan} usage={usage} />
+      <Sidebar userTier={plan} usage={usage} role={role} />
 
       <div className="flex-1 ml-60">
         <header className="h-16 bg-background border-b border-border flex items-center px-8 sticky top-0 z-50">

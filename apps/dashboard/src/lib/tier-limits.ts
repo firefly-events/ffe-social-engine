@@ -4,11 +4,12 @@
  * FIR-1305: n8n as core automation engine — tiered by plan.
  */
 
-export type Tier = 'free' | 'starter' | 'pro' | 'business' | 'agency'
+export type Tier = 'free' | 'starter' | 'basic' | 'pro' | 'business' | 'agency'
 
 export const WORKFLOW_LIMITS: Record<Tier, number> = {
   free: 3,
   starter: 3,
+  basic: 7,
   pro: 15,
   business: Infinity,
   agency: Infinity,
@@ -30,5 +31,6 @@ export function planToTier(plan: string | undefined | null): Tier {
   if (normalized === 'business') return 'business'
   if (normalized === 'agency') return 'agency'
   if (normalized === 'starter') return 'starter'
+  if (normalized === 'basic') return 'basic'
   return 'free'
 }
