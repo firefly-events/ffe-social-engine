@@ -6,10 +6,11 @@
  * FIR-1318: Multi-select, copy-to-clipboard, hover previews, dark theme.
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Search, Filter, ArrowUpDown } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,8 @@ export interface AssetGalleryProps {
   selectedIds: string[]
   onSelectionChange: (ids: string[]) => void
 }
+
+type SortOption = 'newest' | 'oldest' | 'cost-high' | 'cost-low'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -105,7 +108,7 @@ function TextTab({
   }
 
   if (items.length === 0) {
-    return <EmptyState message="No text assets generated yet." />
+    return <EmptyState message="No matching text assets found." />
   }
 
   return (
@@ -126,7 +129,14 @@ function TextTab({
                   onChange={() => toggleSelect(item.id)}
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-200 mb-1">{item.name}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-sm font-medium text-slate-200">{item.name}</p>
+                    {item.createdAt && (
+                      <span className="text-[10px] text-slate-500">
+                        {new Date(item.createdAt).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-slate-400 leading-relaxed line-clamp-3">
                     {item.text}
                   </p>
@@ -180,7 +190,7 @@ function ImagesTab({
   }
 
   if (items.length === 0) {
-    return <EmptyState message="No image assets generated yet." />
+    return <EmptyState message="No matching image assets found." />
   }
 
   return (
@@ -268,6 +278,11 @@ function ImagesTab({
                 <div className="flex gap-2 mt-2">
                   {item.model && <Badge variant="gray">{item.model}</Badge>}
                   {item.costUsd != null && <Badge variant="gray">${item.costUsd.toFixed(3)}</Badge>}
+                  {item.createdAt && (
+                    <span className="text-xs text-slate-500 self-center ml-auto">
+                      Generated on {new Date(item.createdAt).toLocaleString()}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -298,7 +313,7 @@ function VideosTab({
   }
 
   if (items.length === 0) {
-    return <EmptyState message="No video assets generated yet." />
+    return <EmptyState message="No matching video assets found." />
   }
 
   return (
@@ -346,7 +361,14 @@ function VideosTab({
             </div>
 
             <CardContent className="p-3">
-              <p className="text-sm font-medium text-slate-200 truncate">{item.name}</p>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <p className="text-sm font-medium text-slate-200 truncate">{item.name}</p>
+                {item.createdAt && (
+                  <span className="text-[10px] text-slate-500 shrink-0">
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
               <div className="flex gap-2 mt-1 flex-wrap">
                 {item.model && <Badge variant="gray" className="text-xs">{item.model}</Badge>}
                 {item.generationMs != null && (
@@ -383,10 +405,43 @@ const TABS: { key: TabKey; label: string }[] = [
 
 export function AssetGallery({ assets, selectedIds, onSelectionChange }: AssetGalleryProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('text')
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<SortOption>('newest')
 
-  const textItems   = assets.filter((a) => a.type === 'text')
-  const imageItems  = assets.filter((a) => a.type === 'image')
-  const videoItems  = assets.filter((a) => a.type === 'video')
+  // Filter and sort assets
+  const filteredAssets = useMemo(() => {
+    let result = assets.filter((asset) => {
+      const matchSearch =
+        asset.name.toLowerCase().includes(search.toLowerCase()) ||
+        (asset.model || '').toLowerCase().includes(search.toLowerCase()) ||
+        (asset.text || '').toLowerCase().includes(search.toLowerCase())
+      
+      return matchSearch
+    })
+
+    // Sort
+    result = [...result].sort((a, b) => {
+      if (sortBy === 'newest') {
+        return (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime())
+      }
+      if (sortBy === 'oldest') {
+        return (new Date(a.createdAt || 0).getTime()) - (new Date(b.createdAt || 0).getTime())
+      }
+      if (sortBy === 'cost-high') {
+        return (b.costUsd || 0) - (a.costUsd || 0)
+      }
+      if (sortBy === 'cost-low') {
+        return (a.costUsd || 0) - (b.costUsd || 0)
+      }
+      return 0
+    })
+
+    return result
+  }, [assets, search, sortBy])
+
+  const textItems   = filteredAssets.filter((a) => a.type === 'text')
+  const imageItems  = filteredAssets.filter((a) => a.type === 'image')
+  const videoItems  = filteredAssets.filter((a) => a.type === 'video')
 
   const counts: Record<TabKey, number> = {
     text:   textItems.length,
@@ -415,52 +470,82 @@ export function AssetGallery({ assets, selectedIds, onSelectionChange }: AssetGa
 
   return (
     <div className="bg-slate-900 rounded-2xl border border-slate-700 overflow-hidden">
-      {/* Tab header */}
-      <div className="flex items-center justify-between border-b border-slate-700 px-4">
-        <div className="flex">
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`
-                relative px-4 py-3 text-sm font-medium transition-colors flex items-center gap-2
-                ${activeTab === tab.key
-                  ? 'text-purple-400 border-b-2 border-purple-500'
-                  : 'text-slate-400 hover:text-slate-200'}
-              `}
-            >
-              {tab.label}
-              {counts[tab.key] > 0 && (
-                <Badge variant="gray" className="text-xs px-1.5 py-0">
-                  {counts[tab.key]}
-                </Badge>
-              )}
-            </button>
-          ))}
+      {/* Search & Sort Bar */}
+      <div className="p-4 border-b border-slate-700 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="relative w-full md:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <input
+            type="text"
+            placeholder="Search name, model, or text..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full bg-slate-800 border-slate-700 rounded-lg py-2 pl-10 pr-4 text-sm text-slate-200 focus:outline-none focus:ring-1 focus:ring-purple-500 transition-all"
+          />
         </div>
 
-        {/* Selection controls */}
-        <div className="flex items-center gap-3">
-          {selectedIds.length > 0 && (
-            <span className="text-xs text-slate-400">
-              {selectedIds.length} selected
-            </span>
-          )}
-          {currentItems.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleSelectAll}
-              className="text-slate-400 hover:text-slate-200 text-xs"
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 shrink-0">
+            <ArrowUpDown className="w-4 h-4 text-slate-500" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="bg-transparent text-sm text-slate-300 focus:outline-none cursor-pointer"
             >
-              {allSelected ? 'Deselect All' : 'Select All'}
-            </Button>
-          )}
+              <option value="newest" className="bg-slate-800">Newest First</option>
+              <option value="oldest" className="bg-slate-800">Oldest First</option>
+              <option value="cost-high" className="bg-slate-800">Highest Cost</option>
+              <option value="cost-low" className="bg-slate-800">Lowest Cost</option>
+            </select>
+          </div>
+          
+          <div className="h-8 w-[1px] bg-slate-700 mx-1 hidden md:block" />
+
+          {/* Selection summary & controls */}
+          <div className="flex items-center gap-3 ml-auto md:ml-0">
+            {selectedIds.length > 0 && (
+              <span className="text-xs text-slate-400 whitespace-nowrap">
+                {selectedIds.length} selected
+              </span>
+            )}
+            {currentItems.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSelectAll}
+                className="text-slate-400 hover:text-slate-200 text-xs h-9"
+              >
+                {allSelected ? 'Deselect All' : 'Select All'}
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Tab header */}
+      <div className="flex items-center border-b border-slate-700 px-4">
+        {TABS.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`
+              relative px-4 py-3 text-sm font-medium transition-colors flex items-center gap-2
+              ${activeTab === tab.key
+                ? 'text-purple-400 border-b-2 border-purple-500'
+                : 'text-slate-400 hover:text-slate-200'}
+            `}
+          >
+            {tab.label}
+            {counts[tab.key] > 0 && (
+              <Badge variant="gray" className="text-xs px-1.5 py-0">
+                {counts[tab.key]}
+              </Badge>
+            )}
+          </button>
+        ))}
+      </div>
+
       {/* Tab content */}
-      <div className="p-4">
+      <div className="p-4 min-h-[300px]">
         {activeTab === 'text' && (
           <TextTab
             items={textItems}
