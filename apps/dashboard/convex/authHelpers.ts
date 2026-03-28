@@ -46,20 +46,12 @@ export async function getCurrentUserId(ctx: AuthContext): Promise<Id<'users'> | 
 /**
  * Returns the current authenticated user's Convex _id.
  * Throws an error if the user is not authenticated or not found in the database.
+ * Supports impersonation for admin users.
  */
 export async function requireAuth(ctx: AuthContext): Promise<Id<'users'>> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    throw new ConvexError('Not authenticated');
-  }
-
-  const user = await ctx.db
-    .query('users')
-    .withIndex('by_clerkId', (q) => q.eq('clerkId', identity.subject))
-    .first();
-
+  const user = await getCurrentUser(ctx);
   if (!user) {
-    throw new ConvexError('User not found — Clerk webhook may not have synced yet');
+    throw new ConvexError('User not found or not authenticated');
   }
 
   return user._id;
