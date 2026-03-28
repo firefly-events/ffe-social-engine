@@ -227,13 +227,13 @@ test.describe('API health', () => {
     // Expecting 401 (unauthenticated) or 404 (Clerk dev-browser issue) — never 500
     const response = await request.get('/api/social/accounts');
     const status = response.status();
-    expect(status, `Expected 401 or 404, got ${status}`).toBeOneOf([401, 404]);
+    expect([401, 404].includes(status), `Expected 401 or 404, got ${status}`).toBe(true);
   });
 
   test('health endpoint responds', async ({ request }) => {
     const response = await request.get('/api/health');
     // 200 = healthy (middleware marks this route as public), 404 = route not deployed yet
     const status = response.status();
-    expect(status, `Expected 200 or 404, got ${status}`).toBeOneOf([200, 404]);
+    expect([200, 404].includes(status), `Expected 200 or 404, got ${status}`).toBe(true);
   });
 });
