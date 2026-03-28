@@ -1,37 +1,23 @@
 import { streamText } from 'ai';
-import { createVertex } from '@ai-sdk/google-vertex';
+import { vertex } from '@/lib/vertex-ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { auth } from '@clerk/nextjs/server';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 
-function getVertex() {
-  const saKey = process.env.GOOGLE_SERVICE_ACCOUNT_KEY;
-  return createVertex({
-    project: process.env.GOOGLE_CLOUD_PROJECT ?? 'social-engine-dev',
-    location: process.env.GOOGLE_VERTEX_LOCATION ?? 'us-central1',
-    ...(saKey && {
-      googleAuthOptions: {
-        credentials: JSON.parse(saKey),
-      },
-    }),
-  });
-}
-
 function getModel(modelSpec: string) {
-  const vertex = getVertex();
   switch (modelSpec) {
     case 'gemini-flash':
-      return vertex('gemini-1.5-flash-001');
+      return vertex('gemini-1.5-flash');
     case 'gemini-pro':
-      return vertex('gemini-1.5-pro-001');
+      return vertex('gemini-1.5-pro');
     case 'claude-haiku':
       return anthropic('claude-haiku-4-5-20251001');
     case 'claude-sonnet':
       return anthropic('claude-sonnet-4-6');
     default:
-      return vertex('gemini-1.5-flash-001');
+      return vertex('gemini-1.5-flash');
   }
 }
 
