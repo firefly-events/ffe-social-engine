@@ -1,7 +1,10 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useUser } from '@clerk/nextjs'
+import { useQuery, useMutation } from 'convex/react'
+import { api } from '@/convex/_generated/api'
+import type { Doc, Id } from '@/convex/_generated/dataModel'
 import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
 import type {
   Workflow,
@@ -12,7 +15,7 @@ import type {
   NodeCategory,
   NodePaletteItem,
 } from '@/lib/workflow-types'
-import { SAMPLE_WORKFLOW } from '@/lib/workflow-types'
+// import { SAMPLE_WORKFLOW } from '@/lib/workflow-types'
 import { getWorkflowLimit } from '@/lib/tier-limits'
 import type { Tier } from '@/lib/tier-limits'
 
@@ -235,36 +238,6 @@ const COLOR_CLASSES: Record<string, { bg: string; border: string; badge: string;
   emerald: { bg: 'bg-emerald-900/40', border: 'border-emerald-500/50', badge: 'bg-emerald-500/20 text-emerald-300', dot: 'bg-emerald-400' },
 }
 
-// ── SAMPLE WORKFLOW LIST ──────────────────────────────────────────────────────
-
-const MOCK_WORKFLOWS: Workflow[] = [
-  SAMPLE_WORKFLOW,
-  {
-    ...SAMPLE_WORKFLOW,
-    id: 'wf-002',
-    name: 'Daily TikTok Clip',
-    description: 'Every day at 6pm, generate a 30s TikTok from top event photos.',
-    status: 'paused',
-    runCount: 5,
-    lastRun: '2026-03-15T18:00:00Z',
-    nextRun: undefined,
-    nodes: SAMPLE_WORKFLOW.nodes.slice(0, 3),
-    edges: SAMPLE_WORKFLOW.edges.slice(0, 2),
-  },
-  {
-    ...SAMPLE_WORKFLOW,
-    id: 'wf-003',
-    name: 'New Event Announcement',
-    description: 'Webhook fires when a new event is created. Posts to all platforms instantly.',
-    status: 'draft',
-    runCount: 0,
-    lastRun: undefined,
-    nextRun: undefined,
-    nodes: SAMPLE_WORKFLOW.nodes.slice(0, 2),
-    edges: [],
-  },
-]
-
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 
 function snap(v: number): number {
@@ -287,9 +260,9 @@ function categoryLabel(cat: NodeCategory): string {
 
 const ALL_CATEGORIES: NodeCategory[] = ['trigger', 'ai', 'transform', 'publish', 'logic']
 
-function makeId(): string {
-  return `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-}
+// function makeId(): string {
+//   return `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+// }
 
 function makeEdgeId(): string {
   return `edge-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
@@ -328,6 +301,7 @@ function StatusBadge({ status }: { status: WorkflowStatus }) {
     active: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
     paused: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
     draft:  'bg-slate-700 text-slate-400 border-slate-600',
+    archived: 'bg-slate-800 text-slate-500 border-slate-700',
   }[status]
   return (
     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${cls}`}>
@@ -343,11 +317,15 @@ function WorkflowCard({
   workflow,
   onOpen,
   onToggle,
+  onRun,
 }: {
-  workflow: Workflow
+  workflow: Doc<'workflows'>
   onOpen: () => void
   onToggle: () => void
+  onRun: () => void
 }) {
+  const lastRun = useQuery(api.workflowRuns.getLastRunForWorkflow, { workflowId: workflow._id })
+
   return (
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 hover:border-purple-500/40 hover:bg-slate-800 transition-all group">
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -355,15 +333,15 @@ function WorkflowCard({
           <h3 className="text-white font-semibold text-sm truncate mb-1">{workflow.name}</h3>
           <p className="text-slate-400 text-xs line-clamp-2">{workflow.description}</p>
         </div>
-        <StatusBadge status={workflow.status} />
+        <StatusBadge status={workflow.status as WorkflowStatus} />
       </div>
 
       <div className="flex items-center gap-4 text-xs text-slate-500 mb-4">
-        <span>{workflow.nodes.length} nodes</span>
-        <span>{workflow.edges.length} connections</span>
-        <span>{workflow.runCount} runs</span>
-        {workflow.lastRun && (
-          <span>Last: {new Date(workflow.lastRun).toLocaleDateString()}</span>
+        <span>{workflow.nodes?.length ?? 0} nodes</span>
+        <span>{workflow.edges?.length ?? 0} connections</span>
+        <span>{workflow.runCount ?? 0} runs</span>
+        {lastRun && (
+          <span>Last: {new Date(lastRun.completedAt!).toLocaleDateString()}</span>
         )}
       </div>
 
@@ -376,6 +354,12 @@ function WorkflowCard({
             <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
           Open Editor
+        </button>
+        <button
+          onClick={onRun}
+          className="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 text-xs font-medium rounded-lg transition-colors border border-blue-500/30"
+        >
+          Run
         </button>
         <button
           onClick={onToggle}
@@ -803,24 +787,59 @@ function ConfigPanel({
   )
 }
 
+// ── RUN HISTORY ───────────────────────────────────────────────────────────────
+
+function RunHistory({ workflowId }: { workflowId: Id<'workflows'> }) {
+  const runs = useQuery(api.workflowRuns.getRunsForWorkflow, { workflowId })
+  if (!runs) return <div className="text-slate-400 text-xs px-3 py-4">Loading run history...</div>
+  if (runs.length === 0) return <div className="text-slate-500 text-xs px-3 py-4">No runs yet.</div>
+
+  return (
+    <div className="flex flex-col">
+      <div className="px-3 py-2 border-b border-slate-800">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Run History</p>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {runs.map(run => (
+          <div key={run._id} className="px-3 py-2 border-b border-slate-800/50 text-xs">
+            <div className="flex justify-between items-center">
+              <span className={`font-medium ${
+                run.status === 'success' ? 'text-emerald-400' : run.status === 'failed' ? 'text-red-400' : 'text-amber-400'
+              }`}>
+                {run.status.charAt(0).toUpperCase() + run.status.slice(1)}
+              </span>
+              <span className="text-slate-500">{new Date(run._creationTime).toLocaleString()}</span>
+            </div>
+            {run.output && <pre className="text-slate-500 text-[11px] mt-1 overflow-x-auto bg-slate-900/50 p-1 rounded">{(run.output as any).result ?? JSON.stringify(run.output)}</pre>}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
 // ── CANVAS EDITOR ─────────────────────────────────────────────────────────────
 
 function WorkflowCanvas({
   workflow,
   onBack,
   onSave,
+  onRun,
 }: {
-  workflow: Workflow
+  workflow: Doc<'workflows'>
   onBack: () => void
-  onSave: (wf: Workflow) => void
+  onSave: (wf: Partial<Doc<'workflows'>>) => void
+  onRun: () => void
 }) {
-  const [nodes, setNodes] = useState<WorkflowNode[]>(workflow.nodes)
-  const [edges, setEdges] = useState<WorkflowEdge[]>(workflow.edges)
+  const [nodes, setNodes] = useState<WorkflowNode[]>(workflow.nodes as WorkflowNode[] ?? [])
+  const [edges, setEdges] = useState<WorkflowEdge[]>(workflow.edges as WorkflowEdge[] ?? [])
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(true)
   const [activeCategory, setActiveCategory] = useState<NodeCategory>('trigger')
-  const [status, setStatus] = useState<WorkflowStatus>(workflow.status)
+  const [status, setStatus] = useState<WorkflowStatus>(workflow.status as WorkflowStatus)
   const [saved, setSaved] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   // Dragging a node
   const draggingNodeRef = useRef<{ id: string; startX: number; startY: number; mouseX: number; mouseY: number } | null>(null)
@@ -831,6 +850,8 @@ function WorkflowCanvas({
   const canvasRef = useRef<HTMLDivElement>(null)
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null
+
+  const makeNewNodeId = () => `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
 
   // ── NODE DRAG ──────────────────────────────────────────────────────────────
 
@@ -912,7 +933,7 @@ function WorkflowCanvas({
     if (!palette) return
 
     const newNode: WorkflowNode = {
-      id:     makeId(),
+      id:     makeNewNodeId(),
       type,
       label:  palette.label,
       x,
@@ -945,7 +966,7 @@ function WorkflowCanvas({
   // ── SAVE ───────────────────────────────────────────────────────────────────
 
   const handleSave = () => {
-    onSave({ ...workflow, nodes, edges, status, updatedAt: new Date().toISOString() })
+    onSave({ nodes: nodes as any, edges: edges as any, status: status as any, updatedAt: new Date().toISOString() })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -1015,7 +1036,7 @@ function WorkflowCanvas({
         </button>
         <span className="text-slate-700">|</span>
         <h2 className="text-white font-semibold text-sm">{workflow.name}</h2>
-        <StatusBadge status={status} />
+        <StatusBadge status={status as WorkflowStatus} />
 
         <div className="flex-1" />
 
@@ -1046,11 +1067,25 @@ function WorkflowCanvas({
         </button>
 
         {/* Run once */}
-        <button className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-medium transition-colors">
+        <button
+          onClick={onRun}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 border border-blue-600 text-white rounded-lg text-xs font-medium transition-colors"
+        >
           <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
           </svg>
           Run Once
+        </button>
+
+        {/* History toggle */}
+        <button
+          onClick={() => setShowHistory((s) => !s)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-medium transition-colors"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          {showHistory ? 'Hide History' : 'Show History'}
         </button>
 
         {/* Palette toggle */}
@@ -1144,6 +1179,13 @@ function WorkflowCanvas({
           </div>
         )}
 
+        {/* History Panel */}
+        {showHistory && (
+          <div className="w-72 flex-shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col overflow-hidden">
+            <RunHistory workflowId={workflow._id} />
+          </div>
+        )}
+
         {/* Canvas */}
         <div
           ref={canvasRef}
@@ -1220,15 +1262,55 @@ function WorkflowCanvas({
   )
 }
 
+// ── RUN STATUS MODAL ──────────────────────────────────────────────────────────
+
+function RunStatusModal({ run, onClose }: { run: Doc<'workflowRuns'>, onClose: () => void }) {
+  const logs = useMemo(() => (run.logs ?? []).map(l => JSON.parse(l)), [run.logs])
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h3 className="text-white font-semibold text-lg">Workflow Run</h3>
+            <p className="text-slate-400 text-sm">Status: {run.status}</p>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-white">&times;</button>
+        </div>
+        <div className="h-96 bg-slate-950 rounded-lg p-3 font-mono text-xs text-slate-400 overflow-y-auto">
+          {logs.map((log, i) => (
+            <div key={i} className="flex gap-2">
+              <span className="text-slate-600">{new Date(log.timestamp).toLocaleTimeString()}</span>
+              <span className={log.level === 'error' ? 'text-red-400' : 'text-slate-400'}>{log.message}</span>
+            </div>
+          ))}
+          {run.status === 'running' && <div className="animate-pulse">Running...</div>}
+          {run.status === 'success' && <div className="text-emerald-400">Completed successfully.</div>}
+          {run.status === 'failed' && <div className="text-red-400">Failed. Check logs for details.</div>}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
 // ── MAIN PAGE ─────────────────────────────────────────────────────────────────
 
 export default function WorkflowsPage() {
   const { user } = useUser()
-  const [workflows, setWorkflows]   = useState<Workflow[]>(MOCK_WORKFLOWS)
-  const [activeWorkflow, setActive] = useState<Workflow | null>(null)
-  const [showNew, setShowNew]       = useState(false)
-  const [newName, setNewName]       = useState('')
-  const [newDesc, setNewDesc]       = useState('')
+  const workflows = useQuery(api.workflows.list)
+  const createWorkflow = useMutation(api.workflows.create)
+  const updateWorkflow = useMutation(api.workflows.update)
+  const createRun = useMutation(api.workflowRuns.create)
+
+  const [activeWorkflow, setActiveWorkflow] = useState<Doc<'workflows'> | null>(null)
+  const [activeRunId, setActiveRunId] = useState<Id<'workflowRuns'> | null>(null)
+
+  const [showNew, setShowNew] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newDesc, setNewDesc] = useState('')
+
+  const activeRun = useQuery(api.workflowRuns.get, activeRunId ? { id: activeRunId } : 'skip')
 
   // Escape key to cancel connection in canvas
   useEffect(() => {
@@ -1241,48 +1323,49 @@ export default function WorkflowsPage() {
     return () => window.removeEventListener('keydown', handler)
   }, [activeWorkflow])
 
-  const handleSave = (updated: Workflow) => {
-    setWorkflows((prev) => prev.map((w) => (w.id === updated.id ? updated : w)))
-    setActive(updated)
-    trackEvent(ANALYTICS_EVENTS.WORKFLOW_UPDATED, { 
-      workflow_id: updated.id,
-      node_count: updated.nodes.length,
-      user_id: user?.id
+  const handleSave = (updated: Partial<Doc<'workflows'>>) => {
+    if (!activeWorkflow) return
+    updateWorkflow({ id: activeWorkflow._id, ...updated })
+    setActiveWorkflow(w => w ? { ...w, ...updated } : null)
+  }
+
+  const handleToggle = (id: Id<'workflows'>) => {
+    const wf = workflows?.find(w => w._id === id)
+    if (!wf) return
+    updateWorkflow({ id, status: wf.status === 'active' ? 'paused' : 'active' })
+  }
+
+  const handleRunWorkflow = async (workflowId: Id<'workflows'>) => {
+    const runId = await createRun({ workflowId, status: 'running', triggeredBy: 'manual' })
+    setActiveRunId(runId)
+
+    // Call the backend to trigger the run
+    await fetch('/api/workflows/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ runId }),
     })
   }
 
-  const handleToggle = (id: string) => {
-    setWorkflows((prev) =>
-      prev.map((w) =>
-        w.id === id
-          ? { ...w, status: w.status === 'active' ? 'paused' : ('active' as WorkflowStatus) }
-          : w,
-      ),
-    )
-  }
-
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newName.trim()) return
-    const wf: Workflow = {
-      id:          makeId(),
-      name:        newName.trim(),
+    const id = await createWorkflow({
+      name: newName.trim(),
       description: newDesc.trim() || 'New automation workflow',
-      status:      'draft',
-      nodes:       [],
-      edges:       [],
-      config:      {},
-      createdAt:   new Date().toISOString(),
-      updatedAt:   new Date().toISOString(),
-      runCount:    0,
-    }
-    setWorkflows((prev) => [wf, ...prev])
+    })
     setNewName('')
     setNewDesc('')
     setShowNew(false)
-    setActive(wf)
+    // The new workflow will appear in the list query, find it and set active.
+    // This is a bit of a hack, better would be to get the new doc back from the mutation.
+    setTimeout(() => {
+      const newWf = workflows?.find(w => w._id === id)
+      if (newWf) setActiveWorkflow(newWf)
+    }, 500) // Give time for the query to update
+
     trackEvent(ANALYTICS_EVENTS.WORKFLOW_CREATED, {
-      workflow_id: wf.id,
-      name: wf.name,
+      workflow_id: id,
+      name: newName.trim(),
       user_id: user?.id
     })
   }
@@ -1293,21 +1376,32 @@ export default function WorkflowsPage() {
       <div className="fixed inset-0 z-50 flex flex-col bg-slate-950">
         <WorkflowCanvas
           workflow={activeWorkflow}
-          onBack={() => setActive(null)}
+          onBack={() => setActiveWorkflow(null)}
           onSave={handleSave}
+          onRun={() => handleRunWorkflow(activeWorkflow._id)}
         />
+        {activeRun && <RunStatusModal run={activeRun} onClose={() => setActiveRunId(null)} />}
       </div>
     )
   }
 
+  const sortedWorkflows = useMemo(() => {
+    if (!workflows) return []
+    return [...workflows].sort((a, b) => b._creationTime - a._creationTime)
+  }, [workflows])
+
   // ── Tier usage (FIR-1305) — static Free tier display ─────────────────────
   const TIER_LIMIT = getWorkflowLimit('free' as Tier)
-  const activeWorkflowCount = workflows.filter((w) => (w.status as string) !== 'archived').length
+  const activeWorkflowCount = workflows?.filter((w) => w.status !== 'archived').length ?? 0
   const atLimit = activeWorkflowCount >= TIER_LIMIT
+
+  const stats = useQuery(api.workflows.getStats)
 
   // List view
   return (
     <div className="space-y-6">
+      {activeRun && <RunStatusModal run={activeRun} onClose={() => setActiveRunId(null)} />}
+
       {/* Upgrade banner when at limit */}
       {atLimit && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-900/40 border border-amber-700/60 text-amber-300 text-sm">
@@ -1407,21 +1501,27 @@ export default function WorkflowsPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: 'Total Workflows', value: workflows.length.toString(), sub: `${workflows.filter((w) => w.status === 'active').length} active` },
-          { label: 'Total Runs', value: workflows.reduce((sum, w) => sum + w.runCount, 0).toString(), sub: 'this month' },
-          { label: 'Node Types', value: '21', sub: 'trigger, AI, transform, publish, logic' },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
-            <p className="text-2xl font-bold text-white mb-0.5">{stat.value}</p>
-            <p className="text-sm font-medium text-slate-300">{stat.label}</p>
-            <p className="text-xs text-slate-500 mt-0.5">{stat.sub}</p>
-          </div>
-        ))}
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+          <p className="text-2xl font-bold text-white mb-0.5">{stats?.total ?? '...'}</p>
+          <p className="text-sm font-medium text-slate-300">Total Workflows</p>
+          <p className="text-xs text-slate-500 mt-0.5">{stats?.active ?? '...'} active</p>
+        </div>
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+          <p className="text-2xl font-bold text-white mb-0.5">{stats?.totalRuns ?? '...'}</p>
+          <p className="text-sm font-medium text-slate-300">Total Runs</p>
+          <p className="text-xs text-slate-500 mt-0.5">in last 30 days</p>
+        </div>
+        <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-4">
+          <p className="text-2xl font-bold text-white mb-0.5">21</p>
+          <p className="text-sm font-medium text-slate-300">Node Types</p>
+          <p className="text-xs text-slate-500 mt-0.5">trigger, AI, transform, publish, logic</p>
+        </div>
       </div>
 
       {/* Workflow grid */}
-      {workflows.length === 0 ? (
+      {!workflows ? (
+         <div className="text-center py-20 text-slate-500">Loading workflows...</div>
+      ) : workflows.length === 0 ? (
         <div className="text-center py-20">
           <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-4">
             <svg className="w-8 h-8 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -1433,12 +1533,13 @@ export default function WorkflowsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {workflows.map((wf) => (
+          {sortedWorkflows.map((wf) => (
             <WorkflowCard
-              key={wf.id}
+              key={wf._id}
               workflow={wf}
-              onOpen={() => setActive(wf)}
-              onToggle={() => handleToggle(wf.id)}
+              onOpen={() => setActiveWorkflow(wf)}
+              onToggle={() => handleToggle(wf._id)}
+              onRun={() => handleRunWorkflow(wf._id)}
             />
           ))}
         </div>
@@ -1456,7 +1557,7 @@ export default function WorkflowsPage() {
           {ALL_CATEGORIES.map((cat) => (
             <div key={cat}>
               <p className={`text-xs font-semibold uppercase tracking-wider mb-2 ${
-                { trigger: 'text-blue-400', ai: 'text-purple-400', transform: 'text-amber-400', publish: 'text-pink-400', logic: 'text-emerald-400' }[cat]
+                { trigger: 'text-blue-400', ai: 'text-purple-400', transform: 'text-amber-400', publish: 'bg-pink-400', logic: 'text-emerald-400' }[cat]
               }`}>
                 {categoryLabel(cat)}
               </p>

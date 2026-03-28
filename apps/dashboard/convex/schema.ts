@@ -99,7 +99,6 @@ export default defineSchema({
     .index("by_externalId", ["externalId"]),
 
   workflows: defineTable({
-    externalId: v.string(),
     userId: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
@@ -109,25 +108,20 @@ export default defineSchema({
     config: v.any(),
     runCount: v.number(),
     lastRunAt: v.optional(v.number()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
   })
-    .index("by_userId", ["userId"])
-    .index("by_externalId", ["externalId"]),
+    .index("by_userId", ["userId"]),
 
   workflow_runs: defineTable({
-    externalId: v.string(),
-    workflowId: v.string(),
+    workflowId: v.id('workflows'),
     userId: v.string(),
     status: v.string(),
-    snapshot: v.any(),
-    startedAt: v.number(),
+    triggeredBy: v.string(),
     completedAt: v.optional(v.number()),
     error: v.optional(v.string()),
     output: v.optional(v.any()),
+    logs: v.optional(v.array(v.string())),
   })
     .index("by_userId", ["userId"])
-    .index("by_externalId", ["externalId"])
     .index("by_workflowId", ["workflowId"]),
 
   composedVideos: defineTable({

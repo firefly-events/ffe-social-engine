@@ -1,88 +1,84 @@
-/**
- * workflowRuns.ts — Convex queries and mutations for the "workflow_runs" table.
- *
- * Called from Next.js API routes via ConvexHttpClient. userId is passed as an
- * argument because ctx.auth is not available when using the HTTP client without
- * a forwarded auth token.
- */
+import { v } from 'convex/values'
+import { mutation, query } from './_generated/server'
+import { ConvexError } from 'convex/values'
+import type { Doc, Id } from './_generated/dataModel'
 
-import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
 
-/** List workflow runs for a user (optionally filtered by workflowId). */
-export const list = query({
-  args: {
-    userId: v.string(),
-    workflowId: v.optional(v.string()),
-  },
+/** Get a single workflow run by its ID. */
+export const get = query({
+  args: { id: v.id('workflow_runs') },
   handler: async (ctx, args) => {
-    let items = await ctx.db
-      .query("workflow_runs")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-
-    if (args.workflowId) {
-      items = items.filter((r) => r.workflowId === args.workflowId);
-    }
-
-    // Most-recent first
-    items.sort((a, b) => b.startedAt - a.startedAt);
-
-    return items;
+    return await ctx.db.get(args.id)
   },
-});
+})
 
-/** Fetch a single workflow run by its externalId. */
-export const getByExternalId = query({
-  args: { externalId: v.string() },
+/** Get all runs for a given workflow */
+export const getRunsForWorkflow = query({
+  args: { workflowId: v.id('workflows') },
   handler: async (ctx, args) => {
     return await ctx.db
-      .query("workflow_runs")
-      .withIndex("by_externalId", (q) => q.eq("externalId", args.externalId))
-      .first();
-  },
-});
+      .query('workflow_runs')
+      .withIndex('by_workflowId', q => q.eq('workflowId', args.workflowId))
+      .order('desc')
+      .collect()
+  }
+})
 
-/** Create a new workflow run record. Returns the stored document. */
+/** Get the most recent run for a workflow */
+export const getLastRunForWorkflow = query({
+  args: { workflowId: v.id('workflows') },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query('workflow_runs')
+      .withIndex('by_workflowId', q => q.eq('workflowId', args.workflowId))
+      .order('desc')
+      .first()
+  }
+})
+
+/** Create a new workflow run record. Returns the new run's ID. */
 export const create = mutation({
   args: {
-    externalId: v.string(),
-    workflowId: v.string(),
-    userId: v.string(),
+    workflowId: v.id('workflows'),
     status: v.string(),
-    snapshot: v.any(),
-    startedAt: v.number(),
-    completedAt: v.optional(v.number()),
-    error: v.optional(v.string()),
-    output: v.optional(v.any()),
+    triggeredBy: v.string(), // e.g. "manual", "schedule", "webhook"
   },
   handler: async (ctx, args) => {
-    const docId = await ctx.db.insert("workflow_runs", args);
-    return await ctx.db.get(docId);
-  },
-});
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new ConvexError('Not authenticated')
 
-/** Patch an existing workflow run by externalId. Returns the updated document. */
+    const workflow = await ctx.db.get(args.workflowId)
+    if (!workflow) throw new ConvexError('Workflow not found')
+
+    const docId = await ctx.db.insert('workflow_runs', {
+      workflowId: args.workflowId,
+      userId: identity.subject,
+      status: args.status,
+      triggeredBy: args.triggeredBy,
+    })
+    return docId
+  },
+})
+
+/** Patch an existing workflow run by ID. Returns the updated document. */
 export const update = mutation({
   args: {
-    externalId: v.string(),
+    id: v.id('workflow_runs'),
     status: v.optional(v.string()),
     completedAt: v.optional(v.number()),
     error: v.optional(v.string()),
     output: v.optional(v.any()),
+    logs: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
-    const { externalId, ...patch } = args;
-    const existing = await ctx.db
-      .query("workflow_runs")
-      .withIndex("by_externalId", (q) => q.eq("externalId", args.externalId))
-      .first();
-    if (!existing) return null;
+    const { id, ...patch } = args
+    const existing = await ctx.db.get(id)
+    if (!existing) return null
 
     const cleanPatch = Object.fromEntries(
-      Object.entries(patch).filter(([, v]) => v !== undefined)
-    );
-    await ctx.db.patch(existing._id, cleanPatch);
-    return await ctx.db.get(existing._id);
+      Object.entries(patch).filter(([, v]) => v !== undefined),
+    )
+    await ctx.db.patch(id, cleanPatch)
+    return await ctx.db.get(id)
   },
-});
+})
