@@ -1,75 +1,62 @@
-/**
- * workflows.ts — Convex queries and mutations for the "workflows" table.
- *
- * Called from Next.js API routes via ConvexHttpClient. userId is passed as an
- * argument because ctx.auth is not available when using the HTTP client without
- * a forwarded auth token.
- */
+import { ConvexError, v } from 'convex/values'
+import { mutation, query } from './_generated/server'
+import { api } from './_generated/api'
+import type { Doc, Id } from './_generated/dataModel'
 
-import { ConvexError } from "convex/values";
-import { mutation, query } from "./_generated/server";
-import { v } from "convex/values";
 
 /** List workflows for a user with optional status filter, newest-first by updatedAt. */
 export const list = query({
-  args: {
-    userId: v.string(),
-    status: v.optional(v.string()),
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new ConvexError('Not authenticated')
+    const items = await ctx.db
+      .query('workflows')
+      .withIndex('by_userId', q => q.eq('userId', identity.subject))
+      .collect()
+
+    // Newest-created first
+    items.sort((a, b) => b._creationTime - a._creationTime)
+
+    return items
   },
+})
+
+/** Get a single workflow by its ID. */
+export const get = query({
+  args: { id: v.id('workflows') },
   handler: async (ctx, args) => {
-    let items = await ctx.db
-      .query("workflows")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-
-    if (args.status) {
-      items = items.filter((w) => w.status === args.status);
-    }
-
-    // Newest-updated first
-    items.sort((a, b) => b.updatedAt - a.updatedAt);
-
-    return items;
+    return await ctx.db.get(args.id)
   },
-});
+})
 
-/** Fetch a single workflow by its externalId. */
-export const getByExternalId = query({
-  args: { externalId: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("workflows")
-      .withIndex("by_externalId", (q) => q.eq("externalId", args.externalId))
-      .first();
-  },
-});
 
-/** Create a new workflow. Returns the stored document. */
+/** Create a new workflow. Returns the stored document's ID. */
 export const create = mutation({
   args: {
-    externalId: v.string(),
-    userId: v.string(),
     name: v.string(),
     description: v.optional(v.string()),
-    status: v.string(),
-    nodes: v.any(),
-    edges: v.any(),
-    config: v.any(),
-    runCount: v.number(),
-    lastRunAt: v.optional(v.number()),
-    createdAt: v.number(),
-    updatedAt: v.number(),
   },
   handler: async (ctx, args) => {
-    const docId = await ctx.db.insert("workflows", args);
-    return await ctx.db.get(docId);
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new ConvexError('Not authenticated')
+    const docId = await ctx.db.insert('workflows', {
+      userId: identity.subject,
+      name: args.name,
+      description: args.description,
+      status: 'draft',
+      nodes: [],
+      edges: [],
+      config: {},
+      runCount: 0,
+    })
+    return docId
   },
-});
+})
 
-/** Patch an existing workflow by externalId. Returns the updated document. */
+/** Patch an existing workflow by its ID. Returns the updated document. */
 export const update = mutation({
   args: {
-    externalId: v.string(),
+    id: v.id('workflows'),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
     status: v.optional(v.string()),
@@ -78,85 +65,52 @@ export const update = mutation({
     config: v.optional(v.any()),
     runCount: v.optional(v.number()),
     lastRunAt: v.optional(v.number()),
-    updatedAt: v.number(),
+    updatedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { externalId, ...patch } = args;
-    const existing = await ctx.db
-      .query("workflows")
-      .withIndex("by_externalId", (q) => q.eq("externalId", externalId))
-      .first();
-    if (!existing) return null;
+    const { id, ...patch } = args
+    const existing = await ctx.db.get(id)
+    if (!existing) return null
 
     const cleanPatch = Object.fromEntries(
-      Object.entries(patch).filter(([, v]) => v !== undefined)
-    );
-    await ctx.db.patch(existing._id, cleanPatch);
-    return await ctx.db.get(existing._id);
+      Object.entries(patch).filter(([, v]) => v !== undefined),
+    )
+    await ctx.db.patch(id, cleanPatch)
+    return await ctx.db.get(id)
   },
-});
+})
 
-/**
- * Atomically check the tier limit and create a workflow in a single mutation,
- * preventing the race condition inherent in a separate count + create pattern.
- *
- * Pass tierLimit: -1 for unlimited tiers (business/agency).
- */
-export const createWithLimitCheck = mutation({
-  args: {
-    externalId: v.string(),
-    userId: v.string(),
-    name: v.string(),
-    description: v.optional(v.string()),
-    nodes: v.any(),
-    edges: v.any(),
-    config: v.any(),
-    tierLimit: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("workflows")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-
-    const activeCount = existing.filter((w) => w.status !== "archived").length;
-
-    if (args.tierLimit !== -1 && activeCount >= args.tierLimit) {
-      throw new ConvexError({
-        code: "LIMIT_EXCEEDED",
-        used: activeCount,
-        limit: args.tierLimit,
-      });
-    }
-
-    const nowMs = Date.now();
-    const docId = await ctx.db.insert("workflows", {
-      externalId: args.externalId,
-      userId: args.userId,
-      name: args.name,
-      description: args.description,
-      status: "draft",
-      nodes: args.nodes,
-      edges: args.edges,
-      config: args.config,
-      runCount: 0,
-      createdAt: nowMs,
-      updatedAt: nowMs,
-    });
-    return await ctx.db.get(docId);
-  },
-});
-
-/** Hard-delete a workflow by externalId. */
+/** Hard-delete a workflow by ID. */
 export const remove = mutation({
-  args: { externalId: v.string() },
+  args: { id: v.id('workflows') },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("workflows")
-      .withIndex("by_externalId", (q) => q.eq("externalId", args.externalId))
-      .first();
-    if (!existing) return false;
-    await ctx.db.delete(existing._id);
-    return true;
+    const existing = await ctx.db.get(args.id)
+    if (!existing) return false
+    await ctx.db.delete(args.id)
+    return true
   },
-});
+})
+
+/** Get aggregate stats for all workflows for the current user. */
+export const getStats = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+    const allWorkflows = await ctx.db
+      .query('workflows')
+      .withIndex('by_userId', q => q.eq('userId', identity.subject))
+      .collect()
+
+    const allRuns = await ctx.db
+      .query('workflow_runs')
+      .withIndex('by_userId', q => q.eq('userId', identity.subject))
+      .collect()
+
+    return {
+      total: allWorkflows.length,
+      active: allWorkflows.filter(w => w.status === 'active').length,
+      totalRuns: allRuns.length,
+    }
+  }
+})
+
