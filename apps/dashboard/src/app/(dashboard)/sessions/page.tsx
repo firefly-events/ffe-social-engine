@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ALL_SESSIONS, countNodes, countBranches } from '@/lib/session-mock-data'
-import type { ContentSession, NodeStatus } from '@/lib/session-types'
+import { useQuery } from 'convex/react'
+import { api } from '../../../../convex/_generated/api'
+import type { Doc } from '../../../../convex/_generated/dataModel'
 
 // ─── Platform colors ───────────────────────────────────────────────────────────
 const PLATFORM_COLORS: Record<string, string> = {
@@ -28,28 +29,18 @@ function PlatformDot({ platform }: { platform: string }) {
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<
-  NodeStatus,
+  string,
   { label: string; bg: string; text: string }
 > = {
+  active: { label: 'Active', bg: 'bg-emerald-900/50', text: 'text-emerald-400' },
+  archived: { label: 'Archived', bg: 'bg-slate-800', text: 'text-slate-500' },
   draft: { label: 'Draft', bg: 'bg-slate-700', text: 'text-slate-300' },
   approved: { label: 'Approved', bg: 'bg-emerald-900/50', text: 'text-emerald-400' },
   posted: { label: 'Posted', bg: 'bg-purple-900/50', text: 'text-purple-300' },
-  archived: { label: 'Archived', bg: 'bg-slate-800', text: 'text-slate-500' },
 }
 
-function overallStatus(session: ContentSession): NodeStatus {
-  // Derive session status from root node trunk walk
-  let status: NodeStatus = session.rootNode.status
-  function walk(node: typeof session.rootNode) {
-    if (node.isTrunk) status = node.status
-    node.children.filter((c) => c.isTrunk).forEach(walk)
-  }
-  walk(session.rootNode)
-  return status
-}
-
-function StatusBadge({ status }: { status: NodeStatus }) {
-  const cfg = STATUS_CONFIG[status]
+function StatusBadge({ status }: { status: string }) {
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.draft
   return (
     <span className={`px-2 py-0.5 rounded text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
       {cfg.label}
@@ -57,104 +48,27 @@ function StatusBadge({ status }: { status: NodeStatus }) {
   )
 }
 
-// ─── Mini branch preview SVG ──────────────────────────────────────────────────
-function BranchPreview({ session }: { session: ContentSession }) {
-  // Draw a tiny tree: trunk goes left-to-right, branches fork up/down
-  const nodeCount = countNodes(session)
-  const W = 80
-  const H = 40
-  const nodeR = 4
-
-  // Build a layout: collect trunk nodes then branch nodes
-  type Pt = { x: number; y: number; parentIdx: number | null; isTrunk: boolean; status: NodeStatus }
-  const pts: Pt[] = []
-
-  function layoutNode(
-    node: ContentSession['rootNode'],
-    depth: number,
-    trackIndex: number, // 0 = center trunk
-    parentPtIdx: number | null
-  ) {
-    const x = 8 + depth * (nodeCount <= 2 ? 30 : 22)
-    const y = H / 2 + trackIndex * 12
-    const idx = pts.length
-    pts.push({ x, y, parentIdx: parentPtIdx, isTrunk: node.isTrunk, status: node.status })
-
-    const trunkChildren = node.children.filter((c) => c.isTrunk)
-    const branchChildren = node.children.filter((c) => !c.isTrunk)
-
-    trunkChildren.forEach((child) => layoutNode(child, depth + 1, trackIndex, idx))
-    branchChildren.forEach((child, bi) => {
-      const offset = bi % 2 === 0 ? -(bi + 1) : bi + 1
-      layoutNode(child, depth + 1, trackIndex + offset, idx)
-    })
-  }
-
-  layoutNode(session.rootNode, 0, 0, null)
-
-  const statusDot: Record<NodeStatus, string> = {
-    posted: '#a855f7',
-    approved: '#10b981',
-    draft: '#64748b',
-    archived: '#334155',
-  }
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-20 h-10" aria-hidden="true">
-      {pts.map((pt, i) => {
-        if (pt.parentIdx === null) return null
-        const parent = pts[pt.parentIdx]
-        return (
-          <line
-            key={`e-${i}`}
-            x1={parent.x}
-            y1={parent.y}
-            x2={pt.x}
-            y2={pt.y}
-            stroke={pt.isTrunk ? '#475569' : '#334155'}
-            strokeWidth={pt.isTrunk ? 1.5 : 1}
-            strokeDasharray={pt.isTrunk ? undefined : '3,2'}
-          />
-        )
-      })}
-      {pts.map((pt, i) => (
-        <circle
-          key={`n-${i}`}
-          cx={pt.x}
-          cy={pt.y}
-          r={nodeR}
-          fill={statusDot[pt.status]}
-          stroke="#1e293b"
-          strokeWidth={1.5}
-        />
-      ))}
-    </svg>
-  )
-}
-
 // ─── Session card ─────────────────────────────────────────────────────────────
-function SessionCard({ session }: { session: ContentSession }) {
-  const branches = countBranches(session)
-  const versions = countNodes(session)
-  const status = overallStatus(session)
-
-  const relativeTime = (date: Date) => {
-    const diffMs = Date.now() - date.getTime()
+function SessionCard({ session }: { session: Doc<"contentSessions"> }) {
+  const relativeTime = (date: number) => {
+    const diffMs = Date.now() - date
     const diffDays = Math.floor(diffMs / 86_400_000)
     if (diffDays === 0) return 'Today'
     if (diffDays === 1) return 'Yesterday'
     return `${diffDays}d ago`
   }
 
+  const platform = session.platform ?? 'Default';
+
   return (
     <Link
-      href={`/sessions/${session.id}`}
+      href={`/sessions/${session._id}`}
       className="block group bg-white rounded-xl border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all duration-150 overflow-hidden"
     >
       {/* Colored top bar based on primary platform */}
       <div
         className={`h-1 w-full bg-gradient-to-r ${
-          PLATFORM_COLORS[session.platforms[0]] ?? 'from-slate-500 to-slate-600'
+          PLATFORM_COLORS[platform] ?? 'from-slate-500 to-slate-600'
         }`}
       />
 
@@ -162,37 +76,34 @@ function SessionCard({ session }: { session: ContentSession }) {
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-gray-900 text-sm leading-snug group-hover:text-purple-700 transition-colors line-clamp-2">
-              {session.title}
+              {session.name}
             </h3>
             <p className="text-xs text-gray-400 mt-1">
               Updated {relativeTime(session.updatedAt)}
             </p>
           </div>
-          <StatusBadge status={status} />
+          <StatusBadge status={session.status} />
         </div>
 
         {/* Platform dots */}
         <div className="flex items-center gap-1.5 mt-3">
-          {session.platforms.map((p) => (
-            <PlatformDot key={p} platform={p} />
-          ))}
+          {session.platform && <PlatformDot platform={session.platform} />}
           <span className="text-xs text-gray-400 ml-1">
-            {session.platforms.join(', ')}
+            {session.platform}
           </span>
         </div>
 
         {/* Branch preview + meta */}
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-          <BranchPreview session={session} />
           <div className="flex gap-4 text-right">
             <div>
-              <div className="text-lg font-bold text-gray-900">{versions}</div>
+              <div className="text-lg font-bold text-gray-900">1</div>
               <div className="text-xs text-gray-400">versions</div>
             </div>
             <div>
-              <div className="text-lg font-bold text-gray-900">{branches}</div>
+              <div className="text-lg font-bold text-gray-900">1</div>
               <div className="text-xs text-gray-400">
-                {branches === 1 ? 'fork' : 'forks'}
+                fork
               </div>
             </div>
           </div>
@@ -235,25 +146,23 @@ function EmptyState() {
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-type FilterStatus = 'all' | NodeStatus
+type FilterStatus = 'all' | 'active' | 'archived'
 
 const FILTER_OPTIONS: { id: FilterStatus; label: string }[] = [
   { id: 'all', label: 'All' },
-  { id: 'draft', label: 'Drafts' },
-  { id: 'approved', label: 'Approved' },
-  { id: 'posted', label: 'Posted' },
+  { id: 'active', label: 'Active' },
   { id: 'archived', label: 'Archived' },
 ]
 
 export default function SessionsPage() {
   const [filter, setFilter] = useState<FilterStatus>('all')
   const [search, setSearch] = useState('')
+  const sessions = useQuery(api.sessions.get)
 
-  const filtered = ALL_SESSIONS.filter((s) => {
+  const filtered = sessions?.filter((s) => {
     const matchesSearch =
-      !search || s.title.toLowerCase().includes(search.toLowerCase())
-    const sessionStatus = overallStatus(s)
-    const matchesFilter = filter === 'all' || sessionStatus === filter
+      !search || s.name.toLowerCase().includes(search.toLowerCase())
+    const matchesFilter = filter === 'all' || s.status === filter
     return matchesSearch && matchesFilter
   })
 
@@ -346,12 +255,15 @@ export default function SessionsPage() {
       </div>
 
       {/* Grid */}
-      {filtered.length === 0 ? (
+      {!filtered ? (
+        // TODO: Add a loading spinner
+        <div />
+      ) : filtered.length === 0 ? (
         <EmptyState />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((session) => (
-            <SessionCard key={session.id} session={session} />
+            <SessionCard key={session._id} session={session} />
           ))}
         </div>
       )}
@@ -359,7 +271,7 @@ export default function SessionsPage() {
       {/* Legend */}
       <div className="flex flex-wrap gap-4 pt-2 border-t border-gray-100">
         <p className="text-xs text-gray-400 font-medium mr-2 self-center">Legend:</p>
-        {(Object.entries(STATUS_CONFIG) as [NodeStatus, typeof STATUS_CONFIG[NodeStatus]][]).map(
+        {(Object.entries(STATUS_CONFIG) as [string, typeof STATUS_CONFIG[string]][]).map(
           ([key, cfg]) => (
             <span key={key} className="flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${cfg.bg}`} />
