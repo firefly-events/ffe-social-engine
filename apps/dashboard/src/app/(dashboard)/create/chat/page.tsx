@@ -1,77 +1,151 @@
 'use client';
 
-import { useState } from 'react';
+import { useChat } from 'ai/react';
+import { useState, useRef, useEffect } from 'react';
 
-export default function ChatModePage() {
-  const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hi! I am the FFE Social Engine. What kind of content would you like to generate today?' }
-  ]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+const MODELS = [
+  { id: 'gemini-flash', label: 'Gemini Flash', tier: 'free' },
+  { id: 'claude-haiku', label: 'Claude Haiku', tier: 'starter' },
+  { id: 'gemini-pro',   label: 'Gemini Pro',   tier: 'basic' },
+  { id: 'claude-sonnet',label: 'Claude Sonnet', tier: 'pro' },
+];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim()) return;
+const PLATFORMS = ['tiktok','instagram','x','linkedin','youtube','facebook','threads','bluesky'];
 
-    setMessages(prev => [...prev, { role: 'user', content: input }]);
-    setInput('');
-    setIsLoading(true);
+export default function ChatPage() {
+  const [model, setModel] = useState('gemini-flash');
+  const [platform, setPlatform] = useState('tiktok');
+  const [template, setTemplate] = useState('');
+  const [savedItems, setSavedItems] = useState([]);
+  const bottomRef = useRef(null);
 
-    // Mock AI response
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'I have generated 3 social posts based on your request. Check the preview tab to see them!' }]);
-      setIsLoading(false);
-    }, 1500);
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
+    api: '/api/ai/chat',
+    body: { model, platform, template },
+  });
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleSave = (content) => {
+    setSavedItems(prev => [...prev, { content, savedAt: new Date().toISOString() }]);
   };
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-8rem)] flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-      <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-        <h1 className="text-xl font-bold dark:text-white">Chat Mode Creation</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Describe your campaign, and I will generate the assets.</p>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl p-4 ${
-              msg.role === 'user' 
-                ? 'bg-blue-600 text-white rounded-br-none' 
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-bl-none'
-            }`}>
-              {msg.content}
-            </div>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', height: 'calc(100vh - 64px)', gap: 0 }}>
+      {/* Chat panel */}
+      <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1px solid #e5e7eb' }}>
+        {/* Controls */}
+        <div style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', background: '#f9fafb' }}>
+          <div>
+            <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: '0.25rem' }}>Model</label>
+            <select value={model} onChange={e => setModel(e.target.value)} style={{ padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '0.875rem' }}>
+              {MODELS.map(m => (
+                <option key={m.id} value={m.id}>{m.label}</option>
+              ))}
+            </select>
           </div>
-        ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 dark:bg-gray-700 rounded-2xl p-4 rounded-bl-none flex gap-2">
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.4s]" />
-            </div>
+          <div>
+            <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: '0.25rem' }}>Platform</label>
+            <select value={platform} onChange={e => setPlatform(e.target.value)} style={{ padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '0.875rem' }}>
+              {PLATFORMS.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
           </div>
-        )}
-      </div>
+          <div>
+            <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: '0.25rem' }}>Template (optional)</label>
+            <input
+              type="text"
+              value={template}
+              onChange={e => setTemplate(e.target.value)}
+              placeholder="e.g. product-launch"
+              style={{ padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '0.875rem', width: '160px' }}
+            />
+          </div>
+        </div>
 
-      <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
-        <form onSubmit={handleSubmit} className="flex gap-2">
+        {/* Messages */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {messages.length === 0 && (
+            <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '4rem' }}>
+              <p style={{ fontSize: '1.125rem', fontWeight: 500 }}>AI Content Chat</p>
+              <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>Ask me to write captions, hashtags, scripts, or brainstorm ideas.</p>
+            </div>
+          )}
+          {messages.map((msg) => (
+            <div key={msg.id} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+              <div style={{
+                maxWidth: '75%',
+                padding: '0.75rem 1rem',
+                borderRadius: msg.role === 'user' ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
+                background: msg.role === 'user' ? '#6366f1' : '#f3f4f6',
+                color: msg.role === 'user' ? 'white' : '#111827',
+                fontSize: '0.875rem',
+                lineHeight: 1.6,
+                whiteSpace: 'pre-wrap',
+              }}>
+                {msg.content}
+                {msg.role === 'assistant' && (
+                  <button
+                    onClick={() => handleSave(msg.content)}
+                    style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.75rem', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                  >
+                    + Save to session
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          {isLoading && (
+            <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+              <div style={{ padding: '0.75rem 1rem', borderRadius: '1rem', background: '#f3f4f6', color: '#6b7280', fontSize: '0.875rem' }}>
+                Generating...
+              </div>
+            </div>
+          )}
+          {error && (
+            <div style={{ color: '#ef4444', fontSize: '0.875rem', textAlign: 'center' }}>
+              Error: {error.message}
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input */}
+        <form onSubmit={handleSubmit} style={{ padding: '1rem', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '0.75rem' }}>
           <input
-            type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="E.g., 'Create 3 tweets about our upcoming Summer Festival...'"
-            className="flex-1 p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={handleInputChange}
+            placeholder="Ask for a caption, hashtags, or ideas..."
             disabled={isLoading}
+            style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.875rem', outline: 'none' }}
           />
-          <button 
+          <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', background: '#6366f1', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500, opacity: (isLoading || !input.trim()) ? 0.6 : 1 }}
           >
             Send
           </button>
         </form>
+      </div>
+
+      {/* Saved panel */}
+      <div style={{ padding: '1rem', overflowY: 'auto', background: '#f9fafb' }}>
+        <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '1rem' }}>Saved Content</h3>
+        {savedItems.length === 0 ? (
+          <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Click "Save to session" on any AI response to collect content here.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {savedItems.map((item, i) => (
+              <div key={i} style={{ padding: '0.75rem', background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.75rem', color: '#374151', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                {item.content.slice(0, 200)}{item.content.length > 200 ? '...' : ''}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
