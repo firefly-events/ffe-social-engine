@@ -8,62 +8,64 @@
  */
 
 import { useState } from 'react'
+import { useAuth } from '@clerk/nextjs'
+import { useQuery } from 'convex/react'
+import { api } from '../../../../convex/_generated/api'
 import { AssetGallery } from '@/components/AssetGallery'
 import type { AssetGalleryItem } from '@/components/AssetGallery'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Doc } from '../../../../convex/_generated/dataModel'
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// ── Data mapping ──────────────────────────────────────────────────────────────
 
-const MOCK_ASSETS: AssetGalleryItem[] = [
-  {
-    id: 'txt-1',
+const mapJobToAsset = (job: Doc<'generationJobs'>): AssetGalleryItem => {
+  const baseAsset = {
+    id: job._id,
+    name: job.topic,
+    model: job.model,
+    createdAt: new Date(job.createdAt).toISOString(),
+    generationMs: job.completedAt ? job.completedAt - job.createdAt : undefined,
+  }
+
+  // FIR-1317: `result` is a flexible `any` field.
+  // We need to safely parse it based on the job type.
+  const result = job.result as any
+
+  if (job.type.startsWith('text') || job.type === 'single' || job.type === 'hashtags') {
+    return {
+      ...baseAsset,
+      type: 'text',
+      text: result?.text ?? 'No text generated',
+    }
+  }
+
+  if (job.type.startsWith('image')) {
+    return {
+      ...baseAsset,
+      type: 'image',
+      url: result?.url,
+      costUsd: result?.costUsd,
+    }
+  }
+
+  if (job.type.startsWith('video')) {
+    return {
+      ...baseAsset,
+      type: 'video',
+      thumbnailUrl: result?.thumbnailUrl,
+      durationSeconds: result?.durationSeconds,
+    }
+  }
+
+  // Fallback for unknown types
+  return {
+    ...baseAsset,
     type: 'text',
-    name: 'Summer Festival Caption',
-    text: 'Get ready for the biggest event of the summer! Tickets drop this Friday. #FireflyEvents #SummerFest',
-    model: 'gemini-1.5-flash',
-    generationMs: 840,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'txt-2',
-    type: 'text',
-    name: 'Speaker Announcement Copy',
-    text: 'We are thrilled to announce our headline speaker for Firefly 2025 — an industry legend you won\'t want to miss.',
-    model: 'gemini-1.5-pro',
-    generationMs: 1240,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'img-1',
-    type: 'image',
-    name: 'Speaker Announcement',
-    url: undefined,
-    model: 'flux-schnell',
-    costUsd: 0.003,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'img-2',
-    type: 'image',
-    name: 'Event Banner',
-    url: undefined,
-    model: 'flux-dev',
-    costUsd: 0.012,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 'vid-1',
-    type: 'video',
-    name: 'Summer Festival Teaser',
-    thumbnailUrl: undefined,
-    durationSeconds: 30,
-    model: 'runway-gen3',
-    generationMs: 45000,
-    createdAt: new Date().toISOString(),
-  },
-]
+    text: 'Unknown asset type. Check console for details.',
+  }
+}
 
 interface ExportRecord {
   id: string
@@ -75,11 +77,15 @@ interface ExportRecord {
 // ── Export page ───────────────────────────────────────────────────────────────
 
 export default function ExportPage() {
+  const { userId } = useAuth()
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [exporting, setExporting] = useState(false)
   const [webhookLoading, setWebhookLoading] = useState(false)
   const [exportHistory, setExportHistory] = useState<ExportRecord[]>([])
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const generationJobs = useQuery(api.generationJobs.list, userId ? { userId } : 'skip')
+  const assets = generationJobs?.map(mapJobToAsset)
 
   const showStatus = (type: 'success' | 'error', text: string) => {
     setStatusMessage({ type, text })
@@ -93,11 +99,12 @@ export default function ExportPage() {
       showStatus('error', 'Select at least one asset to export.')
       return
     }
+    if (!assets) return
 
     setExporting(true)
 
     try {
-      const selectedAssets = MOCK_ASSETS.filter((a) => selectedIds.includes(a.id))
+      const selectedAssets = assets.filter((a) => selectedIds.includes(a.id))
       const manifest = {
         exportedAt: new Date().toISOString(),
         assetCount: selectedAssets.length,
@@ -166,6 +173,30 @@ export default function ExportPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────
 
+  const renderContent = () => {
+    if (assets === undefined) {
+      return <div className="text-center text-slate-500 py-16">Loading assets...</div>
+    }
+    if (assets.length === 0) {
+      return (
+        <div className="text-center text-slate-500 py-16">
+          <h3 className="text-lg font-semibold text-slate-300 mb-2">No Assets Generated Yet</h3>
+          <p>
+            Use the features in the sidebar to generate content, and it will appear here ready for
+            export.
+          </p>
+        </div>
+      )
+    }
+    return (
+      <AssetGallery
+        assets={assets}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+      />
+    )
+  }
+
   return (
     <div className="max-w-5xl mx-auto py-8 px-4 space-y-8">
       {/* Header */}
@@ -221,11 +252,7 @@ export default function ExportPage() {
       </div>
 
       {/* Asset gallery */}
-      <AssetGallery
-        assets={MOCK_ASSETS}
-        selectedIds={selectedIds}
-        onSelectionChange={setSelectedIds}
-      />
+      {renderContent()}
 
       {/* Export history */}
       <Card className="bg-slate-900 border-slate-700">
