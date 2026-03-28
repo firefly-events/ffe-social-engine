@@ -1,14 +1,46 @@
 'use client';
 
 import { useState } from 'react';
-
-const PREVIEW_DATA = {
-  text: "We just announced our keynote speaker for SummerFest 2026. You don't want to miss this! 🌟 #FireflyEvents #SummerFest",
-  image: "https://via.placeholder.com/600x400?text=SummerFest+Keynote",
-};
+import { useQuery } from 'convex/react';
+import { useUser } from '@clerk/nextjs';
+import { api } from '../../../../convex/_generated/api';
 
 export default function PreviewPage() {
   const [activeTab, setActiveTab] = useState<'twitter' | 'linkedin' | 'instagram'>('twitter');
+  const { user, isLoaded } = useUser();
+  const generationJobs = useQuery(
+    api.generationJobs.list,
+    user ? { userId: user.id } : 'skip'
+  );
+
+  const isLoading = !isLoaded || generationJobs === undefined;
+  const latestJob = generationJobs?.[0];
+
+  const PREVIEW_DATA = latestJob?.result
+    ? {
+        text: latestJob.result.text,
+        image: latestJob.result.imageUrl,
+      }
+    : null;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-2xl">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!PREVIEW_DATA) {
+    return (
+      <div className="max-w-5xl mx-auto py-8 text-center">
+        <h1 className="text-3xl font-bold mb-2 dark:text-white">Nothing to Preview Yet</h1>
+        <p className="text-gray-600 dark:text-gray-400 mb-8">
+          Once you generate some content, you'll be able to preview it here.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto py-8">
@@ -54,7 +86,7 @@ export default function PreviewPage() {
         </div>
 
         <div className="w-full lg:w-3/4 flex justify-center bg-gray-50 dark:bg-gray-900 rounded-xl p-8 border border-gray-100 dark:border-gray-700 min-h-[500px]">
-          {activeTab === 'twitter' && (
+          {activeTab === 'twitter' && PREVIEW_DATA.image && (
             <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl w-full max-w-md p-4 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-gray-200 dark:bg-gray-800 rounded-full"></div>
@@ -71,7 +103,7 @@ export default function PreviewPage() {
             </div>
           )}
 
-          {activeTab === 'linkedin' && (
+          {activeTab === 'linkedin' && PREVIEW_DATA.image && (
             <div className="bg-white dark:bg-white border border-gray-200 rounded-xl w-full max-w-md shadow-sm overflow-hidden">
               <div className="p-4">
                 <div className="flex items-center gap-3 mb-3">
@@ -88,7 +120,7 @@ export default function PreviewPage() {
             </div>
           )}
 
-          {activeTab === 'instagram' && (
+          {activeTab === 'instagram' && PREVIEW_DATA.image && (
             <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl w-full max-w-sm shadow-sm overflow-hidden">
               <div className="p-3 flex items-center gap-3">
                 <div className="w-8 h-8 bg-gradient-to-tr from-yellow-400 to-purple-600 rounded-full p-[2px]">
