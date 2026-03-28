@@ -10,7 +10,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 /** List voice clones for a user, newest-first. */
-export const list = query({
+export const get = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
     const items = await ctx.db
