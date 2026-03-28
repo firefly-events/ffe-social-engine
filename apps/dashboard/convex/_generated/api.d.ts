@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as analytics from "../analytics.js";
 import type * as authHelpers from "../authHelpers.js";
 import type * as composedVideos from "../composedVideos.js";
 import type * as content from "../content.js";
@@ -32,6 +33,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  analytics: typeof analytics;
   authHelpers: typeof authHelpers;
   composedVideos: typeof composedVideos;
   content: typeof content;
@@ -77,3 +79,4 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {};
+
