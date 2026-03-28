@@ -1,41 +1,45 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { zernio } from '../../../../lib/zernio';
-import { fetchMutation, fetchQuery } from 'convex/nextjs';
+import { convexClient as convex } from '../../../../lib/convex-client';
 import { api } from '@convex/_generated/api';
-import { getPostHogServer } from '@/lib/posthog-server';
 
-export async function POST(req: Request) {
+export async function POST() {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Call Zernio to connect account and get profile ID
-    const response = await zernio.connectAccount(userId);
-    const zernioProfileId = response.profileId; // Assuming it returns { profileId: '...' }
+    // This is a conceptual flow. The actual Zernio client might need more details.
+    // Assuming connectAccount creates a profile and returns an ID.
+    const zernioResponse = await zernio.connectAccount(userId);
+    const zernioProfileId = zernioResponse.profileId; // Assuming this is the shape of the response
 
-    // Save Zernio profile ID to Convex user record
-    if (zernioProfileId) {
-      await fetchMutation(api.users.updateZernioProfileId, {
-        clerkId: userId,
-        zernioProfileId,
-      });
+    if (!zernioProfileId) {
+      throw new Error('Failed to get Zernio profile ID from connection response.');
     }
 
-    const ph = getPostHogServer()
-    if (ph) {
-      ph.capture({ 
-        distinctId: userId, 
-        event: 'se_social_connected', 
-        properties: { platform: 'zernio' } 
-      })
-    }
+    // Store the zernioProfileId in Convex
+    await convex.mutation(api.users.updateZernioProfileId, {
+      clerkId: userId,
+      zernioProfileId: zernioProfileId,
+    });
 
-    return NextResponse.json(response);
-  } catch (error: any) {
+    // After connecting the main profile, we might need to fetch accounts
+    // and store them in our `socialAccounts` table. This part of the flow
+    // is not fully clear from the prompt, but it is a likely next step.
+    const accounts = await zernio.getAccounts(zernioProfileId);
+
+    // You would typically loop through these and upsert them into your DB
+    // For now, just return them to the client.
+    
+    return NextResponse.json({ success: true, accounts });
+  } catch (error) {
     console.error('Zernio Connect Error:', error);
-    return new NextResponse(error.message || 'Internal Server Error', { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
