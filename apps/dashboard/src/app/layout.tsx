@@ -6,6 +6,7 @@ import { SentryErrorBoundary } from '@/components/error-boundary'
 import { ThemeProvider } from '@/providers/theme'
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
+import ImpersonationBanner from '@/components/admin/ImpersonationBanner';
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -25,6 +26,7 @@ export default function RootLayout({
             <PostHogProvider>
               <ConvexClientProvider>
                 <SentryErrorBoundary>
+                  <ImpersonationBanner />
                   {children}
                 </SentryErrorBoundary>
               </ConvexClientProvider>
