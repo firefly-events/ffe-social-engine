@@ -3,49 +3,77 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import UsageMeter from './UsageMeter';
+import {
+  LayoutDashboard,
+  MessageSquare,
+  Sparkles,
+  FolderOpen,
+  Layers,
+  Eye,
+  Upload,
+  Share2,
+  Link2,
+  Workflow,
+  Mic,
+  Film,
+  BarChart3,
+  Settings,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
-const navSections = [
+interface NavItem {
+  label: string;
+  href: string;
+  icon: LucideIcon;
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
   {
     title: 'Home',
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: '📊' },
+      { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     ],
   },
   {
     title: 'Create',
     items: [
-      { label: 'Chat Mode', href: '/create/chat', icon: '💬' },
-      { label: 'Walkthrough', href: '/create', icon: '✨' },
+      { label: 'Chat Mode', href: '/create/chat', icon: MessageSquare },
+      { label: 'Walkthrough', href: '/create', icon: Sparkles },
     ],
   },
   {
     title: 'Content',
     items: [
-      { label: 'Library', href: '/content', icon: '📁' },
-      { label: 'Sessions', href: '/sessions', icon: '📋' },
-      { label: 'Preview', href: '/preview', icon: '👁️' },
-      { label: 'Export', href: '/export', icon: '📤' },
+      { label: 'Library', href: '/content', icon: FolderOpen },
+      { label: 'Sessions', href: '/sessions', icon: Layers },
+      { label: 'Preview', href: '/preview', icon: Eye },
+      { label: 'Export', href: '/export', icon: Upload },
     ],
   },
   {
     title: 'Distribute',
     items: [
-      { label: 'Social Posting', href: '/social', icon: '📱' },
-      { label: 'Connect Accounts', href: '/connect', icon: '🔗' },
-      { label: 'Workflows', href: '/workflows', icon: '🔄' },
+      { label: 'Social Posting', href: '/social', icon: Share2 },
+      { label: 'Connect Accounts', href: '/connect', icon: Link2 },
+      { label: 'Workflows', href: '/workflows', icon: Workflow },
     ],
   },
   {
     title: 'Studio',
     items: [
-      { label: 'Voice Studio', href: '/voice', icon: '🎙️' },
-      { label: 'Compose Video', href: '/compose', icon: '🎬' },
+      { label: 'Voice Studio', href: '/voice', icon: Mic },
+      { label: 'Compose Video', href: '/compose', icon: Film },
     ],
   },
   {
     title: 'Insights',
     items: [
-      { label: 'Analytics', href: '/analytics', icon: '📈' },
+      { label: 'Analytics', href: '/analytics', icon: BarChart3 },
     ],
   },
 ];
@@ -71,6 +99,7 @@ export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
               {section.title}
             </div>
             {section.items.map((item) => {
+              const Icon = item.icon;
               const isActive = pathname === item.href ||
                 (item.href !== '/create' && pathname?.startsWith(item.href + '/'));
               return (
@@ -83,7 +112,7 @@ export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
                       : 'text-slate-400 hover:text-slate-100 hover:bg-white/5'
                   }`}
                 >
-                  <span className="text-base">{item.icon}</span>
+                  <Icon className="w-4 h-4 flex-shrink-0" />
                   <span>{item.label}</span>
                 </Link>
               );
@@ -106,7 +135,7 @@ export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
               : 'text-slate-400 hover:text-slate-100 hover:bg-white/5'
           }`}
         >
-          <span>⚙️</span>
+          <Settings className="w-4 h-4 flex-shrink-0" />
           <span>Settings</span>
         </Link>
 
