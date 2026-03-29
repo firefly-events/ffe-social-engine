@@ -116,8 +116,8 @@ export default function ContentLibraryPage() {
                 />
               </Link>
               <div className="flex justify-end gap-2 mt-2">
-                <button onClick={() => handleReUse(item)} className="text-xs text-gray-500 hover:text-gray-700">Re-use</button>
-                <button onClick={() => handleDelete(item)} className="text-xs text-red-500 hover:text-red-700">Delete</button>
+                <button onClick={() => handleReUse(item)} className="text-xs text-muted-foreground hover:text-foreground">Re-use</button>
+                <button onClick={() => handleDelete(item)} className="text-xs text-red-500 hover:text-red-400">Delete</button>
               </div>
             </div>
           ))}

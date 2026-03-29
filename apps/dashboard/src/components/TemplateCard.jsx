@@ -9,36 +9,19 @@ export default function TemplateCard({ template, onSelect }) {
   };
 
   return (
-    <div 
+    <div
       onClick={() => onSelect(template.id)}
-      style={{ 
-        border: template.id === 'scratch' ? '2px dashed #ccc' : '1px solid #ddd', 
-        padding: '2rem', 
-        borderRadius: '12px', 
-        backgroundColor: 'white',
-        cursor: 'pointer',
-        textAlign: 'center',
-        transition: 'transform 0.2s, box-shadow 0.2s',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '1rem'
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = 'translateY(-4px)';
-        e.currentTarget.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = 'none';
-      }}
+      className={`p-8 rounded-xl bg-card cursor-pointer text-center transition-all duration-200 flex flex-col items-center justify-center gap-4 hover:-translate-y-1 hover:shadow-lg ${
+        template.id === 'scratch'
+          ? 'border-2 border-dashed border-border'
+          : 'border border-border'
+      }`}
     >
-      <div style={{ fontSize: '3rem' }}>
+      <div className="text-5xl">
         {IconMap[template.id] || '📄'}
       </div>
-      <h3 style={{ margin: 0 }}>{template.name}</h3>
-      <p style={{ margin: 0, color: '#666', fontSize: '0.9rem' }}>{template.description}</p>
+      <h3 className="m-0 text-foreground">{template.name}</h3>
+      <p className="m-0 text-muted-foreground text-sm">{template.description}</p>
     </div>
   );
 }
