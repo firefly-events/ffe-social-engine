@@ -24,7 +24,7 @@ export default function SettingsPage() {
   );
 
   const voiceClones = useQuery(
-    api.voiceClones.list,
+    api.voiceClones.get,
     convexUser ? { userId: convexUser._id } : "skip"
   );
 

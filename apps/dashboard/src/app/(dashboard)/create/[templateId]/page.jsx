@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useMutation } from 'convex/react';
+import { api } from '@convex/_generated/api';
 
 // Inline template registry (mirrors packages/core for client-side use without bundling issues)
 const TEMPLATES = {
@@ -120,6 +122,9 @@ export default function TemplatePage() {
   const [result, setResult] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
+  const [jobId, setJobId] = useState(null);
+
+  // const createJob = useMutation(api.generations.createJob);
 
   useEffect(() => {
     if (template?.defaultPlatforms?.[0]) {
@@ -129,7 +134,6 @@ export default function TemplatePage() {
 
   const handleFieldChange = (id, val) => setFieldValues(prev => ({ ...prev, [id]: val }));
 
-  // Build topic string from all filled fields
   const buildTopic = () => {
     if (!template) return '';
     return template.fields
@@ -144,23 +148,26 @@ export default function TemplatePage() {
     setError('');
     setIsGenerating(true);
     setResult(null);
+    setJobId(null);
+
     try {
-      const res = await fetch('/api/ai/generate', {
+      const res = await fetch('/api/generate/text', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           topic,
-          template: templateId,
-          platform,
-          model,
-          type: generationType,
-          tone: template?.tone,
-          count: 5,
+          style: template?.tone || 'professional',
+          templateId,
+          platforms: [platform],
         }),
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Generation failed');
-      setResult(data);
+      
+      setResult(data.variations);
+      setJobId(data.jobId);
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -178,6 +185,11 @@ export default function TemplatePage() {
       </div>
     );
   }
+
+  const handleSaveAndContinue = () => {
+    if (!jobId) return;
+    router.push(`/preview/${jobId}`);
+  };
 
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '2rem' }}>
@@ -218,16 +230,6 @@ export default function TemplatePage() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.375rem' }}>Generation Type</label>
-            <select value={generationType} onChange={e => setGenerationType(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.875rem' }}>
-              <option value="single">Single caption</option>
-              <option value="batch">5 variations</option>
-              <option value="hashtags">Hashtags only</option>
-              <option value="thread">Thread</option>
-            </select>
-          </div>
-
-          <div>
             <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: '#374151', marginBottom: '0.375rem' }}>AI Model</label>
             <select value={model} onChange={e => setModel(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.875rem' }}>
               <option value="gemini-flash">Gemini Flash (Free)</option>
@@ -263,53 +265,30 @@ export default function TemplatePage() {
           )}
           {result && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {/* Single caption */}
-              {result.caption && (
-                <div style={{ padding: '1.25rem', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{result.caption}</p>
-                  {result.hashtags?.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-                      {result.hashtags.map(tag => (
-                        <span key={tag} style={{ padding: '0.25rem 0.625rem', background: '#eff6ff', color: '#3b82f6', borderRadius: '999px', fontSize: '0.75rem' }}>#{tag}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              {/* Batch variations */}
-              {result.variations?.map((v, i) => (
-                <div key={i} style={{ padding: '1.25rem', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-                  <div style={{ fontSize: '0.7rem', color: '#9ca3af', marginBottom: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Variation {i + 1} · {v.tone || ''}</div>
-                  <p style={{ margin: '0 0 0.75rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.6 }}>{v.caption}</p>
-                  {v.hashtags?.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-                      {v.hashtags.map(tag => (
-                        <span key={tag} style={{ padding: '0.25rem 0.625rem', background: '#eff6ff', color: '#3b82f6', borderRadius: '999px', fontSize: '0.75rem' }}>#{tag}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
-              {/* Thread posts */}
-              {result.posts?.map((post, i) => (
-                <div key={i} style={{ padding: '1.25rem', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
-                  <div style={{ fontSize: '0.7rem', color: '#9ca3af', marginBottom: '0.5rem' }}>Post {post.position || i + 1}</div>
-                  <p style={{ margin: 0, fontSize: '0.875rem', color: '#374151', lineHeight: 1.6 }}>{post.post}</p>
-                </div>
-              ))}
-              {/* Hashtags only */}
-              {result.hashtags && !result.caption && !result.variations && (
-                <div style={{ padding: '1.25rem', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  {result.hashtags.map(tag => (
-                    <span key={tag} style={{ padding: '0.375rem 0.75rem', background: '#eff6ff', color: '#3b82f6', borderRadius: '999px', fontSize: '0.875rem' }}>#{tag}</span>
-                  ))}
-                </div>
-              )}
+              <div style={{ padding: '1.25rem', background: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
+                <p style={{ margin: '0 0 0.75rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{result.short}</p>
+                <div style={{ margin: '0 0 0.75rem', fontSize: '0.875rem', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{result.long}</div>
+                {result.hashtags && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+                    {result.hashtags.split(' ').map(tag => (
+                      <span key={tag} style={{ padding: '0.25rem 0.625rem', background: '#eff6ff', color: '#3b82f6', borderRadius: '999px', fontSize: '0.75rem' }}>{tag}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button onClick={handleGenerate} style={{ flex: 1, padding: '0.75rem', background: 'white', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>Regenerate</button>
+                <button style={{ flex: 1, padding: '0.75rem', background: 'white', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>Edit</button>
+                <button onClick={() => router.push(`/preview/${jobId}`)} style={{ flex: 1, padding: '0.75rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>Preview</button>
+              </div>
+
               <button
-                onClick={() => router.push('/dashboard')}
-                style={{ padding: '0.75rem 1.5rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500 }}
+                onClick={handleSaveAndContinue}
+                disabled={!jobId}
+                style={{ padding: '0.75rem 1.5rem', background: '#6366f1', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500, opacity: !jobId ? 0.5 : 1 }}
               >
-                Save Draft →
+                Save & Continue →
               </button>
             </div>
           )}
