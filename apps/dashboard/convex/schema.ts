@@ -10,6 +10,7 @@ export default defineSchema({
     zernioProfileId: v.optional(v.string()),
     usedFreeTrials: v.optional(v.array(v.string())),
     plan: v.string(),
+    isBanned: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })
@@ -215,4 +216,44 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_externalId", ["externalId"]),
+
+  socialTierConfigs: defineTable({
+    tierId: v.string(), // "free", "starter", "basic", "pro", "business", "agency"
+    tierName: v.string(), // "Free", "Starter", "Basic", "Pro", "Business", "Agency"
+    monthlyPrice: v.number(),
+    aiCaptionsLimit: v.number(),
+    videoGenLimit: v.number(),
+    voiceClonesLimit: v.number(),
+    directPosting: v.boolean(),
+    platforms: v.array(v.string()), // ["twitter", "linkedin", "instagram", "tiktok"]
+    scheduling: v.boolean(),
+    analyticsAccess: v.boolean(),
+    analyticsDepth: v.string(), // "basic", "advanced", "full"
+    automations: v.boolean(),
+    flowLimit: v.number(),
+    apiAccess: v.boolean(),
+    rateLimit: v.number(),
+    whiteLabel: v.boolean(),
+    prioritySupport: v.boolean(),
+    exportQualityCap: v.string(), // "720p", "1080p", "4k"
+    customFeatures: v.any(), // Record<string, any>
+    updatedAt: v.number(),
+    updatedBy: v.string(), // clerkId of admin
+  }).index("by_tierId", ["tierId"]),
+
+  superAdminAuditLogs: defineTable({
+    adminId: v.string(),
+    action: v.string(), // "update_tier_config", "impersonate_user", "ban_user", "force_tier_change"
+    targetId: v.optional(v.string()), // userId or tierId
+    details: v.any(),
+    timestamp: v.number(),
+  })
+    .index("by_adminId", ["adminId"])
+    .index("by_action", ["action"]),
+
+  impersonations: defineTable({
+    adminId: v.string(), // clerkId of admin
+    targetUserId: v.id("users"),
+    expiresAt: v.number(),
+  }).index("by_adminId", ["adminId"]),
 });

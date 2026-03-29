@@ -7,11 +7,24 @@ export type AuthContext = QueryCtx | MutationCtx;
 /**
  * Returns the current authenticated user's Convex document, or null if not authenticated.
  * Looks up the user by clerkId (identity.subject).
+ * Supports impersonation for admin users.
  */
 export async function getCurrentUser(ctx: AuthContext): Promise<Doc<'users'> | null> {
   const identity = await ctx.auth.getUserIdentity();
   if (!identity) {
     return null;
+  }
+
+  // Check for impersonation
+  const impersonation = await ctx.db
+    .query("impersonations")
+    .withIndex("by_adminId", q => q.eq("adminId", identity.subject))
+    .first();
+
+  if (impersonation) {
+    if (impersonation.expiresAt > Date.now()) {
+      return await ctx.db.get(impersonation.targetUserId);
+    }
   }
 
   const user = await ctx.db
@@ -72,20 +85,12 @@ export async function requireUser(ctx: AuthContext): Promise<Doc<'users'>> {
 /**
  * Returns the current authenticated user's Convex _id.
  * Throws an error if the user is not authenticated or not found in the database.
+ * Supports impersonation for admin users.
  */
 export async function requireAuth(ctx: AuthContext): Promise<Id<'users'>> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    throw new ConvexError('Not authenticated');
-  }
-
-  const user = await ctx.db
-    .query('users')
-    .withIndex('by_clerkId', (q) => q.eq('clerkId', identity.subject))
-    .first();
-
+  const user = await getCurrentUser(ctx);
   if (!user) {
-    throw new ConvexError('User not found — Clerk webhook may not have synced yet');
+    throw new ConvexError('User not found or not authenticated');
   }
 
   return user._id;
