@@ -14,9 +14,9 @@ import type * as composedVideos from "../composedVideos.js";
 import type * as content from "../content.js";
 import type * as exportHistory from "../exportHistory.js";
 import type * as generationJobs from "../generationJobs.js";
-import type * as generations from "../generations.js";
 import type * as http from "../http.js";
 import type * as media from "../media.js";
+import type * as posts from "../posts.js";
 import type * as schedules from "../schedules.js";
 import type * as sessions from "../sessions.js";
 import type * as socialAccounts from "../socialAccounts.js";
@@ -39,9 +39,9 @@ declare const fullApi: ApiFromModules<{
   content: typeof content;
   exportHistory: typeof exportHistory;
   generationJobs: typeof generationJobs;
-  generations: typeof generations;
   http: typeof http;
   media: typeof media;
+  posts: typeof posts;
   schedules: typeof schedules;
   sessions: typeof sessions;
   socialAccounts: typeof socialAccounts;
@@ -79,4 +79,3 @@ export declare const internal: FilterApi<
 >;
 
 export declare const components: {};
-
