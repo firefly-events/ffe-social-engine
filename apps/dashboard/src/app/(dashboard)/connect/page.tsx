@@ -186,7 +186,7 @@ function ConnectPageInner() {
                 ) : (
                   <button
                     onClick={() => handleConnect(platform.id)}
-                    className="w-full py-2 px-4 rounded-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
+                    className="w-full py-2 px-4 rounded-lg font-medium transition-colors bg-purple-600 text-white hover:bg-purple-700"
                   >
                     Connect Account
                   </button>

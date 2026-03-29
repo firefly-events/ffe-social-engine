@@ -48,7 +48,7 @@ export default function ContentLibraryPage() {
         <h1 className="text-2xl font-bold">Content Library</h1>
         <Link
           href="/create"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
         >
           Create Content
         </Link>
@@ -70,7 +70,7 @@ export default function ContentLibraryPage() {
               onClick={() => setFilter(tab)}
               className={`px-3 py-1 rounded-md text-sm capitalize transition-colors ${
                 filter === tab
-                  ? "bg-blue-600 text-white"
+                  ? "bg-purple-600 text-white"
                   : "text-muted-foreground hover:bg-muted"
               }`}
             >
@@ -95,7 +95,7 @@ export default function ContentLibraryPage() {
           </p>
           <Link
             href="/create"
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700"
+            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700"
           >
             Create Content
           </Link>
