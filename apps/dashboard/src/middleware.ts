@@ -17,20 +17,21 @@ const isPublicRoute = createRouteMatcher([
  * redirect protected routes to /sign-in ourselves rather than letting the
  * middleware throw a 500 or return a 404.
  */
-function clerkKeyIsMissing(): boolean {
+function clerkKeyIsDevOrMissing(): boolean {
   const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
-  return (
-    key === '' ||
-    key.startsWith('pk_test_your-') ||
-    key === 'pk_test_your-clerk-publishable-key-here'
-  );
+  if (key === '' || key.startsWith('pk_test_your-')) return true;
+  // Dev keys (pk_test_*) on a production domain cause 404s because
+  // Clerk dev instances reject CORS from non-localhost origins.
+  // We validate in dev by running locally; prod needs pk_live_*.
+  if (key.startsWith('pk_test_') && process.env.NODE_ENV === 'production') return true;
+  return false;
 }
 
 export default clerkMiddleware(async (auth, req) => {
   // If Clerk is not configured (missing / placeholder key) redirect all
   // protected routes to /sign-in so the user sees a meaningful page instead
   // of a 404 or an uncaught Clerk error.
-  if (clerkKeyIsMissing()) {
+  if (clerkKeyIsDevOrMissing()) {
     if (!isPublicRoute(req)) {
       const signInUrl = new URL('/sign-in', req.url);
       return NextResponse.redirect(signInUrl);
