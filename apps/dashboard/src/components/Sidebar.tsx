@@ -6,6 +6,12 @@ import UsageMeter from './UsageMeter';
 
 const navSections = [
   {
+    title: 'Home',
+    items: [
+      { label: 'Dashboard', href: '/dashboard', icon: '📊' },
+    ],
+  },
+  {
     title: 'Create',
     items: [
       { label: 'Chat Mode', href: '/create/chat', icon: '💬' },
@@ -25,6 +31,7 @@ const navSections = [
     title: 'Distribute',
     items: [
       { label: 'Social Posting', href: '/social', icon: '📱' },
+      { label: 'Connect Accounts', href: '/connect', icon: '🔗' },
       { label: 'Workflows', href: '/workflows', icon: '🔄' },
     ],
   },
@@ -39,7 +46,6 @@ const navSections = [
     title: 'Insights',
     items: [
       { label: 'Analytics', href: '/analytics', icon: '📈' },
-      { label: 'Dashboard', href: '/dashboard', icon: '📊' },
     ],
   },
 ];

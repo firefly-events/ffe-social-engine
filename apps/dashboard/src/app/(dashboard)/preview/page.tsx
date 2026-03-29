@@ -5,6 +5,7 @@ import { useQuery } from 'convex/react';
 import { useUser } from '@clerk/nextjs';
 import { api } from '../../../../convex/_generated/api';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 import { Id } from '../../../../convex/_generated/dataModel';
 
@@ -48,9 +49,12 @@ function PreviewPageContent() {
     return (
       <div className="max-w-5xl mx-auto py-8 text-center">
         <h1 className="text-3xl font-bold mb-2 dark:text-white">Nothing to Preview Yet</h1>
-        <p className="text-gray-600 dark:text-gray-400 mb-8">
+        <p className="text-gray-600 dark:text-gray-400 mb-4">
           Once you generate some content, you'll be able to preview it here.
         </p>
+        <Link href="/create" className="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+          Create Content
+        </Link>
       </div>
     );
   }
