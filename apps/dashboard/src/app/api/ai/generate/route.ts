@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { getPostHogServer } from '@/lib/posthog-server';
 
 const TEXT_GEN_URL = process.env.TEXT_GEN_SERVICE_URL || 'http://localhost:3004';
 
@@ -59,6 +60,21 @@ export async function POST(req: Request) {
     }
 
     const data = await response.json();
+
+    const ph = getPostHogServer()
+    if (ph) {
+      ph.capture({
+        distinctId: userId,
+        event: 'se_content_generated',
+        properties: {
+          platform: 'web',
+          content_type: type,
+          model,
+          source: 'api',
+        }
+      })
+    }
+
     return NextResponse.json({ ...data, userId, generatedAt: new Date().toISOString() });
   } catch (error) {
     console.error('[/api/ai/generate]', error);

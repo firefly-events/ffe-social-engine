@@ -9,6 +9,7 @@ import ContentCard from '../../../components/ContentCard';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics';
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -50,7 +51,13 @@ export default function DashboardPage() {
           <p className="mt-1 text-muted-foreground">Here&apos;s what&apos;s happening with your content</p>
         </div>
         <Button
-          onClick={() => router.push('/create')}
+          onClick={() => {
+            trackEvent(ANALYTICS_EVENTS.CREATE_POST_CLICK, {
+              user_id: user?.id,
+              source: 'dashboard_header',
+            })
+            router.push('/create')
+          }}
           className="bg-purple-600 hover:bg-purple-700 text-white shadow-[0_4px_12px_rgba(142,68,173,0.3)]"
         >
           + Create New
@@ -72,7 +79,14 @@ export default function DashboardPage() {
                 <QuickAction
                   key={action.title}
                   {...action}
-                  onClick={() => router.push(`/create/${action.templateId}`)}
+                  onClick={() => {
+                    trackEvent(ANALYTICS_EVENTS.QUICK_ACTION_CLICK, {
+                      user_id: user?.id,
+                      content_type: action.templateId,
+                      source: 'dashboard_quick_actions',
+                    })
+                    router.push(`/create/${action.templateId}`)
+                  }}
                 />
               ))}
             </div>
@@ -102,7 +116,13 @@ export default function DashboardPage() {
               <Button
                 variant="ghost"
                 className="w-full mt-4 text-purple-600 hover:text-purple-700 font-bold"
-                onClick={() => router.push('/content')}
+                onClick={() => {
+                  trackEvent(ANALYTICS_EVENTS.VIEW_ALL_ACTIVITY_CLICK, {
+                    user_id: user?.id,
+                    source: 'dashboard',
+                  })
+                  router.push('/content')
+                }}
               >
                 View All Activity →
               </Button>
@@ -122,7 +142,13 @@ export default function DashboardPage() {
               <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex items-center justify-center rounded-xl">
                 <Button
                   size="sm"
-                  onClick={() => router.push('/pricing')}
+                  onClick={() => {
+                    trackEvent(ANALYTICS_EVENTS.UPGRADE_PLAN_CLICK, {
+                      user_id: user?.id,
+                      source: 'dashboard_analytics_gate',
+                    })
+                    router.push('/pricing')
+                  }}
                   className="bg-foreground text-background hover:bg-foreground/90 text-xs font-bold uppercase"
                 >
                   Upgrade to see analytics

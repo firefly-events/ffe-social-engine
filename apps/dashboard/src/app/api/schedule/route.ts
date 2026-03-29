@@ -23,6 +23,7 @@ import type {
   ScheduleStatus,
 } from '@/lib/api-types'
 import type { Platform } from '@/types/export'
+import { getPostHogServer } from '@/lib/posthog-server'
 
 /** Map a Convex schedule document to the public ScheduleItem shape. */
 function toScheduleItem(doc: Record<string, unknown>): ScheduleItem {
@@ -120,6 +121,21 @@ export async function POST(request: NextRequest) {
       createdAt:   nowMs,
       updatedAt:   nowMs,
     })
+
+    const ph = getPostHogServer()
+    if (ph) {
+      ph.capture({
+        distinctId: session.userId,
+        event: 'se_post_scheduled',
+        properties: {
+          platform: 'web',
+          content_id: body.contentId,
+          target_platform: body.platform,
+          scheduled_at: body.scheduledAt,
+          source: 'api',
+        }
+      })
+    }
 
     return created(toScheduleItem(doc as Record<string, unknown>))
   } catch (err) {

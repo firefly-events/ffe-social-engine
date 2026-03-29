@@ -343,14 +343,18 @@ export async function GET(
     // 5. PostHog event
     try {
       const ph = getPostHogServer();
-      ph.capture({
-        distinctId: userId,
-        event: "social_oauth_connected",
-        properties: {
-          platform: provider,
-          handle: profile.handle,
-        },
-      });
+      if (ph) {
+        ph.capture({
+          distinctId: userId,
+          event: "se_social_connected",
+          properties: {
+            platform: 'web',
+            platform_id: provider,
+            handle: profile.handle,
+            source: 'oauth_callback',
+          },
+        });
+      }
     } catch (phErr) {
       // Non-fatal: log but don't fail the connection
       console.warn("[OAuth callback] PostHog capture failed:", phErr);

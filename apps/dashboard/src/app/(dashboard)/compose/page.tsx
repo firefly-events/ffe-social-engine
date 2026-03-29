@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import PhonePreview from "../../../components/PhonePreview";
 import type { ComposeFormat } from "@/lib/api-types";
+import { trackEvent, ANALYTICS_EVENTS } from "@/lib/analytics";
 
 type PlatformOption = { id: string; label: string; format: ComposeFormat; previewPlatform: string };
 
@@ -52,6 +53,12 @@ export default function ComposePage() {
 
   const handleCompose = async () => {
     if (!videoUrl.trim()) return;
+    trackEvent(ANALYTICS_EVENTS.VIDEO_COMPOSED, {
+      platform_id: selectedPlatform.id,
+      format: selectedPlatform.format,
+      has_text_overlay: !!textOverlay.trim(),
+      source: 'compose_page',
+    })
     setJobStatus("processing"); setJobId(null); setResultUrl(null); setErrorMessage(null); stopPolling();
     try {
       const res = await fetch("/api/compose", {
@@ -84,8 +91,20 @@ export default function ComposePage() {
               <label className="block text-sm font-medium text-foreground/80 mb-2">Platform</label>
               <div className="grid grid-cols-2 gap-2">
                 {PLATFORMS.map((p) => (
+<<<<<<< HEAD
                   <button key={p.id} onClick={() => setSelectedPlatform(p)}
                     className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${selectedPlatform.id === p.id ? "bg-indigo-600 border-indigo-500 text-white" : "bg-card border-border text-foreground/80 hover:bg-muted"}`}>
+=======
+                  <button key={p.id} onClick={() => {
+                    setSelectedPlatform(p)
+                    trackEvent(ANALYTICS_EVENTS.COMPOSE_PLATFORM_SELECTED, {
+                      platform_id: p.id,
+                      format: p.format,
+                      source: 'compose_page',
+                    })
+                  }}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors ${selectedPlatform.id === p.id ? "bg-indigo-600 border-indigo-500 text-white" : "bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700"}`}>
+>>>>>>> 6ba5dca (feat(FIR-1224): instrument all CTAs and key actions with PostHog tracking)
                     {p.label}
                   </button>
                 ))}

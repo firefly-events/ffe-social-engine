@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { TrackedLink } from '@/components/TrackedLink'
+import { ANALYTICS_EVENTS } from '@/lib/analytics'
 
 // ── ICON COMPONENTS ──────────────────────────────────────────────────────────
 
@@ -142,12 +144,22 @@ export default function LandingPage() {
           </p>
 
           <div className="flex gap-4 flex-wrap justify-center">
-            <Link href="/sign-up" className={btnPrimary}>
+            <TrackedLink
+              href="/sign-up"
+              className={btnPrimary}
+              trackingEvent={ANALYTICS_EVENTS.HERO_CTA_CLICK}
+              trackingProps={{ source: 'hero', cta: 'get_started_free' }}
+            >
               Get Started Free <IconArrowRight />
-            </Link>
-            <Link href="/pricing" className={btnSecondary}>
+            </TrackedLink>
+            <TrackedLink
+              href="/pricing"
+              className={btnSecondary}
+              trackingEvent={ANALYTICS_EVENTS.PRICING_CTA_CLICK}
+              trackingProps={{ source: 'hero', cta: 'see_pricing' }}
+            >
               See Pricing
-            </Link>
+            </TrackedLink>
           </div>
 
           {/* Social proof */}
@@ -459,9 +471,14 @@ export default function LandingPage() {
               Save $199/mo — that&apos;s $2,388 a year back in your pocket
             </div>
 
-            <Link href="/sign-up" className={btnPrimary}>
+            <TrackedLink
+              href="/sign-up"
+              className={btnPrimary}
+              trackingEvent={ANALYTICS_EVENTS.SIGNUP_CTA_CLICK}
+              trackingProps={{ source: 'comparison_section', cta: 'start_saving_today' }}
+            >
               Start Saving Today <IconArrowRight />
-            </Link>
+            </TrackedLink>
           </div>
         </div>
       </section>
@@ -543,12 +560,22 @@ export default function LandingPage() {
               Join 12,000+ creators already using Social Engine to grow their audience on autopilot.
             </p>
             <div className="flex gap-4 flex-wrap justify-center">
-              <Link href="/sign-up" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-[1.05rem] font-semibold text-white bg-gradient-to-br from-purple-500 to-cyan-500 shadow-[0_0_28px_rgba(139,92,246,0.3)] hover:opacity-90 hover:-translate-y-0.5 transition-all no-underline">
+              <TrackedLink
+                href="/sign-up"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-[1.05rem] font-semibold text-white bg-gradient-to-br from-purple-500 to-cyan-500 shadow-[0_0_28px_rgba(139,92,246,0.3)] hover:opacity-90 hover:-translate-y-0.5 transition-all no-underline"
+                trackingEvent={ANALYTICS_EVENTS.SIGNUP_CTA_CLICK}
+                trackingProps={{ source: 'final_cta', cta: 'create_free_account' }}
+              >
                 Create Free Account <IconArrowRight />
-              </Link>
-              <Link href="/pricing" className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-[1.05rem] font-semibold text-slate-100 bg-white/[0.06] border border-white/10 hover:bg-white/10 hover:-translate-y-0.5 transition-all no-underline">
+              </TrackedLink>
+              <TrackedLink
+                href="/pricing"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl text-[1.05rem] font-semibold text-slate-100 bg-white/[0.06] border border-white/10 hover:bg-white/10 hover:-translate-y-0.5 transition-all no-underline"
+                trackingEvent={ANALYTICS_EVENTS.PRICING_CTA_CLICK}
+                trackingProps={{ source: 'final_cta', cta: 'view_pricing' }}
+              >
                 View Pricing
-              </Link>
+              </TrackedLink>
             </div>
             <div className="flex items-center gap-6 flex-wrap justify-center mt-2">
               {['Free forever plan available', 'No credit card required', 'Cancel any time'].map((item) => (

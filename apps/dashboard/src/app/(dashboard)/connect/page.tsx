@@ -6,8 +6,12 @@ import { useQuery } from 'convex/react';
 import { useUser } from '@clerk/nextjs';
 import { api } from '@convex/_generated/api';
 import type { OAuthProvider } from '../../../lib/oauth/providers';
+<<<<<<< HEAD
 import { track } from '@/lib/posthog';
 import { SE_EVENTS } from '@/lib/posthog-events';
+=======
+import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics';
+>>>>>>> 6ba5dca (feat(FIR-1224): instrument all CTAs and key actions with PostHog tracking)
 
 interface PlatformMeta {
   id: OAuthProvider;
@@ -53,6 +57,7 @@ function ConnectPageInner() {
       const platformName =
         PLATFORMS.find((p) => p.id === connected)?.name ?? connected;
       setBanner({ type: 'success', message: `${platformName} connected successfully!` });
+<<<<<<< HEAD
 
       if (user?.id) {
         track(SE_EVENTS.PLATFORM_CONNECTED, {
@@ -61,6 +66,12 @@ function ConnectPageInner() {
         });
       }
 
+=======
+      trackEvent(ANALYTICS_EVENTS.SOCIAL_CONNECTED, {
+        platform_id: connected,
+        source: 'oauth_callback',
+      })
+>>>>>>> 6ba5dca (feat(FIR-1224): instrument all CTAs and key actions with PostHog tracking)
       router.replace('/connect');
     } else if (error) {
       setBanner({ type: 'error', message: error });
@@ -70,6 +81,10 @@ function ConnectPageInner() {
 
   // ── Connect (redirect to OAuth initiation) ───────────────────────────────
   const handleConnect = useCallback((platformId: OAuthProvider) => {
+    trackEvent(ANALYTICS_EVENTS.CONNECT_ACCOUNT_CLICK, {
+      platform_id: platformId,
+      source: 'connect_page',
+    })
     window.location.href = `/api/auth/${platformId}`;
   }, []);
 
@@ -90,6 +105,7 @@ function ConnectPageInner() {
         }
 
         setBanner({ type: 'success', message: `Disconnected successfully.` });
+<<<<<<< HEAD
 
         if (user?.id) {
           track(SE_EVENTS.PLATFORM_DISCONNECTED, {
@@ -97,6 +113,12 @@ function ConnectPageInner() {
             platform: platformId,
           });
         }
+=======
+        trackEvent(ANALYTICS_EVENTS.SOCIAL_DISCONNECTED, {
+          platform_id: platformId,
+          source: 'connect_page',
+        })
+>>>>>>> 6ba5dca (feat(FIR-1224): instrument all CTAs and key actions with PostHog tracking)
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Disconnect failed';
         setBanner({ type: 'error', message });

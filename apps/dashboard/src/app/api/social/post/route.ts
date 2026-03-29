@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { zernio } from '../../../../lib/zernio';
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '@convex/_generated/api';
+import { getPostHogServer } from '@/lib/posthog-server';
 
 export async function POST(req: Request) {
   try {
@@ -30,6 +31,20 @@ export async function POST(req: Request) {
     }
 
     const response = await zernio.createPost(user.zernioProfileId, content, platforms);
+
+    const ph = getPostHogServer()
+    if (ph) {
+      ph.capture({
+        distinctId: userId,
+        event: 'se_post_published',
+        properties: {
+          platform: 'web',
+          platforms,
+          platform_count: platforms.length,
+          source: 'api',
+        }
+      })
+    }
 
     return NextResponse.json(response);
   } catch (error) {
