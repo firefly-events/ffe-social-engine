@@ -20,6 +20,7 @@ import type * as posts from "../posts.js";
 import type * as schedules from "../schedules.js";
 import type * as sessions from "../sessions.js";
 import type * as socialAccounts from "../socialAccounts.js";
+import type * as storageQuota from "../storageQuota.js";
 import type * as users from "../users.js";
 import type * as variants from "../variants.js";
 import type * as voiceClones from "../voiceClones.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   schedules: typeof schedules;
   sessions: typeof sessions;
   socialAccounts: typeof socialAccounts;
+  storageQuota: typeof storageQuota;
   users: typeof users;
   variants: typeof variants;
   voiceClones: typeof voiceClones;

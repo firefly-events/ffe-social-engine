@@ -8,11 +8,10 @@
 
 import { ConvexHttpClient } from "convex/browser";
 
-const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
-if (!convexUrl) {
-  throw new Error(
-    "NEXT_PUBLIC_CONVEX_URL is not set. Add it to your .secrets/.env file."
-  );
-}
+const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL ?? '';
 
-export const convexClient = new ConvexHttpClient(convexUrl);
+// Lazily validate at call-time rather than at module evaluation so that
+// `next build` (which statically evaluates pages without real env vars) does
+// not crash. Routes that actually invoke convexClient at runtime will still
+// receive a proper runtime error if the env var is absent.
+export const convexClient = new ConvexHttpClient(convexUrl || 'https://placeholder.invalid');
