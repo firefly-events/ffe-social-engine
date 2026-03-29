@@ -85,26 +85,13 @@ export default function DashboardPage() {
                 <p className="text-muted-foreground text-sm text-center py-4">No recent content yet.</p>
               ) : (
                 recentContent?.slice(0, 3).map(content => {
-                  let title = 'Untitled';
-                  let status = 'Unknown';
-                  if (content._tableName === 'generationJobs') {
-                    const job = content as any;
-                    title = job.topic;
-                    status = job.status;
-                  } else if (content._tableName === 'posts') {
-                    const post = content as any;
-                    title = post.content;
-                    status = post.status;
-                  } else if (content._tableName === 'mediaFiles') {
-                    const file = content as any;
-                    title = file.filename;
-                    status = 'Completed';
-                  }
+                  const title = content.text?.slice(0, 50) || 'Untitled';
+                  const status = content.status || 'Unknown';
 
                   return (
                     <ContentCard
                       key={content._id}
-                      title={title.slice(0, 50) || 'Untitled'}
+                      title={title}
                       type={'text'}
                       status={status.charAt(0).toUpperCase() + status.slice(1)}
                       date={new Date(content.createdAt).toLocaleDateString()}
