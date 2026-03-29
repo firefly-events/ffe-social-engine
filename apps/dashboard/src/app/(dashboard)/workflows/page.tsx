@@ -324,7 +324,7 @@ function WorkflowCard({
   onToggle: () => void
   onRun: () => void
 }) {
-  const lastRun = useQuery(api.workflow_runs.getLastRunForWorkflow, { workflowId: workflow._id })
+  const lastRun = useQuery(api.workflowRuns.getLastRunForWorkflow, { workflowId: workflow._id })
 
   return (
     <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 hover:border-purple-500/40 hover:bg-slate-800 transition-all group">
@@ -790,7 +790,7 @@ function ConfigPanel({
 // ── RUN HISTORY ───────────────────────────────────────────────────────────────
 
 function RunHistory({ workflowId }: { workflowId: Id<'workflows'> }) {
-  const runs = useQuery(api.workflow_runs.getRunsForWorkflow, { workflowId })
+  const runs = useQuery(api.workflowRuns.getRunsForWorkflow, { workflowId })
   if (!runs) return <div className="text-slate-400 text-xs px-3 py-4">Loading run history...</div>
   if (runs.length === 0) return <div className="text-slate-500 text-xs px-3 py-4">No runs yet.</div>
 
@@ -1265,7 +1265,7 @@ function WorkflowCanvas({
 // ── RUN STATUS MODAL ──────────────────────────────────────────────────────────
 
 function RunStatusModal({ run, onClose }: { run: Doc<'workflow_runs'>, onClose: () => void }) {
-  const logs = useMemo(() => (run.logs ?? []).map(l => JSON.parse(l)), [run.logs])
+  const logs = useMemo(() => ((run as any).logs ?? []).map(l => JSON.parse(l)), [(run as any).logs])
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
@@ -1273,7 +1273,7 @@ function RunStatusModal({ run, onClose }: { run: Doc<'workflow_runs'>, onClose: 
         <div className="flex justify-between items-start mb-4">
           <div>
             <h3 className="text-white font-semibold text-lg">Workflow Run</h3>
-            <p className="text-slate-400 text-sm">Status: {run.status}</p>
+            <p className="text-slate-400 text-sm">Status: {(run as any).status}</p>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-white">&times;</button>
         </div>
@@ -1284,9 +1284,9 @@ function RunStatusModal({ run, onClose }: { run: Doc<'workflow_runs'>, onClose: 
               <span className={log.level === 'error' ? 'text-red-400' : 'text-slate-400'}>{log.message}</span>
             </div>
           ))}
-          {run.status === 'running' && <div className="animate-pulse">Running...</div>}
-          {run.status === 'success' && <div className="text-emerald-400">Completed successfully.</div>}
-          {run.status === 'failed' && <div className="text-red-400">Failed. Check logs for details.</div>}
+          {(run as any).status === 'running' && <div className="animate-pulse">Running...</div>}
+          {(run as any).status === 'success' && <div className="text-emerald-400">Completed successfully.</div>}
+          {(run as any).status === 'failed' && <div className="text-red-400">Failed. Check logs for details.</div>}
         </div>
       </div>
     </div>
@@ -1301,7 +1301,7 @@ export default function WorkflowsPage() {
   const workflows = useQuery(api.workflows.list)
   const createWorkflow = useMutation(api.workflows.create)
   const updateWorkflow = useMutation(api.workflows.update)
-  const createRun = useMutation(api.workflow_runs.create)
+  const createRun = useMutation(api.workflowRuns.create)
 
   const [activeWorkflow, setActiveWorkflow] = useState<Doc<'workflows'> | null>(null)
   const [activeRunId, setActiveRunId] = useState<Id<'workflow_runs'> | null>(null)
@@ -1310,7 +1310,7 @@ export default function WorkflowsPage() {
   const [newName, setNewName] = useState('')
   const [newDesc, setNewDesc] = useState('')
 
-  const activeRun = useQuery(api.workflow_runs.get, activeRunId ? { id: activeRunId } : 'skip')
+  const activeRun = useQuery(api.workflowRuns.get, activeRunId ? { id: activeRunId } : 'skip')
 
   // Escape key to cancel connection in canvas
   useEffect(() => {
