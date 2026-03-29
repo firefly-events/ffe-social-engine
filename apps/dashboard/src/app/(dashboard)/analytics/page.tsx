@@ -182,10 +182,8 @@ export default function AnalyticsPage() {
         <p className="text-gray-500 mt-2">
           Start creating content to see your analytics.
         </p>
-        <Link href="/create">
-          <a className="mt-4 px-4 py-2 bg-purple-600 text-white rounded-md">
+        <Link href="/create" className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
             Create content
-          </a>
         </Link>
       </div>
     )

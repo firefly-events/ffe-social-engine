@@ -75,7 +75,18 @@ export default function SettingsPage() {
                   <p className="font-medium">{account.platform}</p>
                   <p className="text-sm text-gray-500">{account.handle}</p>
                 </div>
-                <button className="text-red-500">Disconnect</button>
+                <button
+                  className="text-red-500 hover:text-red-700 transition-colors"
+                  onClick={async () => {
+                    if (!window.confirm(`Disconnect ${account.platform}?`)) return;
+                    try {
+                      await fetch(`/api/social/disconnect/${account.platform}`, { method: 'DELETE' });
+                      window.location.reload();
+                    } catch (e) {
+                      console.error('Disconnect failed:', e);
+                    }
+                  }}
+                >Disconnect</button>
               </li>
             ))}
           </ul>
