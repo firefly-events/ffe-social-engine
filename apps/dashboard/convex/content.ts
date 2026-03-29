@@ -35,6 +35,36 @@ export const saveGeneration = mutation({
   },
 });
 
+export const get = query({
+  args: {
+    _id: v.string(),
+    tableName: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('Not authenticated');
+    }
+
+    // Look up in the generationJobs table (primary content source)
+    const jobs = await ctx.db
+      .query('generationJobs')
+      .filter((q) => q.eq(q.field('userId'), identity.subject))
+      .collect();
+
+    const match = jobs.find((j) => j._id.toString() === args._id);
+    if (match) return match;
+
+    // Fallback: try content table
+    const content = await ctx.db
+      .query('content')
+      .filter((q) => q.eq(q.field('userId'), identity.subject))
+      .collect();
+
+    return content.find((c) => c._id.toString() === args._id) || null;
+  },
+});
+
 export const list = query({
   args: {
     userId: v.string(),

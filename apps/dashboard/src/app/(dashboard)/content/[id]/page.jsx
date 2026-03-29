@@ -1,15 +1,15 @@
 "use client";
 import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { api } from "../../../../../convex/_generated/api";
 import { useParams, useSearchParams } from "next/navigation";
-import { Id } from "@/convex/_generated/dataModel";
+
 
 export default function ContentDetailPage() {
   const { id } = useParams();
   const searchParams = useSearchParams();
   const tableName = searchParams.get("tableName");
 
-  const content = useQuery(api.content.get, { _id: id as Id<any>, tableName: tableName! }, { skip: !tableName });
+  const content = useQuery(api.content.get, tableName ? { _id: id, tableName } : "skip");
 
 
   if (content === undefined) return <div className="p-6">Loading...</div>;
@@ -26,7 +26,7 @@ export default function ContentDetailPage() {
       {tableName === 'mediaFiles' && content.mimeType.startsWith('video/') && <video src={`/api/media/${content._id}`} controls className="rounded-lg mb-4 max-w-full" />}
       <div className="flex gap-2">
         {content.status && <span className="px-3 py-1 rounded-full text-sm bg-muted capitalize">{content.status}</span>}
-        {content.platforms?.map((p:string) => (
+        {content.platforms?.map((p) => (
           <span key={p} className="px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800">{p}</span>
         ))}
       </div>

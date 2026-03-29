@@ -7,10 +7,11 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const mediaFile = await convex.query(api.media.getMediaFile, { id: params.id as Id<"mediaFiles"> });
+        const { id } = await params;
+        const mediaFile = await convex.query(api.media.getMediaFile, { id: id as Id<"mediaFiles"> });
 
         if (!mediaFile || !mediaFile.url) {
             return new NextResponse("Not found", { status: 404 });
