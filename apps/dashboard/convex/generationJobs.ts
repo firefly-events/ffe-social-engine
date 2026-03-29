@@ -85,3 +85,24 @@ export const update = mutation({
     return await ctx.db.get(id);
   },
 });
+
+export const getGenerationJob = query({
+  args: { id: v.id('generationJobs') },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('Not authenticated');
+    }
+
+    const job = await ctx.db.get(args.id);
+    if (!job) {
+      throw new Error('Generation job not found');
+    }
+
+    if (job.userId !== identity.subject) {
+      throw new Error('Not authorized');
+    }
+
+    return job;
+  },
+});

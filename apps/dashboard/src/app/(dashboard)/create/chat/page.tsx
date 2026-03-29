@@ -2,6 +2,9 @@
 
 import { useChat } from 'ai/react';
 import { useState, useRef, useEffect } from 'react';
+import { useMutation } from 'convex/react';
+import { api } from '../../../../../convex/_generated/api';
+import Link from 'next/link';
 
 const MODELS = [
   { id: 'gemini-flash', label: 'Gemini Flash', tier: 'free' },
@@ -17,7 +20,9 @@ export default function ChatPage() {
   const [platform, setPlatform] = useState('tiktok');
   const [template, setTemplate] = useState('');
   const [savedItems, setSavedItems] = useState([]);
+  const [lastSavedId, setLastSavedId] = useState(null);
   const bottomRef = useRef(null);
+  const saveGeneration = useMutation(api.content.saveGeneration);
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: '/api/ai/chat',
@@ -28,8 +33,22 @@ export default function ChatPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSave = (content) => {
+  const handleSave = async (content) => {
     setSavedItems(prev => [...prev, { content, savedAt: new Date().toISOString() }]);
+    try {
+      const generationId = await saveGeneration({
+        type: 'single',
+        topic: input,
+        platform,
+        template,
+        model,
+        result: content,
+      });
+      setLastSavedId(generationId);
+    } catch (error) {
+      console.error("Failed to save generation:", error);
+      // Optionally, show an error message to the user
+    }
   };
 
   return (
@@ -88,12 +107,19 @@ export default function ChatPage() {
               }}>
                 {msg.content}
                 {msg.role === 'assistant' && (
-                  <button
-                    onClick={() => handleSave(msg.content)}
-                    style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.75rem', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                  >
-                    + Save to session
-                  </button>
+                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                    <button
+                      onClick={() => handleSave(msg.content)}
+                      style={{ fontSize: '0.75rem', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    >
+                      + Save to session
+                    </button>
+                    {lastSavedId && (
+                      <Link href={`/preview?id=${lastSavedId}`} style={{ fontSize: '0.75rem', color: '#10b981', textDecoration: 'none' }}>
+                        Go to Preview →
+                      </Link>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
