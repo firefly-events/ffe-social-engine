@@ -103,18 +103,6 @@ export default function VoicePage() {
     }
   };
 
-  if (process.env.NEXT_PUBLIC_VOICE_GEN_URL === undefined) {
-    return (
-        <div className="flex h-full items-center justify-center">
-            <div className="text-center">
-                <h3 className="text-lg font-semibold">Voice Generation Service Offline</h3>
-                <p className="text-sm text-gray-500">The voice generation service is not configured. Please contact support.</p>
-            </div>
-        </div>
-    );
-  }
-
-
   return (
     <div className="dark:bg-gray-900 text-white min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
@@ -177,11 +165,13 @@ export default function VoicePage() {
               Select a cloned voice and enter text to generate audio.
             </p>
             <div className="space-y-4">
-              <select className="w-full p-2 bg-gray-700 rounded" disabled={!voiceClones || voiceClones.length === 0}>
+              <select className="w-full p-2 bg-gray-700 rounded">
+                <option value="default-male">Default Male</option>
+                <option value="default-female">Default Female</option>
+                <option value="default-narrator">Narrator</option>
                 {voiceClones?.map((clone) => (
                   <option key={clone._id} value={clone.externalId}>{clone.name || 'Untitled Clone'}</option>
                 ))}
-                {voiceClones?.length === 0 && <option>No voices available</option>}
               </select>
               <textarea
                 className="w-full p-2 bg-gray-700 rounded h-40"
