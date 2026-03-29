@@ -158,10 +158,29 @@ export default defineSchema({
     error: v.optional(v.string()),
     createdAt: v.number(),
     completedAt: v.optional(v.number()),
+    // Iteration tracking
+    regenerateCount: v.optional(v.number()),
+    iterationGroupId: v.optional(v.string()),
   })
     .index("by_userId", ["userId"])
     .index("by_status", ["status"])
     .index("by_topic", ["topic"]),
+
+  assetVariants: defineTable({
+    userId: v.string(),
+    sessionId: v.optional(v.string()),
+    parentJobId: v.id("generationJobs"),
+    type: v.union(v.literal("text"), v.literal("image"), v.literal("video")),
+    result: v.string(),         // JSON string of the asset data
+    model: v.optional(v.string()),
+    costUsd: v.optional(v.number()),
+    savedAt: v.number(),
+    label: v.optional(v.string()),
+    isFavorite: v.optional(v.boolean()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_parent_job", ["parentJobId"])
+    .index("by_session", ["userId", "sessionId"]),
 
   contentSessions: defineTable({
     userId: v.string(),

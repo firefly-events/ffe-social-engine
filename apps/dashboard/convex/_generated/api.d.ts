@@ -21,6 +21,7 @@ import type * as schedules from "../schedules.js";
 import type * as sessions from "../sessions.js";
 import type * as socialAccounts from "../socialAccounts.js";
 import type * as users from "../users.js";
+import type * as variants from "../variants.js";
 import type * as voiceClones from "../voiceClones.js";
 import type * as voices from "../voices.js";
 import type * as workflowRuns from "../workflowRuns.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   sessions: typeof sessions;
   socialAccounts: typeof socialAccounts;
   users: typeof users;
+  variants: typeof variants;
   voiceClones: typeof voiceClones;
   voices: typeof voices;
   workflowRuns: typeof workflowRuns;
