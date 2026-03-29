@@ -1,6 +1,41 @@
 import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 
+export const create = mutation({
+  args: {
+    userId: v.string(),
+    text: v.string(),
+    status: v.string(),
+    platforms: v.array(v.string()),
+    prompt: v.optional(v.string()),
+    aiModel: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('Not authenticated');
+    }
+
+    if (identity.subject !== args.userId) {
+      throw new Error('Not authorized');
+    }
+
+    const contentId = await ctx.db.insert('content', {
+      userId: args.userId,
+      externalId: `content-${Date.now()}`,
+      text: args.text,
+      status: args.status,
+      platforms: args.platforms,
+      prompt: args.prompt,
+      aiModel: args.aiModel,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+
+    return contentId;
+  },
+});
+
 export const saveGeneration = mutation({
   args: {
     type: v.string(),
