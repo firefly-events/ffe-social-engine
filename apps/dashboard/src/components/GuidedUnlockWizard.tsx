@@ -68,11 +68,11 @@ export function GuidedUnlockWizard({
   };
 
   return (
-    <div className="border border-gray-200 p-6 rounded-lg bg-white shadow-sm max-w-2xl mx-auto mt-8">
+    <div className="border border-border p-6 rounded-lg bg-card shadow-sm max-w-2xl mx-auto mt-8">
       {isLocked && step === 0 && (
         <div className="text-center py-8">
           <h2 className="text-2xl font-bold mb-4">Upgrade to Unlock {featureName}</h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-muted-foreground mb-6">
             You have already used your free trial for this feature. Upgrade to Pro to unlock unlimited access.
           </p>
           <button 
@@ -87,8 +87,8 @@ export function GuidedUnlockWizard({
       {canUseTrial && step === 0 && (
         <div className="text-center py-8">
           <h2 className="text-2xl font-bold mb-2">{featureName}</h2>
-          <p className="text-gray-600 mb-6">{description}</p>
-          <div className="bg-blue-50 text-blue-800 p-4 rounded-lg mb-6 inline-block">
+          <p className="text-muted-foreground mb-6">{description}</p>
+          <div className="bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 p-4 rounded-lg mb-6 inline-block">
             <span className="font-semibold">Try it free!</span> Use your 1 free generation.
           </div>
           <br/>
@@ -104,7 +104,7 @@ export function GuidedUnlockWizard({
       {step === 1 && (
         <div className="py-4">
           <h3 className="text-xl font-bold mb-4">Step 1: Configure & Generate</h3>
-          <p className="text-gray-600 mb-6">Provide the input to generate your free {featureName} sample.</p>
+          <p className="text-muted-foreground mb-6">Provide the input to generate your free {featureName} sample.</p>
           
           <button 
             onClick={handleRunFeature}
@@ -120,13 +120,13 @@ export function GuidedUnlockWizard({
         <div className="py-4">
           <h3 className="text-xl font-bold text-green-600 mb-4">✨ Wow! Here is your result.</h3>
           
-          <div className="bg-gray-50 p-4 rounded-lg mb-8 border border-gray-200">
+          <div className="bg-muted/50 p-4 rounded-lg mb-8 border border-border">
             {trialOutputComponent}
           </div>
 
-          <div className="text-center bg-blue-50 p-6 rounded-lg">
+          <div className="text-center bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg">
             <h4 className="text-lg font-bold mb-2">Want to create more?</h4>
-            <p className="text-gray-600 mb-4">Upgrade to our Pro plan to unlock unlimited {featureName}s.</p>
+            <p className="text-muted-foreground mb-4">Upgrade to our Pro plan to unlock unlimited {featureName}s.</p>
             <button 
               onClick={() => router.push("/pricing")}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition"
