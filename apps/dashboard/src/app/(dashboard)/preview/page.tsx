@@ -1,25 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useQuery } from 'convex/react';
 import { useUser } from '@clerk/nextjs';
 import { api } from '../../../../convex/_generated/api';
+import { useSearchParams } from 'next/navigation';
 
-export default function PreviewPage() {
+import { Id } from '../../../../convex/_generated/dataModel';
+
+function PreviewPageContent() {
   const [activeTab, setActiveTab] = useState<'twitter' | 'linkedin' | 'instagram'>('twitter');
   const { user, isLoaded } = useUser();
-  const generationJobs = useQuery(
-    api.generationJobs.list,
-    user ? { userId: user.id } : 'skip'
+  const searchParams = useSearchParams();
+  const generationId = searchParams.get('id');
+
+  const generationJob = useQuery(
+    api.generationJobs.getGenerationJob,
+    generationId ? { id: generationId as Id<'generationJobs'> } : 'skip'
   );
 
-  const isLoading = !isLoaded || generationJobs === undefined;
-  const latestJob = generationJobs?.[0];
+  // Fallback to latest job if no ID is provided
+  const latestGenerationJobs = useQuery(
+    api.generationJobs.list,
+    user && !generationId ? { userId: user.id } : 'skip'
+  );
+
+  const isLoading = !isLoaded || (generationId && generationJob === undefined) || (!generationId && latestGenerationJobs === undefined);
+
+  const latestJob = generationId ? generationJob : latestGenerationJobs?.[0];
 
   const PREVIEW_DATA = latestJob?.result
     ? {
-        text: latestJob.result.text,
-        image: latestJob.result.imageUrl,
+        text: typeof latestJob.result === 'string' ? latestJob.result : latestJob.result.text,
+        image: typeof latestJob.result === 'string' ? null : latestJob.result.imageUrl,
       }
     : null;
 
@@ -86,7 +99,7 @@ export default function PreviewPage() {
         </div>
 
         <div className="w-full lg:w-3/4 flex justify-center bg-gray-50 dark:bg-gray-900 rounded-xl p-8 border border-gray-100 dark:border-gray-700 min-h-[500px]">
-          {activeTab === 'twitter' && PREVIEW_DATA.image && (
+          {activeTab === 'twitter' && PREVIEW_DATA.text && (
             <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl w-full max-w-md p-4 shadow-sm">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 bg-gray-200 dark:bg-gray-800 rounded-full"></div>
@@ -96,14 +109,16 @@ export default function PreviewPage() {
                 </div>
               </div>
               <p className="text-[15px] mb-3 dark:text-gray-200">{PREVIEW_DATA.text}</p>
-              <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={PREVIEW_DATA.image} alt="Preview" className="w-full h-auto" />
-              </div>
+              {PREVIEW_DATA.image && (
+                <div className="rounded-xl overflow-hidden border border-gray-100 dark:border-gray-800">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={PREVIEW_DATA.image} alt="Preview" className="w-full h-auto" />
+                </div>
+              )}
             </div>
           )}
 
-          {activeTab === 'linkedin' && PREVIEW_DATA.image && (
+          {activeTab === 'linkedin' && PREVIEW_DATA.text && (
             <div className="bg-white dark:bg-white border border-gray-200 rounded-xl w-full max-w-md shadow-sm overflow-hidden">
               <div className="p-4">
                 <div className="flex items-center gap-3 mb-3">
@@ -115,12 +130,14 @@ export default function PreviewPage() {
                 </div>
                 <p className="text-[14px] text-gray-800 mb-3">{PREVIEW_DATA.text}</p>
               </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={PREVIEW_DATA.image} alt="Preview" className="w-full h-auto border-t border-gray-100" />
+              {PREVIEW_DATA.image && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={PREVIEW_DATA.image} alt="Preview" className="w-full h-auto border-t border-gray-100" />
+              )}
             </div>
           )}
 
-          {activeTab === 'instagram' && PREVIEW_DATA.image && (
+          {activeTab === 'instagram' && PREVIEW_DATA.text && (
             <div className="bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-xl w-full max-w-sm shadow-sm overflow-hidden">
               <div className="p-3 flex items-center gap-3">
                 <div className="w-8 h-8 bg-gradient-to-tr from-yellow-400 to-purple-600 rounded-full p-[2px]">
@@ -128,8 +145,10 @@ export default function PreviewPage() {
                 </div>
                 <p className="font-bold text-sm dark:text-white">fireflyevents</p>
               </div>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={PREVIEW_DATA.image} alt="Preview" className="w-full aspect-square object-cover" />
+              {PREVIEW_DATA.image && (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={PREVIEW_DATA.image} alt="Preview" className="w-full aspect-square object-cover" />
+              )}
               <div className="p-4">
                 <div className="flex gap-4 mb-3">
                   <div className="w-6 h-6 border-2 border-black dark:border-white rounded-full"></div>
@@ -145,5 +164,13 @@ export default function PreviewPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PreviewPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="text-2xl">Loading...</div></div>}>
+      <PreviewPageContent />
+    </Suspense>
   );
 }

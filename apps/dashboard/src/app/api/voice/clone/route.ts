@@ -98,8 +98,7 @@ export async function POST(request: NextRequest) {
       name:      body.name.trim(),
       sampleUrl,
       status:    'ready',
-      createdAt: nowMs,
-      updatedAt: nowMs,
+      voiceId,
     })
 
     const now = new Date().toISOString()

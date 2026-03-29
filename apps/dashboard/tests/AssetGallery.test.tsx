@@ -1,7 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import AssetGallery from '../src/components/AssetGallery'
-import type { AssetGalleryItem } from '../src/components/AssetGallery'
+import '@testing-library/jest-dom/vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import AssetGallery from '../src/components/AssetGallery';
+import type { AssetGalleryItem } from '../src/components/AssetGallery';
 
 const MOCK_ASSETS: AssetGalleryItem[] = [
   {

@@ -21,8 +21,7 @@ export default function ContentLibraryPage() {
   const deleteItem = useMutation(api.content.deleteItem);
 
   const handleDelete = (item: any) => {
-    deleteItem({ _id: item._id, _tableName: item._tableName });
-  };
+    deleteItem({ id: item._id });  };
 
   const handleReUse = (item: any) => {
     const params = new URLSearchParams();
