@@ -52,70 +52,65 @@ export default function ChatPage() {
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', height: 'calc(100vh - 64px)', gap: 0 }}>
+    <div className="grid grid-cols-[1fr_320px] h-[calc(100vh-64px)]">
       {/* Chat panel */}
-      <div style={{ display: 'flex', flexDirection: 'column', borderRight: '1px solid #e5e7eb' }}>
+      <div className="flex flex-col border-r border-border">
         {/* Controls */}
-        <div style={{ padding: '1rem', borderBottom: '1px solid #e5e7eb', display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', background: '#f9fafb' }}>
+        <div className="p-4 border-b border-border flex gap-4 flex-wrap items-center bg-muted">
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: '0.25rem' }}>Model</label>
-            <select value={model} onChange={e => setModel(e.target.value)} style={{ padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '0.875rem' }}>
+            <label className="text-xs text-muted-foreground block mb-1">Model</label>
+            <select value={model} onChange={e => setModel(e.target.value)} className="bg-background py-1.5 px-3 rounded-md border border-input text-sm">
               {MODELS.map(m => (
                 <option key={m.id} value={m.id}>{m.label}</option>
               ))}
             </select>
           </div>
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: '0.25rem' }}>Platform</label>
-            <select value={platform} onChange={e => setPlatform(e.target.value)} style={{ padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '0.875rem' }}>
+            <label className="text-xs text-muted-foreground block mb-1">Platform</label>
+            <select value={platform} onChange={e => setPlatform(e.target.value)} className="bg-background py-1.5 px-3 rounded-md border border-input text-sm">
               {PLATFORMS.map(p => (
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>
           </div>
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block', marginBottom: '0.25rem' }}>Template (optional)</label>
+            <label className="text-xs text-muted-foreground block mb-1">Template (optional)</label>
             <input
               type="text"
               value={template}
               onChange={e => setTemplate(e.target.value)}
               placeholder="e.g. product-launch"
-              style={{ padding: '0.375rem 0.75rem', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '0.875rem', width: '160px' }}
+              className="bg-background py-1.5 px-3 rounded-md border border-input text-sm w-40"
             />
           </div>
         </div>
 
         {/* Messages */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
           {messages.length === 0 && (
-            <div style={{ textAlign: 'center', color: '#9ca3af', marginTop: '4rem' }}>
-              <p style={{ fontSize: '1.125rem', fontWeight: 500 }}>AI Content Chat</p>
-              <p style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>Ask me to write captions, hashtags, scripts, or brainstorm ideas.</p>
+            <div className="text-center text-muted-foreground mt-16">
+              <p className="text-lg font-medium">AI Content Chat</p>
+              <p className="text-sm mt-2">Ask me to write captions, hashtags, scripts, or brainstorm ideas.</p>
             </div>
           )}
           {messages.map((msg) => (
-            <div key={msg.id} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-              <div style={{
-                maxWidth: '75%',
-                padding: '0.75rem 1rem',
-                borderRadius: msg.role === 'user' ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
-                background: msg.role === 'user' ? '#6366f1' : '#f3f4f6',
-                color: msg.role === 'user' ? 'white' : '#111827',
-                fontSize: '0.875rem',
-                lineHeight: 1.6,
-                whiteSpace: 'pre-wrap',
-              }}>
+            <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[75%] py-3 px-4 text-sm leading-relaxed whitespace-pre-wrap rounded-xl ${
+                  msg.role === 'user'
+                    ? 'bg-indigo-600 text-white rounded-br-sm'
+                    : 'bg-muted text-foreground rounded-bl-sm'
+                }`}>
                 {msg.content}
                 {msg.role === 'assistant' && (
-                  <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                  <div className="flex gap-4 mt-2">
                     <button
                       onClick={() => handleSave(msg.content)}
-                      style={{ fontSize: '0.75rem', color: '#6366f1', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      className="text-xs text-indigo-400 bg-transparent border-none cursor-pointer p-0 hover:underline"
                     >
                       + Save to session
                     </button>
                     {lastSavedId && (
-                      <Link href={`/preview?id=${lastSavedId}`} style={{ fontSize: '0.75rem', color: '#10b981', textDecoration: 'none' }}>
+                      <Link href={`/preview?id=${lastSavedId}`} className="text-xs text-green-500 no-underline hover:underline">
                         Go to Preview →
                       </Link>
                     )}
@@ -125,14 +120,14 @@ export default function ChatPage() {
             </div>
           ))}
           {isLoading && (
-            <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <div style={{ padding: '0.75rem 1rem', borderRadius: '1rem', background: '#f3f4f6', color: '#6b7280', fontSize: '0.875rem' }}>
+            <div className="flex justify-start">
+              <div className="py-3 px-4 rounded-xl bg-muted text-muted-foreground text-sm">
                 Generating...
               </div>
             </div>
           )}
           {error && (
-            <div style={{ color: '#ef4444', fontSize: '0.875rem', textAlign: 'center' }}>
+            <div className="text-red-500 text-sm text-center">
               Error: {error.message}
             </div>
           )}
@@ -140,18 +135,18 @@ export default function ChatPage() {
         </div>
 
         {/* Input */}
-        <form onSubmit={handleSubmit} style={{ padding: '1rem', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '0.75rem' }}>
+        <form onSubmit={handleSubmit} className="p-4 border-t border-border flex gap-3 bg-background">
           <input
             value={input}
             onChange={handleInputChange}
             placeholder="Ask for a caption, hashtags, or ideas..."
             disabled={isLoading}
-            style={{ flex: 1, padding: '0.75rem 1rem', borderRadius: '8px', border: '1px solid #d1d5db', fontSize: '0.875rem', outline: 'none' }}
+            className="flex-1 py-3 px-4 rounded-lg border border-input text-sm outline-none bg-background focus:ring-1 focus:ring-ring"
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            style={{ padding: '0.75rem 1.5rem', borderRadius: '8px', background: '#6366f1', color: 'white', border: 'none', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500, opacity: (isLoading || !input.trim()) ? 0.6 : 1 }}
+            className="py-3 px-6 rounded-lg bg-indigo-600 text-white border-none cursor-pointer text-sm font-medium disabled:opacity-60"
           >
             Send
           </button>
@@ -159,14 +154,14 @@ export default function ChatPage() {
       </div>
 
       {/* Saved panel */}
-      <div style={{ padding: '1rem', overflowY: 'auto', background: '#f9fafb' }}>
-        <h3 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#374151', marginBottom: '1rem' }}>Saved Content</h3>
+      <div className="p-4 overflow-y-auto bg-muted/50">
+        <h3 className="text-sm font-semibold text-foreground mb-4">Saved Content</h3>
         {savedItems.length === 0 ? (
-          <p style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Click "Save to session" on any AI response to collect content here.</p>
+          <p className="text-xs text-muted-foreground">Click "+ Save to session" on any AI response to collect content here.</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="flex flex-col gap-3">
             {savedItems.map((item, i) => (
-              <div key={i} style={{ padding: '0.75rem', background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.75rem', color: '#374151', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+              <div key={i} className="p-3 bg-card rounded-lg border border-border text-xs text-foreground leading-normal whitespace-pre-wrap">
                 {item.content.slice(0, 200)}{item.content.length > 200 ? '...' : ''}
               </div>
             ))}
