@@ -2,63 +2,28 @@
 
 import { useState } from "react";
 import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
+import { api } from "../../../../convex/_generated/api";
+import { useUser } from "@clerk/nextjs";
+
+const platforms = [
+  "TikTok",
+  "Instagram",
+  "X",
+  "LinkedIn",
+  "YouTube",
+  "Facebook",
+  "Threads",
+  "Bluesky",
+];
 
 export default function SocialPage() {
+  const { user } = useUser();
   const [content, setContent] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [isPosting, setIsPosting] = useState(false);
+  const [isPosting, setIsPosting] =useState(false);
 
   const accounts = useQuery(api.socialAccounts.getSocialAccounts);
-  const currentUser = useQuery(api.users.getCurrentUser);
-
-  const hasConnectedZernio = !!currentUser?.zernioProfileId;
-
-  const handleConnect = async () => {
-    setIsConnecting(true);
-    try {
-      const response = await fetch('/api/social/connect', { method: 'POST' });
-      if (!response.ok) {
-        throw new Error('Failed to connect Zernio account');
-      }
-      // The API route now fetches accounts and returns them.
-      // We could use this to optimistically update the UI, but for now
-      // we'll rely on the `useQuery` to eventually reflect the new state.
-      console.log('Zernio account connected successfully.');
-    } catch (error) {
-      console.error(error);
-      // Here you would show an error to the user
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  const handleCreatePost = async () => {
-    if (selectedPlatforms.length === 0 || !content) {
-      return;
-    }
-    setIsPosting(true);
-    try {
-      const response = await fetch('/api/social/post', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, platforms: selectedPlatforms }),
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create post');
-      }
-      setContent("");
-      setSelectedPlatforms([]);
-      // Show success message
-    } catch (error) {
-      console.error(error);
-      // Show error message
-    } finally {
-      setIsPosting(false);
-    }
-  };
+  const posts = useQuery(api.posts.getRecentPosts); // Assuming you have a `getRecentPosts` query
 
   const handlePlatformToggle = (platform: string) => {
     setSelectedPlatforms((prev) =>
@@ -68,72 +33,127 @@ export default function SocialPage() {
     );
   };
 
+  const handlePost = async () => {
+    if (!content || selectedPlatforms.length === 0 || !user) return;
+    setIsPosting(true);
+    try {
+      const response = await fetch("/api/social/post", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content,
+          platforms: selectedPlatforms,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to post to social media");
+      }
+      setContent("");
+      setSelectedPlatforms([]);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Social Posting</h1>
-
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">Connect Your Accounts</h2>
-        <button
-          onClick={handleConnect}
-          disabled={hasConnectedZernio || isConnecting}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:bg-gray-400"
-        >
-          {isConnecting ? 'Connecting...' : hasConnectedZernio ? 'Zernio Connected' : 'Connect Zernio Account'}
-        </button>
-        {hasConnectedZernio && <p className="text-green-600 mt-2">Your Zernio profile is connected.</p>}
-      </div>
-
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-2">Connected Accounts</h2>
-        {!accounts ? (
-          <p>Loading...</p>
-        ) : accounts.length === 0 ? (
-          <p>No social accounts connected via Zernio yet.</p>
-        ) : (
-          <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {accounts.map((account) => (
-              <li key={account._id} className="p-4 border rounded-lg shadow-sm">
-                <p className="font-semibold">{account.handle}</p>
-                <p className="text-sm text-gray-500 capitalize">{account.platform}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Create a Post</h2>
-        <div className="flex flex-col space-y-4">
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            className="p-2 border rounded w-full"
-            rows={5}
-            placeholder="What's on your mind?"
-          />
-          <div className="flex flex-wrap gap-2">
-            {accounts?.map((account) => (
+    <div className="container mx-auto p-4 bg-background text-foreground">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <div className="bg-card p-6 rounded-lg shadow-md">
+            <h2 className="text-2xl font-bold mb-4">Compose Post</h2>
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full p-2 border rounded bg-input text-foreground"
+              rows={6}
+              placeholder="What do you want to share?"
+            />
+            <div className="mt-4">
+              <h3 className="font-semibold mb-2">Select Platforms</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {platforms.map((platform) => (
+                  <label
+                    key={platform}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedPlatforms.includes(platform)}
+                      onChange={() => handlePlatformToggle(platform)}
+                      className="form-checkbox h-5 w-5 text-primary rounded"
+                    />
+                    <span>{platform}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end">
               <button
-                key={account._id}
-                onClick={() => handlePlatformToggle(account.platform)}
-                className={`py-2 px-4 rounded-full text-sm font-medium ${
-                  selectedPlatforms.includes(account.platform)
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-700'
-                }`}
+                onClick={handlePost}
+                disabled={isPosting || !content || selectedPlatforms.length === 0}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-2 px-4 rounded-lg disabled:bg-muted disabled:text-muted-foreground"
               >
-                {account.handle} ({account.platform})
+                {isPosting ? "Posting..." : "Post Now"}
               </button>
-            ))}
+            </div>
           </div>
-          <button
-            onClick={handleCreatePost}
-            disabled={selectedPlatforms.length === 0 || !content || isPosting}
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded self-start disabled:bg-gray-400"
-          >
-            {isPosting ? 'Posting...' : 'Post to Selected Accounts'}
-          </button>
+          <div className="mt-8 bg-card p-6 rounded-lg shadow-md">
+            <h2 className="text-2xl font-bold mb-4">Recent Posts</h2>
+            <div className="space-y-4">
+              {posts?.map((post) => (
+                <div key={post._id} className="border p-4 rounded-lg">
+                  <p className="text-muted-foreground text-sm">
+                    {new Date(post._creationTime).toLocaleString()}
+                  </p>
+                  <p className="mt-2">{post.content}</p>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {post.platforms.map((platform) => (
+                      <span
+                        key={platform}
+                        className="bg-muted px-2 py-1 rounded-full text-xs"
+                      >
+                        {platform}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {posts?.length === 0 && (
+                <p className="text-muted-foreground">No recent posts found.</p>
+              )}
+              {!posts && <p>Loading recent posts...</p>}
+            </div>
+          </div>
+        </div>
+        <div>
+          <div className="bg-card p-6 rounded-lg shadow-md">
+            <h2 className="text-2xl font-bold mb-4">Connected Accounts</h2>
+            <div className="space-y-4">
+              {accounts?.map((account) => (
+                <div
+                  key={account._id}
+                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                >
+                  <div>
+                    <p className="font-semibold">{account.handle}</p>
+                    <p className="text-sm text-muted-foreground capitalize">
+                      {account.platform}
+                    </p>
+                  </div>
+                </div>
+              ))}
+              {accounts?.length === 0 && (
+                <p className="text-muted-foreground">
+                  No social accounts connected.
+                </p>
+              )}
+              {!accounts && <p>Loading accounts...</p>}
+            </div>
+          </div>
         </div>
       </div>
     </div>
