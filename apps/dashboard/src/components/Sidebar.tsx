@@ -1,66 +1,119 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import UsageMeter from './UsageMeter';
 
-export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
-  const navItems = [
-    { label: 'Dashboard', href: '/dashboard', icon: '📊', minTier: 'FREE' },
-    { label: 'Create', href: '/create', icon: '✨', minTier: 'FREE' },
-    { label: 'Compose', href: '/compose', icon: '🎬', minTier: 'FREE' },
-    { label: 'Content Library', href: '/content', icon: '📁', minTier: 'FREE' },
-    { label: 'Schedule', href: '/schedule', icon: '📅', minTier: 'BASIC' },
-    { label: 'Analytics', href: '/analytics', icon: '📈', minTier: 'PRO' },
-    { label: 'Automations', href: '/automations', icon: '🤖', minTier: 'PRO' },
-    { label: 'Voice Studio', href: '/voices', icon: '🎙️', minTier: 'PRO' },
-    { label: 'Settings', href: '/settings', icon: '⚙️', minTier: 'FREE' }
-  ];
+const navSections = [
+  {
+    title: 'Create',
+    items: [
+      { label: 'Chat Mode', href: '/create/chat', icon: '💬' },
+      { label: 'Walkthrough', href: '/create', icon: '✨' },
+    ],
+  },
+  {
+    title: 'Content',
+    items: [
+      { label: 'Library', href: '/content', icon: '📁' },
+      { label: 'Sessions', href: '/sessions', icon: '📋' },
+      { label: 'Preview', href: '/preview', icon: '👁️' },
+      { label: 'Export', href: '/export', icon: '📤' },
+    ],
+  },
+  {
+    title: 'Distribute',
+    items: [
+      { label: 'Social Posting', href: '/social', icon: '📱' },
+      { label: 'Workflows', href: '/workflows', icon: '🔄' },
+    ],
+  },
+  {
+    title: 'Studio',
+    items: [
+      { label: 'Voice Studio', href: '/voice', icon: '🎙️' },
+      { label: 'Compose Video', href: '/compose', icon: '🎬' },
+    ],
+  },
+  {
+    title: 'Insights',
+    items: [
+      { label: 'Analytics', href: '/analytics', icon: '📈' },
+      { label: 'Dashboard', href: '/dashboard', icon: '📊' },
+    ],
+  },
+];
 
-  const tiers = ['FREE', 'STARTER', 'BASIC', 'PRO', 'BUSINESS', 'AGENCY'];
-  const userTierIndex = tiers.indexOf(userTier);
+export default function Sidebar({ userTier = 'FREE', usage = {} }: any) {
+  const pathname = usePathname();
 
   return (
-    <div className="w-60 h-screen bg-slate-900 border-r border-white/[0.07] text-slate-100 p-6 flex flex-col fixed left-0 top-0">
-      <div className="text-xl font-bold mb-10 flex items-center gap-2">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-white font-bold text-base shadow-[0_0_16px_rgba(139,92,246,0.5)]">
-          S
-        </div>
-        <span className="text-slate-100 tracking-tight">SocialEngine</span>
+    <div className="w-60 h-screen bg-slate-900 border-r border-white/[0.07] text-slate-100 p-4 flex flex-col fixed left-0 top-0 z-40">
+      <div className="px-2 mb-6">
+        <Link href="/dashboard" className="text-xl font-bold flex items-center gap-2 no-underline text-slate-100 hover:opacity-90">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-white font-bold text-base shadow-[0_0_16px_rgba(139,92,246,0.5)]">
+            S
+          </div>
+          <span className="tracking-tight">SocialEngine</span>
+        </Link>
       </div>
 
-      <nav className="flex-1 flex flex-col gap-1">
-        {navItems.map(item => {
-          const isLocked = tiers.indexOf(item.minTier) > userTierIndex;
-          return (
-            <a
-              key={item.label}
-              href={isLocked ? '#' : item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm no-underline transition-colors ${
-                isLocked
-                  ? 'text-slate-600 cursor-not-allowed'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-white/5 cursor-pointer'
-              }`}
-            >
-              <span>{item.icon}</span>
-              <span className="flex-1">{item.label}</span>
-              {isLocked && <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{item.minTier}</span>}
-            </a>
-          );
-        })}
+      <nav className="flex-1 overflow-y-auto">
+        {navSections.map((section) => (
+          <div key={section.title} className="mb-3">
+            <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-3 mb-1">
+              {section.title}
+            </div>
+            {section.items.map((item) => {
+              const isActive = pathname === item.href ||
+                (item.href !== '/create' && pathname?.startsWith(item.href + '/'));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm no-underline transition-colors ${
+                    isActive
+                      ? 'bg-indigo-600/80 text-white font-medium shadow-sm'
+                      : 'text-slate-400 hover:text-slate-100 hover:bg-white/5'
+                  }`}
+                >
+                  <span className="text-base">{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
-      <div className="mt-auto pt-6 border-t border-white/[0.07]">
-        <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Usage</h4>
-        <UsageMeter label="AI Captions" used={usage.captions || 0} limit={usage.captionLimit || 5} />
-        <UsageMeter label="Video Gen" used={usage.videos || 0} limit={usage.videoLimit || 1} />
+      <div className="mt-auto pt-4 border-t border-white/[0.07]">
+        <div className="mb-3">
+          <UsageMeter label="AI Captions" used={usage.captions || 0} limit={usage.captionLimit || 5} />
+          <UsageMeter label="Video Gen" used={usage.videos || 0} limit={usage.videoLimit || 1} />
+        </div>
 
-        <div className="mt-4 p-4 bg-white/5 rounded-xl border border-white/[0.07] text-center">
+        <Link
+          href="/settings"
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm no-underline transition-colors ${
+            pathname === '/settings'
+              ? 'bg-indigo-600/80 text-white'
+              : 'text-slate-400 hover:text-slate-100 hover:bg-white/5'
+          }`}
+        >
+          <span>⚙️</span>
+          <span>Settings</span>
+        </Link>
+
+        <div className="mt-2 p-3 bg-white/5 rounded-xl border border-white/[0.07] text-center">
           {userTier === 'FREE' ? (
             <>
-              <p className="text-xs text-slate-400 mb-3">Upgrade for more features</p>
-              <a
+              <p className="text-xs text-slate-400 mb-2">Upgrade for more features</p>
+              <Link
                 href="/pricing"
                 className="block py-2 px-4 rounded-lg text-sm font-semibold text-white bg-gradient-to-r from-purple-500 to-cyan-500 hover:opacity-90 transition-opacity no-underline shadow-[0_0_20px_rgba(139,92,246,0.3)]"
               >
                 Upgrade Now
-              </a>
+              </Link>
             </>
           ) : (
             <div className="text-sm text-slate-400">
