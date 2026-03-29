@@ -5,10 +5,12 @@
  *
  * Asset gallery with multi-select, JSON export download, and n8n webhook push.
  * Shows last 5 exports at the bottom.
+ *
+ * Functional implementation with real Convex data and export actions.
  */
 
 import { useState } from 'react'
-import { useAuth } from '@clerk/nextjs'
+import { useUser } from '@clerk/nextjs'
 import { useQuery } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
 import { AssetGallery } from '@/components/AssetGallery'
@@ -25,8 +27,8 @@ const mapJobToAsset = (job: Doc<'generationJobs'>): AssetGalleryItem => {
     id: job._id,
     name: job.topic,
     model: job.model,
-    createdAt: new Date(job.createdAt).toISOString(),
-    generationMs: job.completedAt ? job.completedAt - job.createdAt : undefined,
+    createdAt: new Date(job._creationTime).toISOString(),
+    generationMs: job.completedAt ? job.completedAt - job._creationTime : undefined,
   }
 
   // FIR-1317: `result` is a flexible `any` field.
@@ -77,9 +79,10 @@ interface ExportRecord {
 // ── Export page ───────────────────────────────────────────────────────────────
 
 export default function ExportPage() {
-  const { userId } = useAuth()
+  const { user } = useUser()
+  const userId = user?.id
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [exporting, setExporting] = useState(false)
+  const [isDownloadingJson, setIsDownloadingJson] = useState(false)
   const [webhookLoading, setWebhookLoading] = useState(false)
   const [exportHistory, setExportHistory] = useState<ExportRecord[]>([])
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -87,21 +90,61 @@ export default function ExportPage() {
   const generationJobs = useQuery(api.generationJobs.list, userId ? { userId } : 'skip')
   const assets = generationJobs?.map(mapJobToAsset)
 
+  const selectedAsset =
+    assets && selectedIds.length === 1 ? assets.find((a) => a.id === selectedIds[0]) : undefined
+
+  const isTextAssetSelected = selectedAsset?.type === 'text'
+
   const showStatus = (type: 'success' | 'error', text: string) => {
     setStatusMessage({ type, text })
     setTimeout(() => setStatusMessage(null), 4000)
   }
 
-  // ── JSON export (simulated ZIP) ──────────────────────────────────────────
+  // ── Export actions ────────────────────────────────────────────────────────
 
-  const handleExportJson = () => {
+  const handleCopyText = () => {
+    if (!isTextAssetSelected || !selectedAsset || !('text' in selectedAsset)) return
+
+    navigator.clipboard.writeText(selectedAsset.text).then(
+      () => {
+        showStatus('success', 'Text copied to clipboard.')
+      },
+      () => {
+        showStatus('error', 'Failed to copy text.')
+      }
+    )
+  }
+
+  const handleDownloadTxt = () => {
+    if (!isTextAssetSelected || !selectedAsset || !('text' in selectedAsset)) return
+
+    try {
+      const blob = new Blob([selectedAsset.text], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      const safeName = selectedAsset.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()
+      a.download = `firefly-text-${safeName.slice(0, 20)}-${Date.now()}.txt`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      showStatus('success', `Downloaded asset as a .txt file.`)
+    } catch (e) {
+      showStatus('error', 'Failed to download text file.')
+      console.error(e)
+    }
+  }
+
+  const handleDownloadJson = () => {
     if (selectedIds.length === 0) {
       showStatus('error', 'Select at least one asset to export.')
       return
     }
     if (!assets) return
 
-    setExporting(true)
+    setIsDownloadingJson(true)
 
     try {
       const selectedAssets = assets.filter((a) => selectedIds.includes(a.id))
@@ -130,7 +173,7 @@ export default function ExportPage() {
       setExportHistory((prev) => [record, ...prev].slice(0, 5))
       showStatus('success', `Exported ${selectedAssets.length} asset(s) as JSON.`)
     } finally {
-      setExporting(false)
+      setIsDownloadingJson(false)
     }
   }
 
@@ -234,11 +277,28 @@ export default function ExportPage() {
 
         <Button
           variant="outline"
-          onClick={handleExportJson}
-          disabled={exporting || selectedIds.length === 0}
+          onClick={handleCopyText}
+          disabled={!isTextAssetSelected}
           className="border-slate-600 text-slate-300 hover:text-white"
         >
-          {exporting ? 'Exporting...' : 'Export as JSON'}
+          Copy Text
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleDownloadTxt}
+          disabled={!isTextAssetSelected}
+          className="border-slate-600 text-slate-300 hover:text-white"
+        >
+          Download as .txt
+        </Button>
+
+        <Button
+          variant="outline"
+          onClick={handleDownloadJson}
+          disabled={isDownloadingJson || selectedIds.length === 0}
+          className="border-slate-600 text-slate-300 hover:text-white"
+        >
+          {isDownloadingJson ? 'Downloading...' : 'Download as JSON'}
         </Button>
 
         <Button
