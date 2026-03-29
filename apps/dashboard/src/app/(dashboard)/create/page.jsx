@@ -11,6 +11,7 @@ export default function CreatePage() {
     { id: 'tutorial', name: 'Tutorial', description: 'Teach your audience a skill or process' },
     { id: 'trending', name: 'Trending', description: 'Ride a current trend or viral moment' },
     { id: 'promo', name: 'Promotion / Sale', description: 'Drive sales with a limited-time offer' },
+    { id: 'event-promo', name: 'Event Promotion', description: 'Promote an upcoming event with details and ticket links' },
     { id: 'scratch', name: 'Start from Scratch', description: 'Full control from the beginning' }
   ];
 

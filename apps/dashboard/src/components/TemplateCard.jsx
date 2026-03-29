@@ -4,6 +4,7 @@ export default function TemplateCard({ template, onSelect }) {
     'behind-scenes': '🎬',
     'tutorial': '💡',
     'trending': '🔥',
+    'promo': '💰',
     'event-promo': '📅',
     'scratch': '➕'
   };
