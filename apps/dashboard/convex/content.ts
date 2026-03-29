@@ -9,30 +9,97 @@ export const create = mutation({
     platforms: v.array(v.string()),
     prompt: v.optional(v.string()),
     aiModel: v.optional(v.string()),
+    externalId: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    videoUrl: v.optional(v.string()),
+    audioUrl: v.optional(v.string()),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error('Not authenticated');
-    }
-
-    if (identity.subject !== args.userId) {
-      throw new Error('Not authorized');
-    }
-
+    const now = Date.now();
     const contentId = await ctx.db.insert('content', {
       userId: args.userId,
-      externalId: `content-${Date.now()}`,
+      externalId: args.externalId ?? `content-${now}`,
       text: args.text,
       status: args.status,
       platforms: args.platforms,
       prompt: args.prompt,
       aiModel: args.aiModel,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      imageUrl: args.imageUrl,
+      videoUrl: args.videoUrl,
+      audioUrl: args.audioUrl,
+      createdAt: args.createdAt ?? now,
+      updatedAt: args.updatedAt ?? now,
     });
 
     return contentId;
+  },
+});
+
+export const getByExternalId = query({
+  args: { externalId: v.string() },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("content")
+      .withIndex("by_externalId", (q) => q.eq("externalId", args.externalId))
+      .first();
+  },
+});
+
+export const update = mutation({
+  args: {
+    id: v.id("content"),
+    externalId: v.optional(v.string()),
+    text: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    videoUrl: v.optional(v.string()),
+    audioUrl: v.optional(v.string()),
+    status: v.optional(v.string()),
+    aiModel: v.optional(v.string()),
+    prompt: v.optional(v.string()),
+    platforms: v.optional(v.array(v.string())),
+    updatedAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...fields } = args;
+    await ctx.db.patch(id, { ...fields, updatedAt: fields.updatedAt ?? Date.now() });
+  },
+});
+
+export const updateByExternalId = mutation({
+  args: {
+    externalId: v.string(),
+    text: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    videoUrl: v.optional(v.string()),
+    audioUrl: v.optional(v.string()),
+    status: v.optional(v.string()),
+    aiModel: v.optional(v.string()),
+    prompt: v.optional(v.string()),
+    platforms: v.optional(v.array(v.string())),
+    updatedAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const { externalId, ...fields } = args;
+    const doc = await ctx.db
+      .query("content")
+      .withIndex("by_externalId", (q) => q.eq("externalId", externalId))
+      .first();
+    if (!doc) throw new Error(`Content not found: ${externalId}`);
+    await ctx.db.patch(doc._id, { ...fields, updatedAt: fields.updatedAt ?? Date.now() });
+    return doc._id;
+  },
+});
+
+export const remove = mutation({
+  args: { externalId: v.string() },
+  handler: async (ctx, args) => {
+    const doc = await ctx.db
+      .query("content")
+      .withIndex("by_externalId", (q) => q.eq("externalId", args.externalId))
+      .first();
+    if (doc) await ctx.db.delete(doc._id);
   },
 });
 
@@ -104,6 +171,13 @@ export const list = query({
   args: {
     userId: v.string(),
     filter: v.optional(v.string()),
+    status: v.optional(v.string()),
+    platform: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    after: v.optional(v.number()),
+    before: v.optional(v.number()),
+    search: v.optional(v.string()),
+    sortBy: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();

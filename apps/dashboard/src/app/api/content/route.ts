@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       updatedAt: nowMs,
     })
 
-    const item = toContentItem(doc as Record<string, unknown>)
+    const item = { id: doc, externalId }
 
     const ph = getPostHogServer()
     if (ph) {

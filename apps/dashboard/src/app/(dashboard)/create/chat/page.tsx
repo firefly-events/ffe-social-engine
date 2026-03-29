@@ -1,15 +1,10 @@
 'use client';
 
-<<<<<<< HEAD
 import { useChat } from 'ai/react';
 import { useState, useRef, useEffect } from 'react';
 import { useMutation } from 'convex/react';
 import { api } from '../../../../../convex/_generated/api';
 import Link from 'next/link';
-=======
-import { useState } from 'react';
-import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics';
->>>>>>> 6ba5dca (feat(FIR-1224): instrument all CTAs and key actions with PostHog tracking)
 
 const MODELS = [
   { id: 'gemini-flash', label: 'Gemini Flash', tier: 'free' },
@@ -20,7 +15,6 @@ const MODELS = [
 
 const PLATFORMS = ['tiktok','instagram','x','linkedin','youtube','facebook','threads','bluesky'];
 
-<<<<<<< HEAD
 export default function ChatPage() {
   const [model, setModel] = useState('gemini-flash');
   const [platform, setPlatform] = useState('tiktok');
@@ -29,15 +23,6 @@ export default function ChatPage() {
   const [lastSavedId, setLastSavedId] = useState(null);
   const bottomRef = useRef(null);
   const saveGeneration = useMutation(api.content.saveGeneration);
-=======
-    trackEvent(ANALYTICS_EVENTS.CHAT_MESSAGE_SENT, {
-      message_length: input.length,
-      source: 'chat_mode',
-    });
-    setMessages(prev => [...prev, { role: 'user', content: input }]);
-    setInput('');
-    setIsLoading(true);
->>>>>>> 6ba5dca (feat(FIR-1224): instrument all CTAs and key actions with PostHog tracking)
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: '/api/ai/chat',

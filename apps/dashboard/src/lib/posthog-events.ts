@@ -47,6 +47,21 @@ export const SE_EVENTS = {
   CHECKOUT_STARTED: 'se_checkout_started',
   CHECKOUT_COMPLETED: 'se_checkout_completed',
   TIER_UPGRADED: 'se_tier_upgraded', // Legacy
+
+  // CTA Tracking (FIR-1224)
+  CREATE_POST_CLICK: 'se_create_post_click',
+  QUICK_ACTION_CLICK: 'se_quick_action_click',
+  VIEW_ALL_ACTIVITY_CLICK: 'se_view_all_activity_click',
+  UPGRADE_PLAN_CLICK: 'se_upgrade_plan_click',
+  HERO_CTA_CLICK: 'se_hero_cta_click',
+  PRICING_CTA_CLICK: 'se_pricing_cta_click',
+  SIGNUP_CTA_CLICK: 'se_signup_cta_click',
+  CHAT_MESSAGE_SENT: 'se_chat_message_sent',
+
+  // Voice (FIR-1224)
+  VOICE_CLONE_CREATED: 'se_voice_clone_created',
+  VOICE_SPEECH_GENERATED: 'se_voice_speech_generated',
+  VOICE_CLONE_DELETED: 'se_voice_clone_deleted',
 } as const
 
 /** Backward compatibility alias */
@@ -90,6 +105,17 @@ export interface SEEventPropertiesMap {
   [SE_EVENTS.CHECKOUT_STARTED]: { user_id: string; target_plan: string; current_plan?: string; trigger?: string }
   [SE_EVENTS.CHECKOUT_COMPLETED]: { user_id: string; plan: string; amount_cents: number; interval: string; stripe_session_id?: string; coupon_applied?: boolean; discount_percent?: number }
   [SE_EVENTS.TIER_UPGRADED]: Record<string, unknown>
+  [SE_EVENTS.CREATE_POST_CLICK]: Record<string, unknown>
+  [SE_EVENTS.QUICK_ACTION_CLICK]: Record<string, unknown>
+  [SE_EVENTS.VIEW_ALL_ACTIVITY_CLICK]: Record<string, unknown>
+  [SE_EVENTS.UPGRADE_PLAN_CLICK]: Record<string, unknown>
+  [SE_EVENTS.HERO_CTA_CLICK]: Record<string, unknown>
+  [SE_EVENTS.PRICING_CTA_CLICK]: Record<string, unknown>
+  [SE_EVENTS.SIGNUP_CTA_CLICK]: Record<string, unknown>
+  [SE_EVENTS.CHAT_MESSAGE_SENT]: Record<string, unknown>
+  [SE_EVENTS.VOICE_CLONE_CREATED]: Record<string, unknown>
+  [SE_EVENTS.VOICE_SPEECH_GENERATED]: Record<string, unknown>
+  [SE_EVENTS.VOICE_CLONE_DELETED]: Record<string, unknown>
 }
 
 export interface SEUserTraits {

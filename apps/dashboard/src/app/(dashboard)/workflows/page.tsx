@@ -1347,29 +1347,7 @@ export default function WorkflowsPage() {
     })
   }
 
-<<<<<<< HEAD
   const handleCreate = async () => {
-=======
-  const handleToggle = (id: string) => {
-    const wf = workflows.find((w) => w.id === id)
-    const newStatus = wf?.status === 'active' ? 'paused' : 'active'
-    trackEvent(ANALYTICS_EVENTS.WORKFLOW_STATUS_TOGGLED, {
-      workflow_id: id,
-      old_status: wf?.status,
-      new_status: newStatus,
-      user_id: user?.id,
-    })
-    setWorkflows((prev) =>
-      prev.map((w) =>
-        w.id === id
-          ? { ...w, status: w.status === 'active' ? 'paused' : ('active' as WorkflowStatus) }
-          : w,
-      ),
-    )
-  }
-
-  const handleCreate = () => {
->>>>>>> 6ba5dca (feat(FIR-1224): instrument all CTAs and key actions with PostHog tracking)
     if (!newName.trim()) return
     const id = await createWorkflow({
       name: newName.trim(),

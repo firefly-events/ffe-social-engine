@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     }
 
     // Fetch the original job to reuse its params
-    const originalJob = await convexClient.query(api.generations.listJobs, {
+    const originalJob = await convexClient.query(api.generationJobs.list, {
       userId,
       limit: 50,
     });
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     };
 
     // Create a new Convex job linked to the original
-    const newJobId = await convexClient.mutation(api.generations.createJob, {
+    const newJobId = await convexClient.mutation(api.generationJobs.create, {
       userId,
       type: type,
       topic,
@@ -91,8 +91,8 @@ Output must be a valid JSON object with:
         const estimatedCost =
           (usage.promptTokens * 0.000000075) + (usage.completionTokens * 0.0000003);
 
-        await convexClient.mutation(api.generations.completeJob, {
-          id: newJobId as Id<"generationJobs">,
+        await convexClient.mutation(api.generationJobs.update, {
+          id: newJobId._id,
           result: {
             variations,
             parentJobId: jobId,
@@ -121,8 +121,8 @@ Output must be a valid JSON object with:
       }
 
       // Image/video regeneration: stub — mark completed with placeholder
-      await convexClient.mutation(api.generations.completeJob, {
-        id: newJobId as Id<"generationJobs">,
+      await convexClient.mutation(api.generationJobs.update, {
+        id: newJobId._id,
         result: {
           parentJobId: jobId,
           regenerated: true,
@@ -143,8 +143,8 @@ Output must be a valid JSON object with:
       const message = error instanceof Error ? error.message : "Regeneration failed";
       console.error("Regeneration error:", error);
 
-      await convexClient.mutation(api.generations.failJob, {
-        id: newJobId as Id<"generationJobs">,
+      await convexClient.mutation(api.generationJobs.update, {
+        id: newJobId._id,
         error: message,
       });
 

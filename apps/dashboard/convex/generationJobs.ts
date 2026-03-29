@@ -13,6 +13,8 @@ export const list = query({
   args: {
     userId: v.string(),
     sessionId: v.optional(v.string()),
+    limit: v.optional(v.number()),
+    jobId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     let items = await ctx.db

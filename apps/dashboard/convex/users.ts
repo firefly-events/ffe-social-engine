@@ -122,16 +122,6 @@ export const getUser = query({
   },
 });
 
-export const getByClerkId = query({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
-      .first();
-  },
-});
-
 export const markFreeTrialUsed = mutation({
   args: { clerkId: v.string(), feature: v.string() },
   handler: async (ctx, args) => {

@@ -28,6 +28,7 @@ export function isWithinWorkflowLimit(tier: Tier, currentCount: number): boolean
 export const STORAGE_LIMITS_BYTES: Record<Tier, number> = {
   free: 100 * 1024 * 1024,          // 100 MB
   starter: 1 * 1024 * 1024 * 1024,  // 1 GB
+  basic: 5 * 1024 * 1024 * 1024,    // 5 GB
   pro: 10 * 1024 * 1024 * 1024,     // 10 GB
   business: 50 * 1024 * 1024 * 1024, // 50 GB
   agency: Infinity,

@@ -1,17 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from 'convex/react';
-import { useUser } from '@clerk/nextjs';
 import { api } from '@convex/_generated/api';
 import type { OAuthProvider } from '../../../lib/oauth/providers';
-<<<<<<< HEAD
-import { track } from '@/lib/posthog';
-import { SE_EVENTS } from '@/lib/posthog-events';
-=======
-import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics';
->>>>>>> 6ba5dca (feat(FIR-1224): instrument all CTAs and key actions with PostHog tracking)
 
 interface PlatformMeta {
   id: OAuthProvider;
@@ -27,18 +20,9 @@ const PLATFORMS: PlatformMeta[] = [
   { id: 'youtube',   name: 'YouTube',     color: 'bg-red-600 text-white' },
 ];
 
-export default function ConnectPage() {
-  return (
-    <Suspense fallback={null}>
-      <ConnectPageInner />
-    </Suspense>
-  );
-}
-
 function ConnectPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { user } = useUser();
 
   // ── Real data from Convex ────────────────────────────────────────────────
   const socialAccounts = useQuery(api.socialAccounts.getSocialAccounts);
@@ -65,34 +49,15 @@ function ConnectPageInner() {
       const platformName =
         PLATFORMS.find((p) => p.id === connected)?.name ?? connected;
       setBanner({ type: 'success', message: `${platformName} connected successfully!` });
-<<<<<<< HEAD
-
-      if (user?.id) {
-        track(SE_EVENTS.PLATFORM_CONNECTED, {
-          user_id: user.id,
-          platform: connected,
-        });
-      }
-
-=======
-      trackEvent(ANALYTICS_EVENTS.SOCIAL_CONNECTED, {
-        platform_id: connected,
-        source: 'oauth_callback',
-      })
->>>>>>> 6ba5dca (feat(FIR-1224): instrument all CTAs and key actions with PostHog tracking)
       router.replace('/connect');
     } else if (error) {
       setBanner({ type: 'error', message: error });
       router.replace('/connect');
     }
-  }, [searchParams, router, user?.id]);
+  }, [searchParams, router]);
 
   // ── Connect (redirect to OAuth initiation) ───────────────────────────────
   const handleConnect = useCallback((platformId: OAuthProvider) => {
-    trackEvent(ANALYTICS_EVENTS.CONNECT_ACCOUNT_CLICK, {
-      platform_id: platformId,
-      source: 'connect_page',
-    })
     window.location.href = `/api/auth/${platformId}`;
   }, []);
 
@@ -113,20 +78,6 @@ function ConnectPageInner() {
         }
 
         setBanner({ type: 'success', message: `Disconnected successfully.` });
-<<<<<<< HEAD
-
-        if (user?.id) {
-          track(SE_EVENTS.PLATFORM_DISCONNECTED, {
-            user_id: user.id,
-            platform: platformId,
-          });
-        }
-=======
-        trackEvent(ANALYTICS_EVENTS.SOCIAL_DISCONNECTED, {
-          platform_id: platformId,
-          source: 'connect_page',
-        })
->>>>>>> 6ba5dca (feat(FIR-1224): instrument all CTAs and key actions with PostHog tracking)
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Disconnect failed';
         setBanner({ type: 'error', message });
@@ -134,7 +85,7 @@ function ConnectPageInner() {
         setDisconnecting(null);
       }
     },
-    [user?.id]
+    []
   );
 
   return (
@@ -246,5 +197,13 @@ function ConnectPageInner() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ConnectPage() {
+  return (
+    <Suspense fallback={<div className="py-8 text-center text-slate-400 text-sm">Loading...</div>}>
+      <ConnectPageInner />
+    </Suspense>
   );
 }

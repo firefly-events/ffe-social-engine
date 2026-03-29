@@ -10,13 +10,9 @@
  */
 
 import { useState } from 'react'
-<<<<<<< HEAD
 import { useUser } from '@clerk/nextjs'
 import { useQuery } from 'convex/react'
 import { api } from '../../../../convex/_generated/api'
-=======
-import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
->>>>>>> 6ba5dca (feat(FIR-1224): instrument all CTAs and key actions with PostHog tracking)
 import { AssetGallery } from '@/components/AssetGallery'
 import type { AssetGalleryItem } from '@/components/AssetGallery'
 import { Button } from '@/components/ui/button'
@@ -175,10 +171,6 @@ export default function ExportPage() {
         exportedAt: new Date().toISOString(),
       }
       setExportHistory((prev) => [record, ...prev].slice(0, 5))
-      trackEvent(ANALYTICS_EVENTS.EXPORT_JSON, {
-        asset_count: selectedAssets.length,
-        source: 'export_page',
-      })
       showStatus('success', `Exported ${selectedAssets.length} asset(s) as JSON.`)
     } finally {
       setIsDownloadingJson(false)
@@ -214,10 +206,6 @@ export default function ExportPage() {
         exportedAt: new Date().toISOString(),
       }
       setExportHistory((prev) => [record, ...prev].slice(0, 5))
-      trackEvent(ANALYTICS_EVENTS.EXPORT_N8N, {
-        asset_count: selectedIds.length,
-        source: 'export_page',
-      })
       showStatus('success', `Sent ${selectedIds.length} asset(s) to n8n.`)
     } catch {
       showStatus('error', 'Network error while sending to n8n.')

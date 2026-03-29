@@ -256,4 +256,11 @@ export default defineSchema({
     targetUserId: v.id("users"),
     expiresAt: v.number(),
   }).index("by_adminId", ["adminId"]),
+
+  storageQuota: defineTable({
+    userId: v.string(),
+    bytesUsed: v.number(),
+    updatedAt: v.number(),
+  }).index("by_userId", ["userId"]),
+
 });

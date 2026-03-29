@@ -89,7 +89,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return badRequest('platforms must not be empty')
     }
 
-    const updated = await convexClient.mutation(api.content.update, {
+    const updated = await convexClient.mutation(api.content.updateByExternalId, {
       externalId: id,
       ...(body.text      !== undefined && { text:      body.text.trim() }),
       ...(body.imageUrl  !== undefined && { imageUrl:  body.imageUrl }),
@@ -102,9 +102,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       updatedAt: Date.now(),
     })
 
-    if (!updated) return notFound('Content')
-
-    return ok(toContentItem(updated as Record<string, unknown>))
+    return ok({ id: updated, externalId: id })
   } catch (err) {
     console.error('[PATCH /api/content/[id]]', err)
     return serverError()
