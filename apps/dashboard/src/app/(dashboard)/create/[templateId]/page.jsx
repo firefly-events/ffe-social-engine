@@ -188,7 +188,7 @@ export default function TemplatePage() {
 
   const handleSaveAndContinue = () => {
     if (!jobId) return;
-    router.push(`/preview/${jobId}`);
+    router.push(`/preview?id=${jobId}`);
   };
 
   return (
@@ -280,7 +280,7 @@ export default function TemplatePage() {
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={handleGenerate} style={{ flex: 1, padding: '0.75rem', background: 'white', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>Regenerate</button>
                 <button style={{ flex: 1, padding: '0.75rem', background: 'white', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>Edit</button>
-                <button onClick={() => router.push(`/preview/${jobId}`)} style={{ flex: 1, padding: '0.75rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>Preview</button>
+                <button onClick={() => router.push(`/preview?id=${jobId}`)} style={{ flex: 1, padding: '0.75rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 500 }}>Preview</button>
               </div>
 
               <button

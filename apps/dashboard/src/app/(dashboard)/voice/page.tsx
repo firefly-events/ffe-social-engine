@@ -104,15 +104,15 @@ export default function VoicePage() {
   };
 
   return (
-    <div className="dark:bg-gray-900 text-white min-h-screen p-8">
+    <div className="bg-background text-foreground min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold mb-8">Voice Generation</h1>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Voice Cloning Section */}
-          <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="bg-card border border-border p-6 rounded-lg">
             <h2 className="text-2xl font-semibold mb-4">Clone a Voice</h2>
-            <p className="text-gray-400 mb-4">
+            <p className="text-muted-foreground mb-4">
               Upload an audio sample of a voice to create a clone for TTS.
             </p>
             <input
@@ -125,13 +125,13 @@ export default function VoicePage() {
             <div className="flex items-center justify-center w-full">
               <label
                 htmlFor="dropzone-file"
-                className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-600 border-dashed rounded-lg cursor-pointer bg-gray-700 hover:bg-gray-600"
+                className="flex flex-col items-center justify-center w-full h-32 border-2 border-border border-dashed rounded-lg cursor-pointer bg-gray-700 hover:bg-gray-600"
               >
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <p className="mb-2 text-sm text-gray-400">
+                  <p className="mb-2 text-sm text-muted-foreground">
                     <span className="font-semibold">Click to upload</span> or drag and drop
                   </p>
-                  <p className="text-xs text-gray-500">WAV, MP3 (MAX. 10MB)</p>
+                  <p className="text-xs text-muted-foreground/70">WAV, MP3 (MAX. 10MB)</p>
                 </div>
                 <input
                   id="dropzone-file"
@@ -149,19 +149,19 @@ export default function VoicePage() {
             <div className="space-y-4">
               {voiceClones === undefined && <div>Loading voices...</div>}
               {voiceClones?.map((clone) => (
-                <div key={clone._id} className="bg-gray-700 p-4 rounded-lg flex justify-between items-center">
+                <div key={clone._id} className="bg-muted p-4 rounded-lg flex justify-between items-center">
                   <span>{clone.name || 'Untitled Clone'}</span>
-                  <span className="text-sm text-gray-400">{new Date(clone._creationTime).toLocaleDateString()}</span>
+                  <span className="text-sm text-muted-foreground">{new Date(clone._creationTime).toLocaleDateString()}</span>
                 </div>
               ))}
-              {voiceClones?.length === 0 && <p className="text-gray-500">No voice clones found.</p>}
+              {voiceClones?.length === 0 && <p className="text-muted-foreground/70">No voice clones found.</p>}
             </div>
           </div>
 
           {/* Text-to-Speech Section */}
-          <div className="bg-gray-800 p-6 rounded-lg">
+          <div className="bg-card border border-border p-6 rounded-lg">
             <h2 className="text-2xl font-semibold mb-4">Generate Speech</h2>
-            <p className="text-gray-400 mb-4">
+            <p className="text-muted-foreground mb-4">
               Select a cloned voice and enter text to generate audio.
             </p>
             <div className="space-y-4">
