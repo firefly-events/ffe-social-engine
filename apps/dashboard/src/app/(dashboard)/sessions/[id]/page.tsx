@@ -893,18 +893,18 @@ export default function SessionDetailPage({
   return (
     <div className="flex flex-col h-full -m-4 md:-m-6 lg:-m-8">
       {/* Top bar */}
-      <div className="flex items-center gap-4 px-4 md:px-6 py-3 bg-white border-b border-gray-200 flex-shrink-0">
+      <div className="flex items-center gap-4 px-4 md:px-6 py-3 bg-background border-b border-border flex-shrink-0">
         <Link
           href="/sessions"
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
           Sessions
         </Link>
-        <span className="text-gray-300">/</span>
-        <h1 className="text-sm font-semibold text-gray-900 truncate flex-1">{session.title}</h1>
+        <span className="text-muted-foreground/40">/</span>
+        <h1 className="text-sm font-semibold text-foreground truncate flex-1">{session.title}</h1>
 
         <div className="flex items-center gap-2 ml-auto flex-shrink-0">
           {/* Compare action */}
@@ -920,28 +920,28 @@ export default function SessionDetailPage({
             </button>
           )}
           {compareNodes.length === 1 && (
-            <span className="text-xs text-slate-500 bg-slate-100 px-2.5 py-1.5 rounded-lg">
+            <span className="text-xs text-muted-foreground bg-muted px-2.5 py-1.5 rounded-lg">
               Select 1 more to compare
             </span>
           )}
 
           {/* Zoom controls */}
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
             <button
               onClick={() => setZoom((z) => Math.max(0.4, z - 0.15))}
-              className="p-1 rounded text-gray-500 hover:text-gray-800 hover:bg-white transition-colors"
+              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
               aria-label="Zoom out"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
               </svg>
             </button>
-            <span className="text-xs font-medium text-gray-600 w-9 text-center">
+            <span className="text-xs font-medium text-muted-foreground w-9 text-center">
               {Math.round(zoom * 100)}%
             </span>
             <button
               onClick={() => setZoom((z) => Math.min(2, z + 0.15))}
-              className="p-1 rounded text-gray-500 hover:text-gray-800 hover:bg-white transition-colors"
+              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-card transition-colors"
               aria-label="Zoom in"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -950,7 +950,7 @@ export default function SessionDetailPage({
             </button>
             <button
               onClick={() => setZoom(1)}
-              className="px-1.5 py-1 rounded text-gray-500 hover:text-gray-800 hover:bg-white transition-colors text-xs font-medium"
+              className="px-1.5 py-1 rounded text-muted-foreground hover:text-foreground hover:bg-card transition-colors text-xs font-medium"
               aria-label="Reset zoom"
             >
               Reset
