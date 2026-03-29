@@ -112,7 +112,7 @@ function Step1ConnectAccounts({
     <div className="space-y-6">
       <div>
         <h3 className="text-xl font-bold text-foreground mb-1">Connect your social accounts</h3>
-        <p className="text-muted-foreground text-sm">Select the platforms you want SocialEngine to post to. You can always add more later.</p>
+        <p className="text-muted-foreground text-sm">Select the platforms you want Social Engine to post to. You can always add more later.</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
