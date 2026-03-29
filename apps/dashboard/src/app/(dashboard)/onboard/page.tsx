@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import { trackEvent, ANALYTICS_EVENTS } from '@/lib/analytics'
+import { track } from '@/lib/posthog'
+import { SE_EVENTS } from '@/lib/posthog-events'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -686,25 +687,47 @@ export default function OnboardPage() {
   }
 
   function handleNext() {
-    trackEvent(ANALYTICS_EVENTS.ONBOARDING_STEP_COMPLETED, {
-      step,
-      label: STEPS.find(s => s.id === step)?.label,
-      user_id: user?.id
-    })
+    const stepSlugMap: Record<number, string> = {
+      1: 'connect_accounts',
+      2: 'brand_voice',
+      3: 'first_content',
+      4: 'first_schedule',
+    }
+
+    if (user?.id) {
+      track(SE_EVENTS.ONBOARDING_STEP_COMPLETED, {
+        user_id: user.id,
+        step: stepSlugMap[step] || 'unknown',
+        step_number: step,
+        platforms_selected: step === 1 ? Array.from(connectedPlatforms) : undefined,
+        tone_selected: step === 2 ? tone || undefined : undefined,
+      })
+    }
 
     if (step < 4) {
       setStep((s) => s + 1)
     } else {
-      trackEvent(ANALYTICS_EVENTS.SIGNUP_COMPLETE, {
-        user_id: user?.id
-      })
+      if (user?.id) {
+        track(SE_EVENTS.ONBOARDING_COMPLETED, {
+          user_id: user.id,
+          platforms_count: connectedPlatforms.size,
+          tone: tone || 'none',
+          frequency: frequency || 'none',
+        })
+      }
       setDone(true)
       setTimeout(() => router.push('/dashboard'), 3500)
     }
   }
 
   function handleSkip() {
-    if (step < 4) setStep((s) => s + 1)
+    if (step < 4) {
+      if (user?.id) {
+        // Track as completed but maybe with a flag or just the fact it was skipped
+        // For simplicity, we'll just move to the next step
+      }
+      setStep((s) => s + 1)
+    }
   }
 
   const SKIPPABLE = [1, 3]

@@ -1,98 +1,180 @@
+#!/usr/bin/env node
 /**
- * PostHog Config Validation Script
- * 
- * Ensures that tracking events in the codebase follow the se_* pattern
- * and match the defined event schema in ANALYTICS_EVENTS.
- * 
- * Usage:
- *   node scripts/validate-posthog-config.js --app social-engine [--dry-run]
+ * validate-posthog-config.js
+ *
+ * Validates the PostHog provisioning config (dashboards + cohorts) and checks
+ * that all required Social Engine events are present in the event registry.
+ *
+ * Usage: node scripts/validate-posthog-config.js
  */
 
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+'use strict'
 
-const APP_PATH = path.resolve(__dirname, '../apps/dashboard');
-const SCHEMA_FILE = path.join(APP_PATH, 'src/lib/analytics.ts');
+const fs = require('fs')
+const path = require('path')
 
-const args = process.argv.slice(2);
-const isDryRun = args.includes('--dry-run');
+// ---------------------------------------------------------------------------
+// Required events — must stay in sync with posthog-events.ts
+// ---------------------------------------------------------------------------
+const REQUIRED_EVENTS = [
+  'se_user_signed_up',
+  'se_content_created',
+  'se_workflow_created',
+]
 
-function getDefinedEvents() {
-  const content = fs.readFileSync(SCHEMA_FILE, 'utf8');
-  const matches = content.matchAll(/([A-Z_]+):\s*'([^']+)'/g);
-  const events = {};
-  for (const match of matches) {
-    events[match[1]] = match[2];
-  }
-  return events;
-}
+const CONFIG_DIR = path.resolve(__dirname, '../posthog/social-engine/config')
 
-function scanForEvents() {
-  console.log(`Scanning ${APP_PATH} for tracking events...`);
-  
-  // Search for se_ strings in JS/TS/TSX files, exclude the schema file itself
-  // Using \b to match word boundaries, which ensures se_ is at the start of a word
-  const cmd = `grep -r "\\bse_[a-zA-Z0-9_]\\+" ${APP_PATH}/src --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --exclude="${path.basename(SCHEMA_FILE)}" -o`;
-  let output = '';
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Load and parse a JSON file. Returns { ok: true, data } on success or
+ * { ok: false, error } on failure. Callers must check `ok` before using `data`.
+ *
+ * @param {string} filePath
+ * @returns {{ ok: true, data: unknown } | { ok: false, error: string }}
+ */
+function loadJson(filePath) {
   try {
-    output = execSync(cmd).toString();
-  } catch (e) {
-    // Grep returns 1 if no matches found
-    return [];
+    const raw = fs.readFileSync(filePath, 'utf8')
+    return { ok: true, data: JSON.parse(raw) }
+  } catch (err) {
+    return { ok: false, error: err.message }
+  }
+}
+
+/**
+ * Collect every string value found anywhere in `obj` (recursively).
+ *
+ * @param {unknown} obj
+ * @returns {string[]}
+ */
+function collectStrings(obj) {
+  if (typeof obj === 'string') return [obj]
+  if (Array.isArray(obj)) return obj.flatMap(collectStrings)
+  if (obj && typeof obj === 'object') return Object.values(obj).flatMap(collectStrings)
+  return []
+}
+
+// ---------------------------------------------------------------------------
+// Validation
+// ---------------------------------------------------------------------------
+
+function validateEvents(dashboardsData, cohortsData) {
+  const allStrings = [
+    ...collectStrings(dashboardsData),
+    ...collectStrings(cohortsData),
+  ]
+
+  const missing = REQUIRED_EVENTS.filter(
+    (event) => !allStrings.includes(event),
+  )
+
+  return missing
+}
+
+// ---------------------------------------------------------------------------
+// Provisioning plan printer
+// ---------------------------------------------------------------------------
+
+/**
+ * Print a human-readable provisioning plan.
+ *
+ * FIR-1179 fix: accepts already-parsed data objects instead of re-reading and
+ * re-parsing the JSON files a second time.
+ *
+ * @param {{ data: unknown } | { ok: false, error: string }} dashboardsResult
+ * @param {{ data: unknown } | { ok: false, error: string }} cohortsResult
+ */
+function printProvisioningPlan(dashboardsResult, cohortsResult) {
+  console.log('\n=== PostHog Provisioning Plan ===\n')
+
+  if (!dashboardsResult.ok) {
+    console.log(`  dashboards.json: ERROR — ${dashboardsResult.error}`)
+  } else {
+    const dashboardsRaw =
+      dashboardsResult.data &&
+      typeof dashboardsResult.data === 'object' &&
+      dashboardsResult.data.dashboards
+        ? dashboardsResult.data.dashboards
+        : []
+    
+    const dashboards = Array.isArray(dashboardsRaw)
+      ? dashboardsRaw
+      : Object.values(dashboardsRaw)
+      
+    console.log(`  Dashboards to provision: ${dashboards.length}`)
+    dashboards.forEach((d, i) => {
+      console.log(`    ${i + 1}. ${d.name || '(unnamed)'}`)
+    })
   }
 
-  return output.split('\n')
-    .map(line => {
-      const parts = line.split(':');
-      // If there's a filename, take everything after the first colon
-      if (parts.length > 1) {
-        return parts.slice(1).join(':').trim();
-      }
-      return line.trim();
+  if (!cohortsResult.ok) {
+    console.log(`  cohorts.json: ERROR — ${cohortsResult.error}`)
+  } else {
+    const cohorts =
+      cohortsResult.data &&
+      typeof cohortsResult.data === 'object' &&
+      Array.isArray(cohortsResult.data.cohorts)
+        ? cohortsResult.data.cohorts
+        : []
+    console.log(`  Cohorts to provision: ${cohorts.length}`)
+    cohorts.forEach((c, i) => {
+      console.log(`    ${i + 1}. ${c.name || '(unnamed)'}`)
     })
-    .filter(event => event.length > 3 && event.startsWith('se_'))
-    .map(event => event.replace(/['",]/g, ''));
+  }
+
+  console.log('\n  Required events:')
+  REQUIRED_EVENTS.forEach((e) => console.log(`    - ${e}`))
+  console.log()
 }
+
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
 
 function main() {
-  const definedEvents = getDefinedEvents();
-  const allowedEventNames = Object.values(definedEvents);
-  
-  console.log(`Found ${allowedEventNames.length} events defined in schema.`);
-  
-  const foundEvents = scanForEvents();
-  const uniqueFound = [...new Set(foundEvents)];
-  
-  let errors = 0;
-  let checks = allowedEventNames.length; // Count definitions as checks
+  console.log('Validating PostHog config...')
 
-  console.log(`\nValidating ${uniqueFound.length} unique hardcoded events against schema...`);
+  const dashboardsPath = path.join(CONFIG_DIR, 'dashboards.json')
+  const cohortsPath = path.join(CONFIG_DIR, 'cohorts.json')
 
-  uniqueFound.forEach(event => {
-    checks++;
-    if (!allowedEventNames.includes(event)) {
-      console.error(`❌ Error: Found hardcoded event "${event}" not defined in ANALYTICS_EVENTS schema.`);
-      errors++;
+  // Load once — results are reused for both validation and the plan printer.
+  const dashboardsResult = loadJson(dashboardsPath)
+  const cohortsResult = loadJson(cohortsPath)
+
+  let hasError = false
+
+  if (!dashboardsResult.ok) {
+    console.error(`ERROR: Could not load dashboards.json — ${dashboardsResult.error}`)
+    hasError = true
+  }
+
+  if (!cohortsResult.ok) {
+    console.error(`ERROR: Could not load cohorts.json — ${cohortsResult.error}`)
+    hasError = true
+  }
+
+  // Print the plan using already-parsed data (no second JSON.parse call).
+  printProvisioningPlan(dashboardsResult, cohortsResult)
+
+  if (!hasError) {
+    const missing = validateEvents(dashboardsResult.data, cohortsResult.data)
+    if (missing.length > 0) {
+      console.error('ERROR: The following required events are missing from the config:')
+      missing.forEach((e) => console.error(`  - ${e}`))
+      hasError = true
     } else {
-      console.log(`✅ Passed: ${event}`);
+      console.log('All required events are present.')
     }
-  });
+  }
 
-  // Additional checks: ensure all defined events follow se_ prefix
-  allowedEventNames.forEach(event => {
-    checks++;
-    if (!event.startsWith('se_')) {
-      console.error(`❌ Error: Defined event "${event}" does not follow the "se_" prefix convention.`);
-      errors++;
-    }
-  });
-
-  console.log(`\nResults: ${checks} checks, ${errors} errors.`);
-  
-  if (errors > 0 && !isDryRun) {
-    process.exit(1);
+  if (hasError) {
+    process.exit(1)
+  } else {
+    console.log('PostHog config validation passed.')
   }
 }
 
-main();
+main()

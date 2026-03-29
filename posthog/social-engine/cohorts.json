@@ -1,0 +1,203 @@
+{
+  "_meta": {
+    "description": "PostHog cohort definitions for FFE Social Engine. Used for dashboard filtering, session replay targeting, and churn/retention analysis.",
+    "ticket": "FIR-1179",
+    "created": "2026-03-25",
+    "app": "ffe-social-engine",
+    "usage": "Deploy via posthog-provision.js --app social-engine. Cohort IDs are returned by the API after creation — record them here for cross-dashboard reference."
+  },
+  "cohorts": [
+    {
+      "name": "SE Active Users",
+      "description": "Users with at least one $pageview in the last 30 days",
+      "slug": "se_active_users",
+      "filters": {
+        "properties": {
+          "type": "AND",
+          "values": [
+            {
+              "type": "OR",
+              "values": [
+                {
+                  "key": "$pageview",
+                  "type": "behavioral",
+                  "operator": "performed_event_multiple_times",
+                  "value": 1,
+                  "event_filters": [],
+                  "time_value": 30,
+                  "time_interval": "day",
+                  "seq_event_filters": []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "SE Power Users",
+      "description": "Users who have posted content 5+ times in the last 30 days",
+      "slug": "se_power_users",
+      "filters": {
+        "properties": {
+          "type": "AND",
+          "values": [
+            {
+              "type": "OR",
+              "values": [
+                {
+                  "key": "se_content_posted",
+                  "type": "behavioral",
+                  "operator": "performed_event_multiple_times",
+                  "value": 5,
+                  "event_filters": [],
+                  "time_value": 30,
+                  "time_interval": "day",
+                  "seq_event_filters": []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "SE At-Risk Users",
+      "description": "Users with no activity in the last 14 days who have historically created content (potential churn)",
+      "slug": "se_at_risk_users",
+      "filters": {
+        "properties": {
+          "type": "AND",
+          "values": [
+            {
+              "type": "OR",
+              "values": [
+                {
+                  "key": "se_content_created",
+                  "type": "behavioral",
+                  "operator": "performed_event",
+                  "value": 1,
+                  "event_filters": [],
+                  "time_value": 180,
+                  "time_interval": "day",
+                  "seq_event_filters": []
+                }
+              ]
+            },
+            {
+              "type": "OR",
+              "values": [
+                {
+                  "key": "$pageview",
+                  "type": "behavioral",
+                  "operator": "not_performed_event",
+                  "value": 1,
+                  "event_filters": [],
+                  "time_value": 14,
+                  "time_interval": "day",
+                  "seq_event_filters": []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "SE Trial Users",
+      "description": "Users who started a trial but have not completed checkout (active trialists)",
+      "slug": "se_trial_users",
+      "filters": {
+        "properties": {
+          "type": "AND",
+          "values": [
+            {
+              "type": "OR",
+              "values": [
+                {
+                  "key": "se_trial_started",
+                  "type": "behavioral",
+                  "operator": "performed_event",
+                  "value": 1,
+                  "event_filters": [],
+                  "time_value": 30,
+                  "time_interval": "day",
+                  "seq_event_filters": []
+                }
+              ]
+            },
+            {
+              "type": "OR",
+              "values": [
+                {
+                  "key": "se_checkout_completed",
+                  "type": "behavioral",
+                  "operator": "not_performed_event",
+                  "value": 1,
+                  "event_filters": [],
+                  "time_value": 365,
+                  "time_interval": "day",
+                  "seq_event_filters": []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "SE Converted Users",
+      "description": "Users who have completed checkout at least once (paying customers)",
+      "slug": "se_converted_users",
+      "filters": {
+        "properties": {
+          "type": "AND",
+          "values": [
+            {
+              "type": "OR",
+              "values": [
+                {
+                  "key": "se_checkout_completed",
+                  "type": "behavioral",
+                  "operator": "performed_event",
+                  "value": 1,
+                  "event_filters": [],
+                  "time_value": 730,
+                  "time_interval": "day",
+                  "seq_event_filters": []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "SE Churned Users",
+      "description": "Users who cancelled their subscription in the last 30 days",
+      "slug": "se_churned_users",
+      "filters": {
+        "properties": {
+          "type": "AND",
+          "values": [
+            {
+              "type": "OR",
+              "values": [
+                {
+                  "key": "se_subscription_cancelled",
+                  "type": "behavioral",
+                  "operator": "performed_event",
+                  "value": 1,
+                  "event_filters": [],
+                  "time_value": 30,
+                  "time_interval": "day",
+                  "seq_event_filters": []
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
