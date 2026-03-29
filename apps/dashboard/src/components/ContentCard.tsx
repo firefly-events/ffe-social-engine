@@ -1,60 +1,31 @@
-export default function ContentCard({ title, type, status, date, thumbnail }: any) {
-  const statusColors = {
-    'Draft': { bg: '#eee', text: '#666' },
-    'Scheduled': { bg: '#fff7e6', text: '#fa8c16' },
-    'Posted': { bg: '#f6ffed', text: '#52c41a' },
-    'Failed': { bg: '#fff1f0', text: '#f5222d' }
-  };
+const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
+  Draft: { bg: 'bg-muted', text: 'text-muted-foreground' },
+  Scheduled: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-400' },
+  Posted: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400' },
+  Failed: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-400' },
+};
 
-  const style = statusColors[status] || statusColors.Draft;
+export default function ContentCard({ title, type, status, date, thumbnail }: any) {
+  const style = STATUS_STYLES[status] || STATUS_STYLES.Draft;
 
   return (
-    <div style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '1rem', 
-      padding: '1rem', 
-      backgroundColor: 'white', 
-      borderRadius: '8px', 
-      border: '1px solid #eee',
-      marginBottom: '0.75rem'
-    }}>
-      <div style={{ 
-        width: '60px', 
-        height: '60px', 
-        borderRadius: '6px', 
-        backgroundColor: '#eee',
-        backgroundImage: thumbnail ? `url(${thumbnail})` : 'none',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        flexShrink: 0
-      }} />
-      
-      <div style={{ flexGrow: 1 }}>
-        <div style={{ fontWeight: '600', marginBottom: '0.25rem' }}>{title}</div>
-        <div style={{ fontSize: '0.8rem', color: '#999' }}>{type} • {date}</div>
+    <div className="flex items-center gap-4 p-4 bg-card rounded-lg border border-border mb-3">
+      <div
+        className="w-[60px] h-[60px] rounded-md bg-muted flex-shrink-0 bg-cover bg-center"
+        style={thumbnail ? { backgroundImage: `url(${thumbnail})` } : undefined}
+      />
+
+      <div className="flex-grow">
+        <div className="font-semibold text-foreground mb-1">{title}</div>
+        <div className="text-sm text-muted-foreground">{type} &bull; {date}</div>
       </div>
-      
-      <div style={{ 
-        padding: '0.2rem 0.6rem', 
-        borderRadius: '4px', 
-        fontSize: '0.75rem', 
-        fontWeight: 'bold',
-        backgroundColor: style.bg,
-        color: style.text
-      }}>
+
+      <div className={`px-2.5 py-1 rounded text-xs font-bold ${style.bg} ${style.text}`}>
         {status}
       </div>
-      
-      <button style={{ 
-        background: 'none', 
-        border: 'none', 
-        cursor: 'pointer', 
-        fontSize: '1.2rem', 
-        color: '#ccc',
-        padding: '0.5rem'
-      }}>
-        ⋮
+
+      <button className="bg-transparent border-none cursor-pointer text-xl text-muted-foreground/50 hover:text-muted-foreground p-2">
+        &#x22EE;
       </button>
     </div>
   );

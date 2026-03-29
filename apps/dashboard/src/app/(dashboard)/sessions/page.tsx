@@ -33,8 +33,8 @@ const STATUS_CONFIG: Record<
   { label: string; bg: string; text: string }
 > = {
   active: { label: 'Active', bg: 'bg-emerald-900/50', text: 'text-emerald-400' },
-  archived: { label: 'Archived', bg: 'bg-slate-800', text: 'text-slate-500' },
-  draft: { label: 'Draft', bg: 'bg-slate-700', text: 'text-slate-300' },
+  archived: { label: 'Archived', bg: 'bg-muted', text: 'text-muted-foreground' },
+  draft: { label: 'Draft', bg: 'bg-muted', text: 'text-muted-foreground' },
   approved: { label: 'Approved', bg: 'bg-emerald-900/50', text: 'text-emerald-400' },
   posted: { label: 'Posted', bg: 'bg-purple-900/50', text: 'text-purple-300' },
 }
@@ -63,7 +63,7 @@ function SessionCard({ session }: { session: Doc<"contentSessions"> }) {
   return (
     <Link
       href={`/sessions/${session._id}`}
-      className="block group bg-white rounded-xl border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all duration-150 overflow-hidden"
+      className="block group bg-card rounded-xl border border-border hover:border-purple-400 hover:shadow-md transition-all duration-150 overflow-hidden"
     >
       {/* Colored top bar based on primary platform */}
       <div
@@ -75,10 +75,10 @@ function SessionCard({ session }: { session: Doc<"contentSessions"> }) {
       <div className="p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 text-sm leading-snug group-hover:text-purple-700 transition-colors line-clamp-2">
+            <h3 className="font-semibold text-foreground text-sm leading-snug group-hover:text-purple-500 transition-colors line-clamp-2">
               {session.name}
             </h3>
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Updated {relativeTime(session.updatedAt)}
             </p>
           </div>
@@ -88,21 +88,21 @@ function SessionCard({ session }: { session: Doc<"contentSessions"> }) {
         {/* Platform dots */}
         <div className="flex items-center gap-1.5 mt-3">
           {session.platform && <PlatformDot platform={session.platform} />}
-          <span className="text-xs text-gray-400 ml-1">
+          <span className="text-xs text-muted-foreground ml-1">
             {session.platform}
           </span>
         </div>
 
         {/* Branch preview + meta */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
           <div className="flex gap-4 text-right">
             <div>
-              <div className="text-lg font-bold text-gray-900">1</div>
-              <div className="text-xs text-gray-400">versions</div>
+              <div className="text-lg font-bold text-foreground">1</div>
+              <div className="text-xs text-muted-foreground">versions</div>
             </div>
             <div>
-              <div className="text-lg font-bold text-gray-900">1</div>
-              <div className="text-xs text-gray-400">
+              <div className="text-lg font-bold text-foreground">1</div>
+              <div className="text-xs text-muted-foreground">
                 fork
               </div>
             </div>
@@ -117,9 +117,9 @@ function SessionCard({ session }: { session: Doc<"contentSessions"> }) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mb-4">
+      <div className="w-16 h-16 rounded-2xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mb-4">
         <svg
-          className="w-8 h-8 text-purple-400"
+          className="w-8 h-8 text-purple-500"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -128,8 +128,8 @@ function EmptyState() {
           <path strokeLinecap="round" strokeLinejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
         </svg>
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-1">No sessions yet</h3>
-      <p className="text-sm text-gray-500 max-w-xs">
+      <h3 className="text-lg font-semibold text-foreground mb-1">No sessions yet</h3>
+      <p className="text-sm text-muted-foreground max-w-xs">
         Sessions let you branch and compare content variations. Start by creating content.
       </p>
       <Link
@@ -171,8 +171,8 @@ export default function SessionsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Sessions</h2>
-          <p className="text-gray-500 mt-0.5 text-sm">
+          <h2 className="text-2xl font-bold text-foreground">Sessions</h2>
+          <p className="text-muted-foreground mt-0.5 text-sm">
             Branch, compare, and merge your content variations.
           </p>
         </div>
@@ -194,10 +194,10 @@ export default function SessionsPage() {
       </div>
 
       {/* Concept callout */}
-      <div className="rounded-xl bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-100 px-5 py-4 flex gap-4 items-start">
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center mt-0.5">
+      <div className="rounded-xl bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 border border-purple-200 dark:border-purple-800 px-5 py-4 flex gap-4 items-start">
+        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center mt-0.5">
           <svg
-            className="w-4 h-4 text-purple-600"
+            className="w-4 h-4 text-purple-600 dark:text-purple-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -207,8 +207,8 @@ export default function SessionsPage() {
           </svg>
         </div>
         <div>
-          <p className="text-sm font-semibold text-purple-900">Content Branching</p>
-          <p className="text-xs text-purple-700 mt-0.5 leading-relaxed">
+          <p className="text-sm font-semibold text-purple-900 dark:text-purple-300">Content Branching</p>
+          <p className="text-xs text-purple-700 dark:text-purple-400 mt-0.5 leading-relaxed">
             Fork any content version, explore different AI models or tones, then compare results side-by-side and merge the winner back to your main branch.
           </p>
         </div>
@@ -219,7 +219,7 @@ export default function SessionsPage() {
         {/* Search */}
         <div className="relative flex-1 max-w-sm">
           <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -232,20 +232,20 @@ export default function SessionsPage() {
             placeholder="Search sessions..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent placeholder:text-gray-400"
+            className="w-full pl-9 pr-4 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent placeholder:text-muted-foreground"
           />
         </div>
 
         {/* Status filter */}
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 self-start sm:self-auto">
+        <div className="flex gap-1 bg-muted rounded-xl p-1 self-start sm:self-auto">
           {FILTER_OPTIONS.map((opt) => (
             <button
               key={opt.id}
               onClick={() => setFilter(opt.id)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 filter === opt.id
-                  ? 'bg-white text-gray-900 shadow-sm font-semibold'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-card text-foreground shadow-sm font-semibold'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {opt.label}
@@ -256,7 +256,6 @@ export default function SessionsPage() {
 
       {/* Grid */}
       {!filtered ? (
-        // TODO: Add a loading spinner
         <div />
       ) : filtered.length === 0 ? (
         <EmptyState />
@@ -269,13 +268,13 @@ export default function SessionsPage() {
       )}
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 pt-2 border-t border-gray-100">
-        <p className="text-xs text-gray-400 font-medium mr-2 self-center">Legend:</p>
+      <div className="flex flex-wrap gap-4 pt-2 border-t border-border">
+        <p className="text-xs text-muted-foreground font-medium mr-2 self-center">Legend:</p>
         {(Object.entries(STATUS_CONFIG) as [string, typeof STATUS_CONFIG[string]][]).map(
           ([key, cfg]) => (
             <span key={key} className="flex items-center gap-1.5">
               <span className={`w-2 h-2 rounded-full ${cfg.bg}`} />
-              <span className="text-xs text-gray-500">{cfg.label}</span>
+              <span className="text-xs text-muted-foreground">{cfg.label}</span>
             </span>
           )
         )}

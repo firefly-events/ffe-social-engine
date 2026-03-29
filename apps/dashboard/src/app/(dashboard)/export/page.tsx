@@ -218,12 +218,12 @@ export default function ExportPage() {
 
   const renderContent = () => {
     if (assets === undefined) {
-      return <div className="text-center text-slate-500 py-16">Loading assets...</div>
+      return <div className="text-center text-muted-foreground py-16">Loading assets...</div>
     }
     if (assets.length === 0) {
       return (
-        <div className="text-center text-slate-500 py-16">
-          <h3 className="text-lg font-semibold text-slate-300 mb-2">No Assets Generated Yet</h3>
+        <div className="text-center text-muted-foreground py-16">
+          <h3 className="text-lg font-semibold text-foreground mb-2">No Assets Generated Yet</h3>
           <p>
             Use the features in the sidebar to generate content, and it will appear here ready for
             export.
@@ -244,8 +244,8 @@ export default function ExportPage() {
     <div className="max-w-5xl mx-auto py-8 px-4 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-white mb-1">Export Assets</h1>
-        <p className="text-slate-400">
+        <h1 className="text-3xl font-bold text-foreground mb-1">Export Assets</h1>
+        <p className="text-muted-foreground">
           Select generated content, download as JSON, or send directly to your n8n automation.
         </p>
       </div>
@@ -271,7 +271,7 @@ export default function ExportPage() {
               {selectedIds.length} asset{selectedIds.length > 1 ? 's' : ''} selected
             </Badge>
           ) : (
-            <span className="text-slate-500 text-sm">No assets selected</span>
+            <span className="text-muted-foreground text-sm">No assets selected</span>
           )}
         </div>
 
@@ -279,7 +279,7 @@ export default function ExportPage() {
           variant="outline"
           onClick={handleCopyText}
           disabled={!isTextAssetSelected}
-          className="border-slate-600 text-slate-300 hover:text-white"
+          className="border-border text-muted-foreground hover:text-foreground"
         >
           Copy Text
         </Button>
@@ -287,7 +287,7 @@ export default function ExportPage() {
           variant="outline"
           onClick={handleDownloadTxt}
           disabled={!isTextAssetSelected}
-          className="border-slate-600 text-slate-300 hover:text-white"
+          className="border-border text-muted-foreground hover:text-foreground"
         >
           Download as .txt
         </Button>
@@ -296,7 +296,7 @@ export default function ExportPage() {
           variant="outline"
           onClick={handleDownloadJson}
           disabled={isDownloadingJson || selectedIds.length === 0}
-          className="border-slate-600 text-slate-300 hover:text-white"
+          className="border-border text-muted-foreground hover:text-foreground"
         >
           {isDownloadingJson ? 'Downloading...' : 'Download as JSON'}
         </Button>
@@ -315,13 +315,13 @@ export default function ExportPage() {
       {renderContent()}
 
       {/* Export history */}
-      <Card className="bg-slate-900 border-slate-700">
+      <Card className="bg-card border-border">
         <CardHeader>
-          <CardTitle className="text-slate-200 text-base">Recent Exports</CardTitle>
+          <CardTitle className="text-foreground text-base">Recent Exports</CardTitle>
         </CardHeader>
         <CardContent>
           {exportHistory.length === 0 ? (
-            <p className="text-slate-500 text-sm py-4 text-center">
+            <p className="text-muted-foreground text-sm py-4 text-center">
               No exports yet. Select assets above and export.
             </p>
           ) : (
@@ -329,17 +329,17 @@ export default function ExportPage() {
               {exportHistory.map((record) => (
                 <div
                   key={record.id}
-                  className="flex items-center justify-between py-2 border-b border-slate-800 last:border-0"
+                  className="flex items-center justify-between py-2 border-b border-border last:border-0"
                 >
                   <div className="flex items-center gap-3">
                     <Badge variant={record.format === 'webhook' ? 'purple' : 'gray'}>
                       {record.format === 'webhook' ? 'n8n' : 'JSON'}
                     </Badge>
-                    <span className="text-sm text-slate-300">
+                    <span className="text-sm text-foreground">
                       {record.assetCount} asset{record.assetCount !== 1 ? 's' : ''}
                     </span>
                   </div>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted-foreground">
                     {new Date(record.exportedAt).toLocaleTimeString()}
                   </span>
                 </div>

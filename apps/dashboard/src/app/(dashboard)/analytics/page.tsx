@@ -75,15 +75,15 @@ function MetricTile({
   return (
     <div className={`card p-5 relative overflow-hidden ${locked ? 'opacity-60' : ''}`}>
       {locked && (
-        <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-xl">
-          <svg className="w-5 h-5 text-gray-400 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <div className="absolute inset-0 bg-background/70 backdrop-blur-sm flex flex-col items-center justify-center z-10 rounded-xl">
+          <svg className="w-5 h-5 text-muted-foreground/70 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
           <Link href="/settings#billing" className="text-xs text-purple-600 font-medium">Upgrade</Link>
         </div>
       )}
-      <div className="text-sm text-gray-500 mb-1">{label}</div>
-      <div className="text-2xl font-bold text-gray-900">{value}</div>
+      <div className="text-sm text-muted-foreground mb-1">{label}</div>
+      <div className="text-2xl font-bold text-foreground">{value}</div>
       <div className={`text-xs font-medium mt-1 ${positive ? 'text-emerald-600' : 'text-red-500'}`}>
         {positive ? '' : '-'}{delta}
       </div>
@@ -153,9 +153,9 @@ function HeatmapCell({ value }: { value: number }) {
       ? 'bg-purple-300'
       : value > 20
       ? 'bg-purple-100'
-      : 'bg-gray-100'
+      : 'bg-muted'
   const text =
-    value > 60 ? 'text-white' : value > 20 ? 'text-purple-800' : 'text-gray-400'
+    value > 60 ? 'text-white' : value > 20 ? 'text-purple-800' : 'text-muted-foreground/70'
 
   return (
     <div
@@ -178,8 +178,8 @@ export default function AnalyticsPage() {
   if (data === null) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
-        <h2 className="text-2xl font-bold text-gray-900">No data yet</h2>
-        <p className="text-gray-500 mt-2">
+        <h2 className="text-2xl font-bold text-foreground">No data yet</h2>
+        <p className="text-muted-foreground mt-2">
           Start creating content to see your analytics.
         </p>
         <Link href="/create" className="mt-4 inline-block px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
@@ -206,21 +206,21 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Analytics</h2>
-          <p className="text-gray-500 mt-0.5 text-sm">
+          <h2 className="text-2xl font-bold text-foreground">Analytics</h2>
+          <p className="text-muted-foreground mt-0.5 text-sm">
             Track your content performance across all platforms.
           </p>
         </div>
         {/* Date range */}
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+        <div className="flex gap-1 bg-muted rounded-xl p-1">
           {DATE_RANGES.map((dr) => (
             <button
               key={dr.id}
               onClick={() => setRange(dr.id)}
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
                 range === dr.id
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-gray-700'
               }`}
             >
               {dr.label}
@@ -272,10 +272,10 @@ export default function AnalyticsPage() {
       <div className="card p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="font-semibold text-gray-900">Engagement Rate — Last {range === '7d' ? '7' : range === '30d' ? '30' : '90'} Days</h3>
-            <p className="text-sm text-gray-400 mt-0.5">Impressions (solid) vs Engagements (dashed)</p>
+            <h3 className="font-semibold text-foreground">Engagement Rate — Last {range === '7d' ? '7' : range === '30d' ? '30' : '90'} Days</h3>
+            <p className="text-sm text-muted-foreground/70 mt-0.5">Impressions (solid) vs Engagements (dashed)</p>
           </div>
-          <div className="flex gap-4 text-xs text-gray-400">
+          <div className="flex gap-4 text-xs text-muted-foreground/70">
             <div className="flex items-center gap-1.5">
               <div className="w-4 h-0.5 bg-purple-500" />
               Impressions
@@ -287,17 +287,17 @@ export default function AnalyticsPage() {
           </div>
         </div>
 
-        <div className="relative h-40 bg-gray-50 rounded-xl overflow-hidden border border-gray-100">
+        <div className="relative h-40 bg-muted/50 rounded-xl overflow-hidden border border-border">
           {/* Y-axis */}
           <div className="absolute left-0 top-0 bottom-0 w-10 flex flex-col justify-between py-2 pl-2">
             {['50K', '40K', '30K', '20K', '10K', '0'].map((v) => (
-              <span key={v} className="text-xs text-gray-300">{v}</span>
+              <span key={v} className="text-xs text-muted-foreground/50">{v}</span>
             ))}
           </div>
           {/* Grid lines */}
           <div className="absolute inset-0 pl-10 flex flex-col justify-between py-2 pb-8 pointer-events-none">
             {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} className="border-t border-gray-100 w-full" />
+              <div key={i} className="border-t border-border w-full" />
             ))}
           </div>
           {/* Chart */}
@@ -308,14 +308,14 @@ export default function AnalyticsPage() {
           <div className="absolute bottom-0 left-10 right-0 flex justify-between px-2 pb-1.5">
             {range === '7d'
               ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
-                  <span key={d} className="text-xs text-gray-300">{d}</span>
+                  <span key={d} className="text-xs text-muted-foreground/50">{d}</span>
                 ))
               : range === '30d'
               ? ['Week 1', 'Week 2', 'Week 3', 'Week 4'].map((w) => (
-                  <span key={w} className="text-xs text-gray-300">{w}</span>
+                  <span key={w} className="text-xs text-muted-foreground/50">{w}</span>
                 ))
               : ['Jan', 'Feb', 'Mar'].map((m) => (
-                  <span key={m} className="text-xs text-gray-300">{m}</span>
+                  <span key={m} className="text-xs text-muted-foreground/50">{m}</span>
                 ))}
           </div>
         </div>
@@ -326,8 +326,8 @@ export default function AnalyticsPage() {
         {/* Heatmap */}
         <div className="card p-6">
           <div className="mb-4">
-            <h3 className="font-semibold text-gray-900">Best Posting Times</h3>
-            <p className="text-sm text-gray-400 mt-0.5">Engagement index by day and hour</p>
+            <h3 className="font-semibold text-foreground">Best Posting Times</h3>
+            <p className="text-sm text-muted-foreground/70 mt-0.5">Engagement index by day and hour</p>
           </div>
           <div className="overflow-x-auto">
             <div className="min-w-[340px]">
@@ -335,13 +335,13 @@ export default function AnalyticsPage() {
               <div className="grid gap-1.5 mb-1.5 [grid-template-columns:36px_repeat(6,1fr)]">
                 <div />
                 {HOURS.map((h) => (
-                  <div key={h} className="text-center text-xs text-gray-400 font-medium">{h}</div>
+                  <div key={h} className="text-center text-xs text-muted-foreground/70 font-medium">{h}</div>
                 ))}
               </div>
               {/* Data rows */}
               {DAYS.map((day) => (
                 <div key={day} className="grid gap-1.5 mb-1.5 [grid-template-columns:36px_repeat(6,1fr)]">
-                  <div className="flex items-center text-xs text-gray-500 font-medium">{day}</div>
+                  <div className="flex items-center text-xs text-muted-foreground font-medium">{day}</div>
                   {heatmap[day].map((v, i) => (
                     <HeatmapCell key={i} value={v} />
                   ))}
@@ -349,11 +349,11 @@ export default function AnalyticsPage() {
               ))}
               {/* Legend */}
               <div className="flex items-center gap-2 mt-3">
-                <span className="text-xs text-gray-400">Low</span>
-                {['bg-gray-100', 'bg-purple-100', 'bg-purple-300', 'bg-purple-400', 'bg-purple-600'].map((c) => (
+                <span className="text-xs text-muted-foreground/70">Low</span>
+                {['bg-muted', 'bg-purple-100', 'bg-purple-300', 'bg-purple-400', 'bg-purple-600'].map((c) => (
                   <div key={c} className={`w-5 h-3 rounded ${c}`} />
                 ))}
-                <span className="text-xs text-gray-400">High</span>
+                <span className="text-xs text-muted-foreground/70">High</span>
               </div>
             </div>
           </div>
@@ -362,8 +362,8 @@ export default function AnalyticsPage() {
         {/* Platform comparison bar chart */}
         <div className="card p-6">
           <div className="mb-4">
-            <h3 className="font-semibold text-gray-900">Platform Comparison</h3>
-            <p className="text-sm text-gray-400 mt-0.5">Impressions and engagement rate by platform</p>
+            <h3 className="font-semibold text-foreground">Platform Comparison</h3>
+            <p className="text-sm text-muted-foreground/70 mt-0.5">Impressions and engagement rate by platform</p>
           </div>
           <div className="space-y-4">
             {platformComparison.map((p) => {
@@ -373,11 +373,11 @@ export default function AnalyticsPage() {
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-gray-700">{p.name}</span>
                     <div className="flex items-center gap-3">
-                      <span className="text-xs text-gray-400">{(p.impressions / 1000).toFixed(0)}K impressions</span>
+                      <span className="text-xs text-muted-foreground/70">{(p.impressions / 1000).toFixed(0)}K impressions</span>
                       <span className="badge-green text-xs">{p.er}% ER</span>
                     </div>
                   </div>
-                  <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-3 bg-muted rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-500"
                       style={{ width: `${barPct}%`, backgroundColor: p.color === '#000000' ? '#374151' : p.color }}
@@ -393,12 +393,12 @@ export default function AnalyticsPage() {
       {/* Content type performance */}
       <div className="card p-6">
         <div className="mb-5">
-          <h3 className="font-semibold text-gray-900">Content Type Performance</h3>
-          <p className="text-sm text-gray-400 mt-0.5">Which formats drive the most engagement</p>
+          <h3 className="font-semibold text-foreground">Content Type Performance</h3>
+          <p className="text-sm text-muted-foreground/70 mt-0.5">Which formats drive the most engagement</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {contentTypePerformance.map((ct) => (
-            <div key={ct.type} className="bg-gray-50 rounded-xl p-4">
+            <div key={ct.type} className="bg-muted/50 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-semibold text-gray-800">{ct.type}</span>
                 <span className="badge-green">{ct.avg_er}% ER</span>
@@ -406,7 +406,7 @@ export default function AnalyticsPage() {
               <div className="h-2 bg-gray-200 rounded-full mb-3 overflow-hidden">
                 <div className={`h-full ${ct.color} ${ct.widthClass} rounded-full transition-all duration-500`} />
               </div>
-              <div className="flex justify-between text-xs text-gray-500">
+              <div className="flex justify-between text-xs text-muted-foreground">
                 <span>{ct.posts} posts</span>
                 <span>{ct.impressions} impressions</span>
               </div>
