@@ -111,8 +111,8 @@ function Step1ConnectAccounts({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xl font-bold text-gray-900 mb-1">Connect your social accounts</h3>
-        <p className="text-gray-500 text-sm">Select the platforms you want SocialEngine to post to. You can always add more later.</p>
+        <h3 className="text-xl font-bold text-foreground mb-1">Connect your social accounts</h3>
+        <p className="text-muted-foreground text-sm">Select the platforms you want SocialEngine to post to. You can always add more later.</p>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -124,12 +124,12 @@ function Step1ConnectAccounts({
               onClick={() => onToggle(p.id)}
               className={`relative flex flex-col items-center gap-3 p-5 rounded-2xl border-2 transition-all ${
                 isConnected
-                  ? 'border-purple-400 bg-purple-50 shadow-md shadow-purple-100'
-                  : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                  ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20 shadow-md shadow-purple-100'
+                  : 'border-border bg-card hover:border-input hover:shadow-sm'
               }`}
             >
               {isConnected && (
-                <div className="absolute top-2 right-2 w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                <div className="absolute top-2 right-2 w-5 h-5 bg-purple-50 dark:bg-purple-900/200 rounded-full flex items-center justify-center">
                   <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
@@ -138,7 +138,7 @@ function Step1ConnectAccounts({
               <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${p.color}`}>
                 {p.icon}
               </div>
-              <span className={`text-sm font-medium ${isConnected ? 'text-purple-700' : 'text-gray-700'}`}>
+              <span className={`text-sm font-medium ${isConnected ? 'text-purple-700' : 'text-foreground/80'}`}>
                 {p.label}
               </span>
             </button>
@@ -147,7 +147,7 @@ function Step1ConnectAccounts({
       </div>
 
       {connected.size > 0 && (
-        <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+        <div className="flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 rounded-xl px-4 py-3">
           <svg className="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
@@ -197,13 +197,13 @@ function Step2BrandVoice({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xl font-bold text-gray-900 mb-1">Set your brand voice</h3>
-        <p className="text-gray-500 text-sm">SocialEngine will match your tone across all AI-generated content.</p>
+        <h3 className="text-xl font-bold text-foreground mb-1">Set your brand voice</h3>
+        <p className="text-muted-foreground text-sm">SocialEngine will match your tone across all AI-generated content.</p>
       </div>
 
       {/* Brand name */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1.5">Brand / Organization name</label>
+        <label className="block text-sm font-medium text-foreground/80 mb-1.5">Brand / Organization name</label>
         <input
           type="text"
           className="input max-w-sm"
@@ -215,7 +215,7 @@ function Step2BrandVoice({
 
       {/* Tone selector */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">Tone of voice</label>
+        <label className="block text-sm font-medium text-foreground/80 mb-3">Tone of voice</label>
         <div className="space-y-2">
           {TONES.map((t) => (
             <button
@@ -223,16 +223,16 @@ function Step2BrandVoice({
               onClick={() => onTone(t.id)}
               className={`w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all ${
                 tone === t.id
-                  ? 'border-purple-400 bg-purple-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                  : 'border-border bg-card hover:border-input'
               }`}
             >
               <span className="text-xl leading-none">{t.emoji}</span>
               <div className="flex-1 min-w-0">
-                <div className={`text-sm font-semibold ${tone === t.id ? 'text-purple-700' : 'text-gray-900'}`}>
+                <div className={`text-sm font-semibold ${tone === t.id ? 'text-purple-700' : 'text-foreground'}`}>
                   {t.label}
                 </div>
-                <div className="text-xs text-gray-500 mt-0.5 italic">"{t.example}"</div>
+                <div className="text-xs text-muted-foreground mt-0.5 italic">"{t.example}"</div>
               </div>
               {tone === t.id && (
                 <svg className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -246,7 +246,7 @@ function Step2BrandVoice({
 
       {/* Content types */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Content focus <span className="text-gray-400 font-normal">(pick all that apply)</span></label>
+        <label className="block text-sm font-medium text-foreground/80 mb-1">Content focus <span className="text-muted-foreground/70 font-normal">(pick all that apply)</span></label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
           {CONTENT_TYPES_CONFIG.map((ct) => {
             const isSelected = contentTypes.has(ct.id)
@@ -256,14 +256,14 @@ function Step2BrandVoice({
                 onClick={() => onContentType(ct.id)}
                 className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
                   isSelected
-                    ? 'border-purple-400 bg-purple-50'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
+                    ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                    : 'border-border bg-card hover:border-input'
                 }`}
               >
                 <span className="text-lg">{ct.icon}</span>
                 <div>
-                  <div className={`text-sm font-medium ${isSelected ? 'text-purple-700' : 'text-gray-800'}`}>{ct.label}</div>
-                  <div className="text-xs text-gray-400">{ct.description}</div>
+                  <div className={`text-sm font-medium ${isSelected ? 'text-purple-700' : 'text-foreground'}`}>{ct.label}</div>
+                  <div className="text-xs text-muted-foreground/70">{ct.description}</div>
                 </div>
                 {isSelected && (
                   <svg className="w-4 h-4 text-purple-500 ml-auto flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -308,8 +308,8 @@ function Step3GenerateContent({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xl font-bold text-gray-900 mb-1">Generate your first content</h3>
-        <p className="text-gray-500 text-sm">AI-generated posts matched to your brand voice — pick one to schedule.</p>
+        <h3 className="text-xl font-bold text-foreground mb-1">Generate your first content</h3>
+        <p className="text-muted-foreground text-sm">AI-generated posts matched to your brand voice — pick one to schedule.</p>
       </div>
 
       {generating ? (
@@ -324,8 +324,8 @@ function Step3GenerateContent({
             </div>
           </div>
           <div className="text-center">
-            <p className="font-semibold text-gray-900">Generating content...</p>
-            <p className="text-sm text-gray-500 mt-1">Matching your brand voice and tone preferences</p>
+            <p className="font-semibold text-foreground">Generating content...</p>
+            <p className="text-sm text-muted-foreground mt-1">Matching your brand voice and tone preferences</p>
           </div>
         </div>
       ) : error ? (
@@ -342,25 +342,25 @@ function Step3GenerateContent({
                 onClick={() => onSelectPost(post.id)}
                 className={`w-full text-left border-2 rounded-2xl p-5 transition-all ${
                   selectedPost === post.id
-                    ? 'border-purple-400 bg-purple-50 shadow-md shadow-purple-100'
-                    : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm'
+                    ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20 shadow-md shadow-purple-100'
+                    : 'border-border bg-card hover:border-input hover:shadow-sm'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-3">
                   <div className={`w-6 h-6 rounded-md ${post.platformColor} flex items-center justify-center text-white text-xs font-bold`}>
                     {post.platform.slice(0, 2)}
                   </div>
-                  <span className="text-xs font-semibold text-gray-600">{post.platform}</span>
+                  <span className="text-xs font-semibold text-muted-foreground">{post.platform}</span>
                   <span className="badge-gray text-xs">{post.type}</span>
                   {selectedPost === post.id && (
-                    <div className="ml-auto w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
+                    <div className="ml-auto w-5 h-5 bg-purple-50 dark:bg-purple-900/200 rounded-full flex items-center justify-center">
                       <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                   )}
                 </div>
-                <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line">{post.text}</p>
+                <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{post.text}</p>
                 <p className="text-xs text-purple-600 mt-2">{post.hashtags}</p>
               </button>
             ))}
@@ -412,13 +412,13 @@ function Step4Schedule({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-xl font-bold text-gray-900 mb-1">Schedule your first post</h3>
-        <p className="text-gray-500 text-sm">Set your posting cadence and we'll build a content calendar automatically.</p>
+        <h3 className="text-xl font-bold text-foreground mb-1">Schedule your first post</h3>
+        <p className="text-muted-foreground text-sm">Set your posting cadence and we'll build a content calendar automatically.</p>
       </div>
 
       {/* Frequency */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">How often do you want to post?</label>
+        <label className="block text-sm font-medium text-foreground/80 mb-3">How often do you want to post?</label>
         <div className="space-y-2">
           {FREQUENCIES.map((f) => (
             <button
@@ -426,18 +426,18 @@ function Step4Schedule({
               onClick={() => onFrequency(f.id)}
               className={`w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all ${
                 frequency === f.id
-                  ? 'border-purple-400 bg-purple-50'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  ? 'border-purple-400 bg-purple-50 dark:bg-purple-900/20'
+                  : 'border-border bg-card hover:border-input'
               }`}
             >
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 ${
-                frequency === f.id ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600'
+                frequency === f.id ? 'bg-purple-600 text-white' : 'bg-muted text-muted-foreground'
               }`}>
                 {f.id}
               </div>
               <div>
-                <div className={`text-sm font-semibold ${frequency === f.id ? 'text-purple-700' : 'text-gray-900'}`}>{f.label}</div>
-                <div className="text-xs text-gray-500">{f.description}</div>
+                <div className={`text-sm font-semibold ${frequency === f.id ? 'text-purple-700' : 'text-foreground'}`}>{f.label}</div>
+                <div className="text-xs text-muted-foreground">{f.description}</div>
               </div>
               {frequency === f.id && (
                 <svg className="w-5 h-5 text-purple-500 ml-auto flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
@@ -451,7 +451,7 @@ function Step4Schedule({
 
       {/* Preferred days */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">Preferred posting days</label>
+        <label className="block text-sm font-medium text-foreground/80 mb-3">Preferred posting days</label>
         <div className="flex flex-wrap gap-2">
           {DAYS_LIST.map((d) => (
             <button
@@ -460,7 +460,7 @@ function Step4Schedule({
               className={`px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${
                 days.has(d)
                   ? 'border-purple-400 bg-purple-600 text-white shadow-sm'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  : 'border-border bg-card text-muted-foreground hover:border-input'
               }`}
             >
               {d}
@@ -471,7 +471,7 @@ function Step4Schedule({
 
       {/* Preferred time */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-3">Preferred posting time</label>
+        <label className="block text-sm font-medium text-foreground/80 mb-3">Preferred posting time</label>
         <div className="flex flex-wrap gap-2">
           {TIMES_LIST.map((t) => (
             <button
@@ -480,7 +480,7 @@ function Step4Schedule({
               className={`px-4 py-2 rounded-xl text-sm font-medium border-2 transition-all ${
                 time === t
                   ? 'border-purple-400 bg-purple-600 text-white shadow-sm'
-                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  : 'border-border bg-card text-muted-foreground hover:border-input'
               }`}
             >
               {t}
@@ -491,7 +491,7 @@ function Step4Schedule({
 
       {/* Summary */}
       {frequency && days.size > 0 && time && (
-        <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200 rounded-2xl p-5">
+        <div className="bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-300 dark:border-purple-700 rounded-2xl p-5">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 bg-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -499,13 +499,13 @@ function Step4Schedule({
               </svg>
             </div>
             <div>
-              <p className="font-semibold text-gray-900 text-sm">Your content calendar is ready</p>
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="font-semibold text-foreground text-sm">Your content calendar is ready</p>
+              <p className="text-xs text-muted-foreground mt-1">
                 Posting <span className="font-medium text-purple-700">{FREQUENCIES.find((f) => f.id === frequency)?.label}</span> on{' '}
                 <span className="font-medium text-purple-700">{[...days].join(', ')}</span> at{' '}
                 <span className="font-medium text-purple-700">{time}</span>
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">Your first post is queued for next {[...days][0]} at {time}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Your first post is queued for next {[...days][0]} at {time}</p>
             </div>
           </div>
         </div>
@@ -722,8 +722,8 @@ export default function OnboardPage() {
             </svg>
           </div>
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">You're all set!</h2>
-            <p className="text-gray-500 mt-2 text-lg">Your first post is queued. Welcome to SocialEngine.</p>
+            <h2 className="text-3xl font-bold text-foreground">You're all set!</h2>
+            <p className="text-muted-foreground mt-2 text-lg">Your first post is queued. Welcome to SocialEngine.</p>
           </div>
           <div className="flex flex-col items-center gap-2">
             <div className="flex gap-1">
@@ -734,7 +734,7 @@ export default function OnboardPage() {
                 />
               ))}
             </div>
-            <p className="text-sm text-gray-400">Redirecting to your dashboard...</p>
+            <p className="text-sm text-muted-foreground/70">Redirecting to your dashboard...</p>
           </div>
         </div>
       </>
@@ -745,18 +745,18 @@ export default function OnboardPage() {
     <div className="max-w-2xl mx-auto space-y-8">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Get started</h2>
-        <p className="text-gray-500 mt-0.5 text-sm">Set up SocialEngine in under 3 minutes.</p>
+        <h2 className="text-2xl font-bold text-foreground">Get started</h2>
+        <p className="text-muted-foreground mt-0.5 text-sm">Set up SocialEngine in under 3 minutes.</p>
       </div>
 
       {/* Progress bar + steps */}
       <div className="card p-6">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-gray-700">Step {step} of {STEPS.length}</span>
-            <span className="text-sm text-gray-400">{Math.round(progress)}% complete</span>
+            <span className="text-sm font-semibold text-foreground/80">Step {step} of {STEPS.length}</span>
+            <span className="text-sm text-muted-foreground/70">{Math.round(progress)}% complete</span>
           </div>
-          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-purple-600 to-pink-500 rounded-full transition-all duration-500"
               style={{ width: `${progress + (100 / STEPS.length) * (step === STEPS.length ? 1 : 0)}%` }}
@@ -777,8 +777,8 @@ export default function OnboardPage() {
                       isComplete
                         ? 'bg-purple-600 text-white shadow-sm shadow-purple-300'
                         : isActive
-                        ? 'bg-white border-2 border-purple-600 text-purple-600'
-                        : 'bg-gray-100 text-gray-400'
+                        ? 'bg-card border-2 border-purple-600 text-purple-600'
+                        : 'bg-muted text-muted-foreground/70'
                     }`}
                   >
                     {isComplete ? (
@@ -790,7 +790,7 @@ export default function OnboardPage() {
                     )}
                   </div>
                   <div className="text-center">
-                    <div className={`text-xs font-semibold leading-tight ${isActive ? 'text-purple-700' : isComplete ? 'text-gray-700' : 'text-gray-400'}`}>
+                    <div className={`text-xs font-semibold leading-tight ${isActive ? 'text-purple-700' : isComplete ? 'text-foreground/80' : 'text-muted-foreground/70'}`}>
                       {s.label}
                     </div>
                   </div>
@@ -858,7 +858,7 @@ export default function OnboardPage() {
           {SKIPPABLE.includes(step) && (
             <button
               onClick={handleSkip}
-              className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-sm text-muted-foreground/70 hover:text-muted-foreground transition-colors"
             >
               Skip for now
             </button>
