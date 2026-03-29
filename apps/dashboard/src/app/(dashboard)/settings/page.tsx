@@ -35,7 +35,20 @@ export default function SettingsPage() {
   }, []);
 
   if (!clerkUser || !convexUser) {
-    return <div className="text-foreground">Loading...</div>;
+    return (
+      <div className="animate-pulse space-y-4 p-8">
+        <div className="h-8 bg-muted rounded-lg w-1/4" />
+        <div className="flex items-center gap-4 mt-4">
+          <div className="w-16 h-16 bg-muted rounded-full" />
+          <div className="space-y-2">
+            <div className="h-4 bg-muted rounded w-32" />
+            <div className="h-3 bg-muted rounded w-48" />
+          </div>
+        </div>
+        <div className="h-20 bg-muted rounded-xl mt-6" />
+        <div className="h-20 bg-muted rounded-xl" />
+      </div>
+    );
   }
 
   return (

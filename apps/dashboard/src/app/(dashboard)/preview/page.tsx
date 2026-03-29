@@ -39,8 +39,8 @@ function PreviewPageContent() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-2xl">Loading...</div>
+      <div className="flex items-center justify-center h-full min-h-[200px]">
+        <div className="w-8 h-8 border-2 border-muted-foreground/30 border-t-purple-500 rounded-full animate-spin" />
       </div>
     );
   }
@@ -193,7 +193,7 @@ function PreviewPageContent() {
 
 export default function PreviewPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="text-2xl">Loading...</div></div>}>
+    <Suspense fallback={<div className="flex items-center justify-center h-full min-h-[200px]"><div className="w-8 h-8 border-2 border-muted-foreground/30 border-t-purple-500 rounded-full animate-spin" /></div>}>
       <PreviewPageContent />
     </Suspense>
   );
