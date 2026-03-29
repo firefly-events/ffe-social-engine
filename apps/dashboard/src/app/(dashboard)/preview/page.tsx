@@ -167,6 +167,26 @@ function PreviewPageContent() {
           )}
         </div>
       </div>
+
+      {/* Action buttons */}
+      <div className="flex gap-4 mt-8 justify-center">
+        <Link href="/social" className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+          Post to Social
+        </Link>
+        <Link href="/export" className="px-6 py-3 bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium border border-gray-200 dark:border-gray-700">
+          Export Content
+        </Link>
+        <button
+          onClick={() => {
+            if (PREVIEW_DATA?.text) {
+              navigator.clipboard.writeText(PREVIEW_DATA.text);
+            }
+          }}
+          className="px-6 py-3 bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-medium border border-gray-200 dark:border-gray-700"
+        >
+          Copy Text
+        </button>
+      </div>
     </div>
   );
 }
