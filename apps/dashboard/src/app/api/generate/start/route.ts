@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       return badRequest("Content must be between 10 and 10,000 characters.");
     }
 
-    const jobId = await convexClient.mutation(api.generations.createJob, {
+    const jobId = await convexClient.mutation(api.generationJobs.create, {
       userId,
       type: "single",
       topic: content,

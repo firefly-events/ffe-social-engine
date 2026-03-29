@@ -21,7 +21,12 @@ export default function RootLayout({
       </head>
       <body className="m-0 bg-background text-foreground antialiased">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          <ClerkProvider>
+          <ClerkProvider
+            signInUrl="/sign-in"
+            signUpUrl="/sign-up"
+            afterSignInUrl="/dashboard"
+            afterSignUpUrl="/dashboard"
+          >
             <PostHogProvider>
               <ConvexClientProvider>
                 <SentryErrorBoundary>
